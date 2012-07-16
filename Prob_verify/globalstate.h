@@ -75,8 +75,10 @@ public:
         _dist(gs._dist+1), _fifo(gs._fifo), _depth(gs._depth) {}
     GlobalState(vector<int> stateVec):_gStates(stateVec), _countVisit(1),_dist(0) {}
     GlobalState(const vector<Fsm*>& macs);
+    
     GlobalState* getChild (size_t i) { return _childs[i]; }
-    int getProb( size_t i ) { return _probs[i] ; }
+    int getProb( size_t i ) const { return _probs[i] ; }
+    int getProb() const { return _depth ; }
     //GlobalState* getGlobalState( vector<int> gs ) ;
     int getVisit() { return _countVisit ;}
     int getDistance() { return _dist;}

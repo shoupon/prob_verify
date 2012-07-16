@@ -23,8 +23,8 @@ private:
     vector<Fsm*> _macPtrs;
     vector<GSMap> _arrClass;
     vector<GSMap> _computedClass;
-    GSMap _arrFinRS;
-    GSMap _arrFinStart;
+    GSVecMap _arrFinRS;
+    GSVecMap _arrFinStart;
     GSVecMap _RS;
     GlobalState* _root ;
     int _maxClass;
@@ -32,6 +32,11 @@ private:
     int _max ; // Used to check livelock
 
     bool addToClass(GlobalState* childNode, int toClass);
+    GSVecMap::iterator find(GSVecMap& collection, GlobalState* gs);
+    GSMap::iterator find(GSMap& collection, GlobalState* gs);
+    void insert(GSVecMap& collection, GlobalState* gs) 
+    { collection.insert( GSVecMapPair(gs->getStateVec(), gs->getProb()) ); }
+    
 
 
 public:

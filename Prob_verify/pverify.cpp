@@ -71,22 +71,22 @@ void ProbVerifier::start(int maxClass)
         while( it != _arrClass[_curClass].end() ) {
             GlobalState* st = it->first ;
             if( _curClass == 0 ) { 
-                if( _RS.find(  st->getStateVec() ) != _RS.end() ) {
+                if( find(_RS, st ) != _RS.end() ) {
                     // If *ptr is a member of RS, add it to STATETABLE (_arrFinRS) 
                     // and to STATET (_arrFinStart)
-                    _arrFinRS.insert(GSMapPair(st,_curClass)) ;
-                    _arrFinStart.insert(GSMapPair(st,_curClass)) ;
+                    insert(_arrFinRS, st );
+                    insert(_arrFinStart, st);                    
                 }
             }
             else {
-                if( _arrFinStart.find(st) != _arrFinStart.end() ) {
+                if( find(_arrFinStart,st) != _arrFinStart.end() ) {
                     // st is already contained in STATET (_arrFinStart)
                     // which means st is already explored
                     _arrClass[_curClass].erase(it++);
                     continue ;
                 }
                 else {
-                    _arrFinStart.insert(GSMapPair(st,_curClass)) ;
+                    insert(_arrFinStart, st);                    
                 }
             }
             it++;
@@ -124,7 +124,7 @@ void ProbVerifier::start(int maxClass)
 #ifdef VERBOSE
                         cout << childNode->toString() << " Prob = " << prob << ", "  ;
 #endif
-                        if( _arrFinRS.find(childNode) == _arrFinRS.end() ) {
+                        if( find(_arrFinRS,childNode) == _arrFinRS.end() ) {
                             // If the child node is not already a member of STATETABLE
                             addToClass(childNode, prob);
                         }
@@ -160,4 +160,18 @@ void ProbVerifier::addRS(vector<int> rs)
     _RS.insert( GSVecMapPair(rs,0) );
     // This should be also added to GlobalState::_uniqueTable
 
+}
+
+GSVecMap::iterator ProbVerifier::find(GSVecMap& collection, GlobalState* gs)
+{
+    vector<int> vec = gs->getStateVec();
+    if( collection.begin()->first.size() != vec.size() )
+        return collection.end();
+
+    return collection.find(vec);
+}
+
+GSMap::iterator ProbVerifier::find(GSMap& collection, GlobalState* gs)
+{
+    return collection.find(gs);
 }
