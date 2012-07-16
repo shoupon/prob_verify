@@ -1,0 +1,12 @@
+NAME 	comch;
+INPUTS		receiver?ack, transmitter?msg;
+OUTPUTS		transmitter!ack, receiver!msg, timer!fail;
+INITIAL_STATE	S0;
+OTHER_STATES	S1, S2;
+TRANSITIONS	S0	: S0 WHEN (transmitter?msg,timer!fail) COST 1 LOW
+			: S0 WHEN (receiver?ack,timer!fail) COST 1 LOW
+			: S1 WHEN (transmitter?msg,nul) COST 1 HIGH
+			: S2 WHEN (receiver?ack,nul) COST 1 HIGH
+		S1	: S0 WHEN (nul,receiver!msg) COST 1 HIGH,
+		S2	: S0 WHEN (nul,transmitter!ack) COST 1 HIGH
+EOF
