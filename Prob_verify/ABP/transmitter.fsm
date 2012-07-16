@@ -1,14 +1,14 @@
 NAME 	transmitter;
-INPUTS		timer?timeout, comch?ack;
-OUTPUTS		comch!m0, timer!start, timer!cancel, comch!m1;
+INPUTS		timer?timeout, comch?ack, service?m;
+OUTPUTS		comch!m0, timer!start, timer!cancel, comch!m1, service!ready;
 INITIAL_STATE	S0;
 OTHER_STATES	S1, S2, S3, S4, S5;
-TRANSITIONS	S0	: S1 WHEN (nul,nul) COST 1 HIGH,
+TRANSITIONS	S0	: S1 WHEN (service?m,nul) COST 1 HIGH,
 		S1	: S2 WHEN (nul,comch!m0*timer!start) COST 1 HIGH,
 		S2	: S1 WHEN (timer?timeout,nul) COST 1 HIGH
-			: S3 WHEN (comch?ack,timer!cancel) COST 1 HIGH,
-		S3	: S4 WHEN (nul,nul) COST 1 HIGH,
+			: S3 WHEN (comch?ack,timer!cancel*service!ready) COST 1 HIGH,
+		S3	: S4 WHEN (service?m,nul) COST 1 HIGH,
 		S4	: S5 WHEN (nul,comch!m1*timer!start) COST 1 HIGH,
 		S5	: S4 WHEN (timer?timeout,nul) COST 1 HIGH
-			: S0 WHEN (comch?ack,timer!cancel) COST 1 HIGH
+			: S0 WHEN (comch?ack,timer!cancel*service!ready) COST 1 HIGH
 EOF
