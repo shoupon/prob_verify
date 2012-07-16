@@ -6,6 +6,8 @@
 
 #include "globalstate.h"
 
+#define VERBOSE
+
 int GlobalState::_nMacs = -1;
 vector<Fsm*> GlobalState::_machines;
 GSHash GlobalState::_uniqueTable = GSHash(15) ;
@@ -25,13 +27,14 @@ GlobalState::GlobalState(const vector<Fsm*>& macs)
 
 void GlobalState::init()
 {
+    _depth = 0;
     _gStates = vector<int>(_nMacs);
     for( size_t ii = 0 ; ii < _machines.size() ; ++ii ) {
         _gStates[ii] = _machines[ii]->getInitState()->getID() ;
     } 
-    _actives = vector<vector<int>>(_nMacs) ; 
 }       
 
+/*
 // Return if there's any activated transition in this global state
 bool GlobalState::active()
 {
@@ -54,41 +57,64 @@ Transition* GlobalState::getActive(int& macId, int& transId)
         }
     }
     return 0;
-}
+}*/
+/*
+// TODO
+void GlobalState::explore(int subject)
+{    
+    while( !_fifo.empty() ) {
+        Matching toExec = _fifo.front();
+        _fifo.pop();
+        execute(subject, &toExec);  // CHANGE, this may return plural triggered edges
+        // create childs if needed
+    }
+}*/
 
 void GlobalState::findSucc()
-{
-    Transition* transPtr ;
-    bool ac = false ;
-    int macId, transId ;
-    while( transPtr = getActive(macId, transId) ) {
-        // If there are active transitions,
-        // execute each active transition and create a new global state for each transition
-        ac = true ;
+{        
+    vector<Transition> vecTrans;
+    vector<int> subjects;
+    // Execute each null input transition and create a new global state for each transition
+    for( size_t m = 0 ; m < _machines.size() ; ++m ) {
+        State* st = _machines[m]->getState(_gStates[m]);
+        for( size_t tt = 0 ; tt < st->getNumTrans() ; ++tt ) {           
+            Transition tr = st->getTrans(tt) ;
+            if( tr.getInputMessageId() == 0 ) {
+                // null input transition
+                //child->execute(m, tt, &tr);
+                vecTrans.push_back(tr);
+                subjects.push_back(m);
+            } // if
+        } // for
+    } // for    
+          
+    for( size_t ii = 0 ; ii < vecTrans.size() ; ++ii ) {
+        // Create a clone of current global state
+        GlobalState* cc = new GlobalState(*this) ;        
         
-        execute(macId, transId, transPtr);        
-    }
+        // Execute state transition
+        cc->execute(vecTrans[ii].getId(), subjects[ii]);        
+        
+        // Push transition to be evaluated onto the queue
+        cc->addTask(vecTrans[ii], subjects[ii]);    
+        _childs.push_back(cc);
+    }    
 
-    if( !ac ) {
-        // Else, execute each null input transition and create a new global state for each transition
-        for( size_t m = 0 ; m < _machines.size() ; ++m ) {
-            State* st = _machines[m]->getState(_gStates[m]);
-            for( size_t tt = 0 ; tt < st->getNumTrans() ; ++tt ) {           
-                Transition tr = st->getTrans(tt) ;
-                if( tr.getInputMessageId() == 0 ) {
-                    // null input transition
-                    execute(m, tt, &tr);
-                    //for( size_t nOut = 0 ; nOut < tr.getNumOutLabels() ; ++nOut )
-                        
-                }
-            }
-        }                
-    }
-
+    for( size_t cIdx = 0 ; cIdx < _childs.size() ; ++cIdx ) {
+        vector<GlobalState*> ret = _childs[cIdx]->evaluate();
+        if( ret.size() > 1 ) {
+            _childs.erase(_childs.begin()+cIdx);            
+            cIdx--;
+            _childs.insert(_childs.end(), ret.begin(), ret.end());
+        }
+    }            
     
-    
+    //_fifo.push(vecTrans[0]);
+    //explore();
+           
+    recordProb();
     // Trim the list of childs    
-    //trim() ;
+    trim() ;
     // For each child global states, update their distance from initial state
     //updateTrip();
     // Create new object of found successors that are not recorded in the _uniqueTable
@@ -96,72 +122,107 @@ void GlobalState::findSucc()
     //createNodes();    
 }
 
-void GlobalState::execute(int macId, int transId, Transition* transPtr)
+vector<GlobalState*> GlobalState::evaluate() 
+{
+    vector<Arrow> matched;
+    vector<GlobalState*> ret;
+    while( !_fifo.empty() ) {
+        // Get a task out of the queue
+        Matching match = _fifo.front();
+        OutLabel lbl = match._outLabel;
+        _fifo.pop();   
+        
+
+        if( lbl.first >= 0 ) {
+            // This label send message to another machine
+            State* st = _machines[lbl.first]->getState(_gStates[lbl.first]);
+            st->receive(match._source, lbl.second, matched);
+            
+            if( matched.size() == 1 ) {
+                Transition tr = st->getTrans(matched[0].first);
+                execute(matched[0].first, lbl.first);
+                addTask(tr, lbl.first);
+            }
+            else if( matched.size() == 0 ) {
+                continue;
+            }
+            else {
+                // Multiple transitions: non-deterministic transition
+                ret.resize(matched.size());
+                for( size_t retIdx = 0 ; retIdx < ret.size() ; ++retIdx ) {
+                    ret[retIdx] = new GlobalState(*this);
+                    Transition tr = st->getTrans(matched[retIdx].first);
+                    ret[retIdx]->execute(matched[retIdx].first, lbl.first);
+                    ret[retIdx]->addTask(tr, lbl.first);
+                }
+                return ret;
+            }
+        }
+    }
+
+    ret.push_back(this);
+    return ret;
+
+
+}
+
+void GlobalState::addTask(Transition tr, int subject)
+{   
+    for( size_t iOuts = 0 ; iOuts < tr.getNumOutLabels() ; ++iOuts ) {
+        OutLabel lbl = tr.getOutLabel(iOuts);        
+        this->_fifo.push(Matching(lbl,subject,tr.getId()));
+    }
+}
+
+/*
+void GlobalState::execute(int macId, Transition* transPtr)
 {
     vector<Arrow> matched; // Arrow = pair<int, State*>
+    vector<queue<Transition> > triggered;
     GlobalState* child = new GlobalState();  
     for( size_t ii = 0 ; ii < transPtr->getNumOutLabels() ; ++ii ) {
         // Go through all the out labels
         OutLabel lb = transPtr->getOutLabel(ii);            
         if( lb.first >= 0 ) {
-            bool set = child->setActive(lb.first, lb.second);
-            // If an edge of a state is already activated, then repeat activation of an edge
-            // results in undefined behavior. Modification to protocol specification is 
-            // suggested
-            if( !set ) {
-                cout << "Repeat activation of an edge" << endl ;
-                // TODO: print out the sequence that causes repeat activation
-            }
-            /*
             State* st = _machines[lb.first]->getState(_gStates[lb.first]);
             st->receive(macId, lb.second, matched);
-          
-            for( size_t a = 0 ; a < matched.size() ; ++a ) {
-                Transition tr = st->getTrans(matched[a].first);
-                for( size_t nLbl = 0 ; nLbl < tr.getNumOutLabels() ; ++nLbl ) {
-                    OutLabel lbl = tr.getOutLabel(nLbl);
-                    // setActive( toMachineId, messageId ):
-                    // send message 'messageId' to machine 'toMachineId'
-                    if( lbl.first >= 0 ) {
-                        bool set = child->setActive(lbl.first, lbl.second);
-                        // If an edge of a state is already activated, then repeat activation of an edge
-                        // results in undefined behavior. Modification to protocol specification is 
-                        // suggested
-                        if( !set ) {
-                            cout << "Repeat activation of an edge" << endl ;
-                            // TODO: print out the sequence that causes repeat activation
-                        }
+
+            if( matched.size() == 1 ) {
+                _fifo.push(st->getTrans(matched[0].first));
+            }
+            else if( matched.size() > 1 ) {
+                if( triggered.empty() ) {
+                    triggered.resize(matched.size());
+                    for( size_t kk = 0 ; kk < matched.size() ; ++kk ) {
+                        Transition tr = st->getTrans(matched[kk].first);
+                        triggered[kk].push(tr);
                     }
-
                 }
-            }*/
-        } // if
-    }   
+                else {
+                    size_t oriSize = triggered.size() ;
+                    size_t mm = 0 ;
+                    vector<queue<Transition> > last_triggered = triggered;
+                    triggered.reserve(matched.size()*triggered.size());
+                    for( size_t kk = 0 ; kk < matched.size() ; ++kk ) {   
+                        Transition tr = st->getTrans(matched[kk].first);
+                        while( mm%oriSize == oriSize - 1 ) {
+                            triggered[mm].push(tr);
+                            ++mm;
+                        }
+                        // Exponential growth of possible edges
+                        triggered.insert(triggered.end(), last_triggered.begin(), last_triggered.end());
+                    }
+                }
+            }
+        } // end if lb.first != 0
+    } // end for
 
-    int nextID = _machines[macId]->getState(_gStates[macId])->getNextState(transId)->getID() ;
+
+    State* curState = _machines[macId]->getState(_gStates[macId]);
+    int nextID = curState->getNextState(transPtr->getId())->getID() ;
     child->_gStates = this->_gStates;
-    child->_gStates[macId] = nextID;
-
-    // If the newly created global state is already in _uniqueTable, link the global state
-    // If not, add such global state to _uniqueTable    
-    GSHash::iterator it = _uniqueTable.find( GlobalStateHashKey(child) );
-    if( it != _uniqueTable.end() ) {
-        delete child ;
-        child = (*it).second;        
-        child->increaseVisit(this->_countVisit);                 
-    }
-    else {
-        _uniqueTable.insert( GlobalStateHashKey(child), child ) ;
-    }
-
-    int prob = 0;
-    if( !transPtr->isHigh() )
-        prob = 1;
-
-    child->updateTrip(this->_dist);
-
-    _childs.push_back( GSProb(child->_gStates, prob) );
-}
+    child->_gStates[macId] = nextID;    
+}*/
 /*
 void GlobalState::updateTrip()
 {
@@ -175,33 +236,14 @@ void GlobalState::updateTrip(int old)
     if( old + 1 < this->_dist )
         _dist = old + 1 ;
 }
-
-
    
-/*
-void GlobalState::trim() 
-{
-    // A table used to detect duplicate child global states created during findSucc()
-    GSVecHash tab ;
-
-    // Check if there are multiple identical global state. Remove the duplicate.
-    // Assign entries of GlobalState* to child list
-    for( size_t ii = 0 ; ii < _childs.size() ; ++ii ) {
-        if( !tab.insert( GlobalStateHashKey(_childs[ii].first), _childs[ii].first ) ) {
-            // If false is returned, which indicates entry is already created, then
-            // assign the created entry to _childs[ii]
-            GSVecHash::iterator it = tab.find(GlobalStateHashKey(_childs[ii].first));
-            _childs[ii].first = (*it).second  ;            
-        }
-    } 
-}*/
-     
 bool GlobalState::init(GlobalState* s) 
 {
     return _uniqueTable.insert( GlobalStateHashKey(s->_gStates), s );
 }
 
-        
+      
+/*
 GlobalState* GlobalState::getGlobalState( vector<int> gs ) 
 {   
     GSHash::iterator it = _uniqueTable.find(GlobalStateHashKey(gs)); 
@@ -209,7 +251,7 @@ GlobalState* GlobalState::getGlobalState( vector<int> gs )
         return 0 ;
     else
         return (*it).second ;
-}
+}*/
 
 string GlobalState::toString() 
 {
@@ -219,7 +261,7 @@ string GlobalState::toString()
 
     return ss.str();
 }
-
+/*
 void GlobalState::createNodes()
 {
     GSHash::iterator it;
@@ -244,4 +286,51 @@ bool GlobalState::setActive(int macId, int transId)
         return false ;
     _actives[macId].push_back(transId); 
     return true;
-} 
+} */
+
+void GlobalState::trim()
+{
+    for( size_t ii = 0 ; ii < _childs.size() ; ++ii ) {
+        // If the newly created global state is already in _uniqueTable, link the global state
+        // If not, add such global state to _uniqueTable    
+        GSHash::iterator it = _uniqueTable.find( GlobalStateHashKey(_childs[ii]) );
+        if( it != _uniqueTable.end() ) {
+            delete _childs[ii] ;
+            _childs[ii] = (*it).second;        
+            _childs[ii]->increaseVisit(this->_countVisit);                 
+        }
+        else {
+            _uniqueTable.insert( GlobalStateHashKey(_childs[ii]), _childs[ii] ) ;
+        }
+    }
+}
+
+void GlobalState::execute(int transId, int subjectId)
+{
+    // Change state of one of the component machines
+    State* curState = _machines[subjectId]->getState(_gStates[subjectId]) ;        
+    // Execute state transition
+    _gStates[subjectId] = curState->getNextState(transId)->getID();
+
+    // Low probability transition
+    if( !curState->getTrans(transId).isHigh() )
+        _depth++;
+
+}
+
+void GlobalState::clearAll()
+{
+    GSHash::iterator it = _uniqueTable.begin();
+    while( it != _uniqueTable.end() ) {
+        delete (*it).second ;
+        ++it;
+    }
+}
+
+void GlobalState::recordProb()
+{
+    _probs.clear();
+    for( size_t i = 0 ; i < _childs.size() ; ++i ) {
+        _probs.push_back(_childs[i]->_depth);
+    }
+}
