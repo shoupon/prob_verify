@@ -1,0 +1,12 @@
+NAME 	fcomch;
+INPUTS		transmitter?m0, transmitter?m1;
+OUTPUTS		receiver!m1, receiver!m0, timer!fail, timer!arrive;
+INITIAL_STATE	S0;
+OTHER_STATES	S1, S2;
+TRANSITIONS	S0	: S0 WHEN (transmitter?m0,timer!fail) COST 1 LOW
+			: S0 WHEN (transmitter?m1,timer!fail) COST 1 LOW
+			: S1 WHEN (transmitter?m0,nul) COST 1 HIGH
+			: S2 WHEN (transmitter?m1,nul) COST 1 HIGH
+		S1	: S0 WHEN (nul,receiver!m0*timer!arrive) COST 1 HIGH,
+		S2	: S0 WHEN (nul,receiver!m1*timer!arrive) COST 1 HIGH
+EOF
