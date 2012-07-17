@@ -37,7 +37,7 @@ bool Transition::operator == (const Transition& t) const
         size_t same = 0;   
         for( OutLabelMap::const_iterator it = _outs.begin() ; it != _outs.end() ; ++it ) {
             OutLabelMap::const_iterator tit = t._outs.find(it->first) ;
-            if( tit == _outs.end() )
+            if( tit == t._outs.end() )
                 return false ;
             else {
                 if( tit->second == it->second )

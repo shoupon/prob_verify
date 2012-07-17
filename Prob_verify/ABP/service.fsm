@@ -8,4 +8,5 @@ TRANSITIONS	S0	: S1 WHEN (nul,transmitter!m) COST 1 HIGH
 		S1	: S3 WHEN (receiver?m,nul) COST 1 HIGH
 			: S2 WHEN (transmitter?ready,nul) COST 1 HIGH,
 		S3	: S0 WHEN (transmitter?ready,nul) COST 1 HIGH
+			: S2 WHEN (receiver?m,nul) COST 1 HIGH
 EOF
