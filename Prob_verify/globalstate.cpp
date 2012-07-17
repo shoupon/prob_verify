@@ -174,63 +174,6 @@ void GlobalState::addTask(Transition tr, int subject)
     }
 }
 
-/*
-void GlobalState::execute(int macId, Transition* transPtr)
-{
-    vector<Arrow> matched; // Arrow = pair<int, State*>
-    vector<queue<Transition> > triggered;
-    GlobalState* child = new GlobalState();  
-    for( size_t ii = 0 ; ii < transPtr->getNumOutLabels() ; ++ii ) {
-        // Go through all the out labels
-        OutLabel lb = transPtr->getOutLabel(ii);            
-        if( lb.first >= 0 ) {
-            State* st = _machines[lb.first]->getState(_gStates[lb.first]);
-            st->receive(macId, lb.second, matched);
-
-            if( matched.size() == 1 ) {
-                _fifo.push(st->getTrans(matched[0].first));
-            }
-            else if( matched.size() > 1 ) {
-                if( triggered.empty() ) {
-                    triggered.resize(matched.size());
-                    for( size_t kk = 0 ; kk < matched.size() ; ++kk ) {
-                        Transition tr = st->getTrans(matched[kk].first);
-                        triggered[kk].push(tr);
-                    }
-                }
-                else {
-                    size_t oriSize = triggered.size() ;
-                    size_t mm = 0 ;
-                    vector<queue<Transition> > last_triggered = triggered;
-                    triggered.reserve(matched.size()*triggered.size());
-                    for( size_t kk = 0 ; kk < matched.size() ; ++kk ) {   
-                        Transition tr = st->getTrans(matched[kk].first);
-                        while( mm%oriSize == oriSize - 1 ) {
-                            triggered[mm].push(tr);
-                            ++mm;
-                        }
-                        // Exponential growth of possible edges
-                        triggered.insert(triggered.end(), last_triggered.begin(), last_triggered.end());
-                    }
-                }
-            }
-        } // end if lb.first != 0
-    } // end for
-
-
-    State* curState = _machines[macId]->getState(_gStates[macId]);
-    int nextID = curState->getNextState(transPtr->getId())->getID() ;
-    child->_gStates = this->_gStates;
-    child->_gStates[macId] = nextID;    
-}*/
-/*
-void GlobalState::updateTrip()
-{
-    for( size_t ii = 0 ; ii < _childs.size() ; ++ii )
-        if( _dist +1 < _childs[ii]->_dist )
-            _childs[ii]->_dist = old + 1 ;  
-}*/
-
 void GlobalState::updateTrip(int old)
 {
     if( old + 1 < this->_dist )
@@ -242,16 +185,6 @@ bool GlobalState::init(GlobalState* s)
     return _uniqueTable.insert( GlobalStateHashKey(s->_gStates), s );
 }
 
-      
-/*
-GlobalState* GlobalState::getGlobalState( vector<int> gs ) 
-{   
-    GSHash::iterator it = _uniqueTable.find(GlobalStateHashKey(gs)); 
-    if( it == _uniqueTable.end() )
-        return 0 ;
-    else
-        return (*it).second ;
-}*/
 
 string GlobalState::toString() 
 {
@@ -261,32 +194,6 @@ string GlobalState::toString()
 
     return ss.str();
 }
-/*
-void GlobalState::createNodes()
-{
-    GSHash::iterator it;
-    for( size_t ii = 0 ; ii < _childs.size() ; ++ii ) {
-        it = _uniqueTable.find(_childs[ii].first) ;
-        if( it == _uniqueTable.end() ) {
-            GlobalState* ptr = new GlobalState();
-            ptr->_dist = this->_dist + 1 ;
-            _uniqueTable.insert( GlobalStateHashKey(_childs[ii].first), ptr ) ;
-        }
-        else {
-            GlobalState* ptr = (*it).second ;
-            if( ptr->_dist < this->_dist + 1 )
-                ptr->_dist = this->_dist +1 ;
-        }
-    }
-}
-
-bool GlobalState::setActive(int macId, int transId) 
-{ 
-    if( _actives[macId].size() > 0 )
-        return false ;
-    _actives[macId].push_back(transId); 
-    return true;
-} */
 
 void GlobalState::trim()
 {

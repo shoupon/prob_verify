@@ -120,9 +120,11 @@ void ProbVerifier::start(int maxClass)
                             return ;
                         }                    
 
-                        int prob = st->getProb(idx);                    
+                        int prob = st->getProb(idx);                   
+                        int dist = childNode->getDistance();
 #ifdef VERBOSE
-                        cout << childNode->toString() << " Prob = " << prob << ", "  ;
+                        cout << childNode->toString() << " Prob = " << prob 
+                                                      << " Dist = " << dist << ", "  ;
 #endif
                         if( find(_arrFinRS,childNode) == _arrFinRS.end() ) {
                             // If the child node is not already a member of STATETABLE
