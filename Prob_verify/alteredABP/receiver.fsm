@@ -2,13 +2,7 @@ NAME	receiver;
 INPUTS		comch?msg;
 OUTPUTS		comch!ack, service!m;
 INITIAL_STATE	S0;
-OTHER_STATES	S1, S2, S3, S4, S5;
+OTHER_STATES	S1;
 TRANSITIONS	S0	: S1 WHEN (comch?msg,nul) COST 1 HIGH
-			: S2 WHEN (comch?msg,nul) COST 1 HIGH,
-		S1	: S3 WHEN (nul,comch!ack) COST 1 HIGH,
-		S2	: S0 WHEN (nul,comch!ack) COST 1 HIGH,
-		S3	: S5 WHEN (comch?msg,nul) COST 1 HIGH
-			: S4 WHEN (comch?msg,nul) COST 1 HIGH,
-		S4	: S0 WHEN (nul,comch!ack) COST 1 HIGH,
-		S5	: S3 WHEN (nul,comch!ack) COST 1 HIGH
+		S1	: S0 WHEN (nul,comch!ack*service!m) COST 1 HIGH
 EOF
