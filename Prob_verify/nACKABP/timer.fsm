@@ -1,0 +1,13 @@
+NAME 	timer;
+INPUTS		transmitter?start, transmitter?cancel, fcomch?fail, fcomch?arrive;
+OUTPUTS		transmitter!timeout;
+INITIAL_STATE	S0;
+OTHER_STATES	S1, S2;
+TRANSITIONS	S0	: S1 WHEN (transmitter?start,nul) COST 1 HIGH,
+		S1	: S1 WHEN (transmitter?start,nul) COST 1 HIGH
+			: S2 WHEN (fcomch?fail,nul) COST 1 HIGH
+			: S0 WHEN (transmitter?cancel,nul) COST 1 HIGH
+			: S2 WHEN (fcomch?arrive,nul) COST 1 HIGH,
+		S2	: S0 WHEN (nul,transmitter!timeout) COST 1 HIGH
+			: S1 WHEN (transmitter?cancel,nul) COST 1 HIGH
+EOF
