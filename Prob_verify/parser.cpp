@@ -5,6 +5,8 @@
 #include <sstream>
 #include <map>
 #include <cassert>
+#include <exception>
+#include <stdexcept>
 using namespace std;
 
 #include "fsm.h"
@@ -44,8 +46,11 @@ void Parser::getLine()
 }
 
 void Parser::error(string message)
-{
-    cerr << "In file " << _fileName << ": Line " << _lineNum << ": " << message << endl ;
+{   
+    stringstream ss ;
+    ss << "In file " << _fileName << ": Line " << _lineNum << ": " << message << endl ;
+    string str = ss.str();
+    throw runtime_error(str);
 }
 
 Transition Parser::parseTransition(string& line, string& towardState)
