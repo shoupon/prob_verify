@@ -71,55 +71,60 @@ void GlobalState::explore(int subject)
 }*/
 
 void GlobalState::findSucc()
-{        
-    vector<Transition> vecTrans;
-    vector<int> subjects;
-    // Execute each null input transition and create a new global state for each transition
-    for( size_t m = 0 ; m < _machines.size() ; ++m ) {
-        State* st = _machines[m]->getState(_gStates[m]);
-        for( size_t tt = 0 ; tt < st->getNumTrans() ; ++tt ) {           
-            Transition tr = st->getTrans(tt) ;
-            if( tr.getInputMessageId() == 0 ) {
-                // null input transition
-                //child->execute(m, tt, &tr);
-                vecTrans.push_back(tr);
-                subjects.push_back(m);
-            } // if
-        } // for
-    } // for    
-          
-    for( size_t ii = 0 ; ii < vecTrans.size() ; ++ii ) {
-        // Create a clone of current global state
-        GlobalState* cc = new GlobalState(*this) ;        
-        
-        // Execute state transition
-        cc->execute(vecTrans[ii].getId(), subjects[ii]);        
-        
-        // Push transition to be evaluated onto the queue
-        cc->addTask(vecTrans[ii], subjects[ii]);    
-        _childs.push_back(cc);
-    }    
+{     
+    try {
+        vector<Transition> vecTrans;
+        vector<int> subjects;
+        // Execute each null input transition and create a new global state for each transition
+        for( size_t m = 0 ; m < _machines.size() ; ++m ) {
+            State* st = _machines[m]->getState(_gStates[m]);
+            for( size_t tt = 0 ; tt < st->getNumTrans() ; ++tt ) {           
+                Transition tr = st->getTrans(tt) ;
+                if( tr.getInputMessageId() == 0 ) {
+                    // null input transition
+                    //child->execute(m, tt, &tr);
+                    vecTrans.push_back(tr);
+                    subjects.push_back(m);
+                } // if
+            } // for
+        } // for    
+              
+        for( size_t ii = 0 ; ii < vecTrans.size() ; ++ii ) {
+            // Create a clone of current global state
+            GlobalState* cc = new GlobalState(*this) ;        
+            
+            // Execute state transition
+            cc->execute(vecTrans[ii].getId(), subjects[ii]);        
+            
+            // Push transition to be evaluated onto the queue
+            cc->addTask(vecTrans[ii], subjects[ii]);    
+            _childs.push_back(cc);
+        }    
 
-    for( size_t cIdx = 0 ; cIdx < _childs.size() ; ++cIdx ) {
-        vector<GlobalState*> ret = _childs[cIdx]->evaluate();
-        if( ret.size() > 1 ) {
-            _childs.erase(_childs.begin()+cIdx);            
-            cIdx--;
-            _childs.insert(_childs.end(), ret.begin(), ret.end());
-        }
-    }            
-    
-    //_fifo.push(vecTrans[0]);
-    //explore();
-           
-    recordProb();
-    // Trim the list of childs    
-    trim() ;
-    // For each child global states, update their distance from initial state
-    //updateTrip();
-    // Create new object of found successors that are not recorded in the _uniqueTable
-    // Also, increase the step length from the initial global state for livelock detection
-    //createNodes();    
+        for( size_t cIdx = 0 ; cIdx < _childs.size() ; ++cIdx ) {
+            vector<GlobalState*> ret = _childs[cIdx]->evaluate();
+            if( ret.size() > 1 ) {
+                _childs.erase(_childs.begin()+cIdx);            
+                cIdx--;
+                _childs.insert(_childs.end(), ret.begin(), ret.end());
+            }
+        }            
+        
+        //_fifo.push(vecTrans[0]);
+        //explore();
+               
+        recordProb();
+        // Trim the list of childs    
+        trim() ;
+        // For each child global states, update their distance from initial state
+        //updateTrip();
+        // Create new object of found successors that are not recorded in the _uniqueTable
+        // Also, increase the step length from the initial global state for livelock detection
+        //createNodes();  
+    } catch (...) {
+        cerr << "When finding successors (findSucc) " << this->toString() << endl ;
+        throw;
+    }
 }
 
 vector<GlobalState*> GlobalState::evaluate() 
@@ -144,7 +149,26 @@ vector<GlobalState*> GlobalState::evaluate()
                 addTask(tr, lbl.first);
             }
             else if( matched.size() == 0 ) {
-                continue;
+                stringstream ss ;
+                ss << "No matching transition for outlabel: " 
+                   << "Destination Machine ID = " << lbl.first 
+                   << " Message ID = " << lbl.second << endl
+                   << "GlobalState = " << this->toString() << endl ;   
+
+                // Print all the task in _fifo
+                ss << "Content in fifo: " << endl ;
+                while( !_fifo.empty() ) {
+                    match = _fifo.front();
+                    lbl = match._outLabel;
+                    _fifo.pop();
+
+                    ss << "Destination Machine ID = " << lbl.first 
+                       << " Message ID = " << lbl.second << endl ;
+                }
+                    
+
+                throw runtime_error(ss.str());
+                //continue;
             }
             else {
                 // Multiple transitions: non-deterministic transition
