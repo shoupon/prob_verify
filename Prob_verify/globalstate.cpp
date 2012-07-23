@@ -102,12 +102,20 @@ void GlobalState::findSucc()
         }    
 
         for( size_t cIdx = 0 ; cIdx < _childs.size() ; ++cIdx ) {
-            vector<GlobalState*> ret = _childs[cIdx]->evaluate();
-            if( ret.size() > 1 ) {
-                _childs.erase(_childs.begin()+cIdx);            
-                cIdx--;
-                _childs.insert(_childs.end(), ret.begin(), ret.end());
+            try {
+                vector<GlobalState*> ret = _childs[cIdx]->evaluate();
+                if( ret.size() > 1 ) {
+                    _childs.erase(_childs.begin()+cIdx);
+                    cIdx--;
+                    _childs.insert(_childs.end(), ret.begin(), ret.end());
+                }                
+            } catch (string str) {
+                _childs.erase(_childs.begin()+cIdx);
+                cerr << "When finding successors (findSucc) " 
+                     << this->toString() << endl ;
+                cerr << str << endl ;
             }
+
         }            
         
         //_fifo.push(vecTrans[0]);
@@ -148,7 +156,9 @@ vector<GlobalState*> GlobalState::evaluate()
                 execute(matched[0].first, lbl.first);
                 addTask(tr, lbl.first);
             }
-            else if( matched.size() == 0 ) {
+            else if( matched.size() == 0 ) { 
+                // No found matching transition, this null transition should not be carry out
+                // Another null input transition should be evaluate first
                 stringstream ss ;
                 ss << "No matching transition for outlabel: " 
                    << "Destination Machine ID = " << lbl.first 
@@ -166,9 +176,7 @@ vector<GlobalState*> GlobalState::evaluate()
                        << " Message ID = " << lbl.second << endl ;
                 }
                     
-
-                throw runtime_error(ss.str());
-                //continue;
+                throw ss.str();                
             }
             else {
                 // Multiple transitions: non-deterministic transition
