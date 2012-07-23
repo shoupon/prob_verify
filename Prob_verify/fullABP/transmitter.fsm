@@ -1,14 +1,16 @@
 NAME 	transmitter;
-INPUTS		timer?timeout, rcomch?ack, service?m;
+INPUTS		timer?timeout, rcomch?ack0, rcomch?ack1, service?m;
 OUTPUTS		fcomch!m0, timer!start, timer!cancel, fcomch!m1, service!ready;
 INITIAL_STATE	S0;
 OTHER_STATES	S1, S2, S3, S4, S5;
-TRANSITIONS	S0	: S1 WHEN (service?m,nul) COST 1 HIGH,
-		S1	: S2 WHEN (nul,fcomch!m0*timer!start) COST 1 HIGH,
-		S2	: S1 WHEN (timer?timeout,nul) COST 1 HIGH
-			: S3 WHEN (rcomch?ack,timer!cancel*service!ready) COST 1 HIGH,
-		S3	: S4 WHEN (service?m,nul) COST 1 HIGH,
-		S4	: S5 WHEN (nul,fcomch!m1*timer!start) COST 1 HIGH,
-		S5	: S4 WHEN (timer?timeout,nul) COST 1 HIGH
-			: S0 WHEN (rcomch?ack,timer!cancel*service!ready) COST 1 HIGH
+TRANSITIONS	S0	: S1 WHEN (service?m,fcomch!m0*timer!start) COST 1 HIGH
+			: S0 WHEN (rcomch?ack0,nul) COST 1 HIGH
+			: S0 WHEN (rcomch?ack1,nul) COST 1 HIGH,
+		S1	: S1 WHEN (timer?timeout,fcomch!m0*timer!start) COST 1 HIGH
+			: S2 WHEN (rcomch?ack0,timer!cancel*service!ready) COST 1 HIGH,
+		S2	: S3 WHEN (service?m,fcomch!m1*timer!start) COST 1 HIGH
+			: S2 WHEN (rcomch?ack0,nul) COST 1 HIGH
+			: S2 WHEN (rcomch?ack1,nul) COST 1 HIGH,
+		S3	: S3 WHEN (timer?timeout,fcomch!m1*timer!start) COST 1 HIGH
+			: S0 WHEN (rcomch?ack1,timer!cancel*service!ready) COST 1 HIGH
 EOF
