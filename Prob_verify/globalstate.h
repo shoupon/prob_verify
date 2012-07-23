@@ -52,7 +52,7 @@ private:
     int _depth;
     
     void trim();  
-    void updateTrip(int old);
+    void updateTrip(int old);    
     void createNodes();
     //void execute(int macId, int transId, Transition* transPtr);
     vector<GlobalState*> evaluate();
@@ -71,9 +71,15 @@ private:
 public:
     // Default constructor creates a global state with all its Fsm's set to initial state 0.
     GlobalState():_countVisit(1),_dist(0) { init(); }
+    // This copy constructor is used to create childs, 
+    // it will automatically increase the distance of childs
     GlobalState(const GlobalState& gs):_gStates(gs._gStates), _countVisit(1), 
         _dist(gs._dist+1), _fifo(gs._fifo), _depth(gs._depth) {}
+    // This constructor is used to create a new GlobalState by specifying 
+    // the state of its individual machines
     GlobalState(vector<int> stateVec):_gStates(stateVec), _countVisit(1),_dist(0) {}
+    // This constructor should be called first. It will set the static member of GlobalState,
+    // such as number of state machines, the pointers to machines, etc.
     GlobalState(const vector<Fsm*>& macs);
     
     GlobalState* getChild (size_t i) { return _childs[i]; }

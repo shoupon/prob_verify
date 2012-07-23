@@ -1,6 +1,5 @@
 NAME 	fcomch;
 INPUTS		transmitter?m0, transmitter?m1;
-<<<<<<< HEAD
 OUTPUTS		receiver!m1, receiver!m0, timer!fail, timer!arrive;
 INITIAL_STATE	S0;
 OTHER_STATES	S1, S2;

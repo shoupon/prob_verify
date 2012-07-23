@@ -1,14 +1,10 @@
 NAME	receiver;
 INPUTS		fcomch?m0, fcomch?m1;
-OUTPUTS		rcomch!ack, service!m;
+OUTPUTS		rcomch!ack1, rcomch!ack0, service!m;
 INITIAL_STATE	S0;
-OTHER_STATES	S1, S2, S3, S4, S5;
-TRANSITIONS	S0	: S1 WHEN (fcomch?m0,nul) COST 1 HIGH
-			: S2 WHEN (fcomch?m1,nul) COST 1 HIGH,
-		S1	: S3 WHEN (nul,rcomch!ack*service!m) COST 1 HIGH,
-		S2	: S0 WHEN (nul,rcomch!ack) COST 1 HIGH,
-		S3	: S5 WHEN (fcomch?m0,nul) COST 1 HIGH
-			: S4 WHEN (fcomch?m1,nul) COST 1 HIGH,
-		S4	: S0 WHEN (nul,rcomch!ack*service!m) COST 1 HIGH,
-		S5	: S3 WHEN (nul,rcomch!ack) COST 1 HIGH
+OTHER_STATES	S1;
+TRANSITIONS	S0	: S1 WHEN (fcomch?m0,rcomch!ack0*service!m) COST 1 HIGH
+			: S0 WHEN (fcomch?m1,rcomch!ack1) COST 1 HIGH,
+		S1	: S1 WHEN (fcomch?m0,rcomch!ack0) COST 1 HIGH
+			: S0 WHEN (fcomch?m1,rcomch!ack1*service!m) COST 1 HIGH		
 EOF
