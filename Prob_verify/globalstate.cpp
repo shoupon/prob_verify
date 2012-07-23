@@ -115,8 +115,7 @@ void GlobalState::findSucc()
     recordProb();
     // Trim the list of childs    
     trim() ;
-    // For each child global states, update their distance from initial state
-    //updateTrip();
+
     // Create new object of found successors that are not recorded in the _uniqueTable
     // Also, increase the step length from the initial global state for livelock detection
     //createNodes();    
@@ -174,10 +173,12 @@ void GlobalState::addTask(Transition tr, int subject)
     }
 }
 
-void GlobalState::updateTrip(int old)
+void GlobalState::updateTrip()
 {
-    if( old + 1 < this->_dist )
-        _dist = old + 1 ;
+    for( size_t ii = 0 ; ii < _childs.size() ; ++ii ) {
+        if( _childs[ii]->_dist < this->_dist + 1 )
+            _childs[ii]->_dist = this->_dist + 1 ;
+    }
 }
    
 bool GlobalState::init(GlobalState* s) 

@@ -51,8 +51,7 @@ private:
     int _dist ;
     int _depth;
     
-    void trim();  
-    void updateTrip(int old);    
+    void trim();      
     void createNodes();
     //void execute(int macId, int transId, Transition* transPtr);
     vector<GlobalState*> evaluate();
@@ -94,7 +93,10 @@ public:
     bool isBusy() { return !_fifo.empty();}
 
     void findSucc();
-    int increaseVisit(int inc) { return _countVisit += inc ; }    
+    int increaseVisit(int inc) { return _countVisit += inc ; }        
+    // For each child global states, update their distance from initial state
+    // increase the step length from the initial global state for livelock detection
+    void updateTrip();    
 
     string toString() ;
 

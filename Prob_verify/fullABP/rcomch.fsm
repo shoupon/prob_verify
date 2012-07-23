@@ -1,12 +1,9 @@
 NAME 	rcomch;
-INPUTS		receiver?ack1, receiver?ack0;
-OUTPUTS		transmitter!ack1, transmitter!ack0;
+INPUTS		receiver?ack;
+OUTPUTS		transmitter!ack;
 INITIAL_STATE	S0;
-OTHER_STATES	S1, S2;
-TRANSITIONS	S0	: S0 WHEN (receiver?ack0,nul) COST 1 LOW
-			: S0 WHEN (receiver?ack1,nul) COST 1 LOW
-			: S1 WHEN (receiver?ack0,nul) COST 1 HIGH
-			: S2 WHEN (receiver?ack1,nul) COST 1 HIGH,
-		S1	: S0 WHEN (nul,transmitter!ack0) COST 1 HIGH,
-		S2	: S0 WHEN (nul,transmitter!ack1) COST 1 HIGH
+OTHER_STATES	S1;
+TRANSITIONS	S0	: S0 WHEN (receiver?ack,nul) COST 1 LOW			
+			: S1 WHEN (receiver?ack,nul) COST 1 HIGH,		
+		S1	: S0 WHEN (nul,transmitter!ack) COST 1 HIGH		
 EOF

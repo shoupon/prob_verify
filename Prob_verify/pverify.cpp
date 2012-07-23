@@ -97,45 +97,48 @@ void ProbVerifier::start(int maxClass)
             GSMapConstIter it = _arrClass[_curClass].begin();            
             GlobalState* st = it->first ;           
 
+
             if( !st->hasChild() ) {
                 // Compute all the globalstate's childs
-                st->findSucc();
-#ifdef VERBOSE
-                cout << st->toString() << ": "  ;
-#endif
-                size_t nChilds = st->size();
+                st->findSucc();                
                 // Increase the threshold of livelock detection
-                _max += nChilds;
-                if( nChilds == 0 ) {
-                    // No child found. Report deadlock TODO (Printint the sequence, blah blah)
-                    cout << "Deadlock found." << endl ;
-                    return ;
-                }
-                else {                
-                    // Explore all its childs
-                    for( size_t idx = 0 ; idx < nChilds ; ++idx ) {
-                        GlobalState* childNode = st->getChild(idx);
-                        if( childNode->getDistance() > _max ) {
-                            cout << "Livelock found. " << endl ;
-                            return ;
-                        }                    
-
-                        int prob = st->getProb(idx);                   
-                        int dist = childNode->getDistance();
-#ifdef VERBOSE
-                        cout << childNode->toString() << " Prob = " << prob 
-                                                      << " Dist = " << dist << ", "  ;
-#endif
-                        if( find(_arrFinRS,childNode) == _arrFinRS.end() ) {
-                            // If the child node is not already a member of STATETABLE
-                            addToClass(childNode, prob);
-                        }
-                    }   
-#ifdef VERBOSE 
-                    cout << endl   ;
-#endif
-                }
+                _max += st->size();
             }
+            st->updateTrip();  
+            size_t nChilds = st->size();
+      
+#ifdef VERBOSE
+            cout << st->toString() << ": "  ;
+#endif
+            if( nChilds == 0 ) {
+                // No child found. Report deadlock TODO (Printint the sequence, blah blah)
+                cout << "Deadlock found." << endl ;
+                return ;
+            }
+            else {                
+                // Explore all its childs
+                for( size_t idx = 0 ; idx < nChilds ; ++idx ) {
+                    GlobalState* childNode = st->getChild(idx);
+                    if( childNode->getDistance() > _max ) {
+                        cout << "Livelock found. " << endl ;
+                        return ;
+                    }                    
+
+                    int prob = st->getProb(idx);                   
+                    int dist = childNode->getDistance();
+#ifdef VERBOSE
+                    cout << childNode->toString() << " Prob = " << prob 
+                                                  << " Dist = " << dist << ", "  ;
+#endif
+                    if( find(_arrFinRS,childNode) == _arrFinRS.end() ) {
+                        // If the child node is not already a member of STATETABLE
+                        addToClass(childNode, prob);
+                    }
+                }   
+#ifdef VERBOSE 
+                cout << endl   ;
+#endif
+            }            
 
             // Finish exploring st. Remove st from class[k] (_arrClass[_curClass])
             //_computedClass[_curClass].insert(*it);
