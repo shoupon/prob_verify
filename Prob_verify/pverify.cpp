@@ -95,7 +95,16 @@ void ProbVerifier::start(int maxClass)
         while( !_arrClass[_curClass].empty() ) {
             // Pop a globalstate pointer ptr from class[k] (_arrClass[_curClass])
             GSMapConstIter it = _arrClass[_curClass].begin();            
-            GlobalState* st = it->first ;           
+            GlobalState* st = it->first ;  
+            if( st->getDistance() > _max ) {
+                cout << "Livelock found. " << endl ;
+
+                vector<GlobalState*> seq;
+                st->pathCycle(seq);
+                printSeq(seq);
+                
+                return ;
+            }   
 
 
             if( !st->hasChild() ) {
@@ -111,18 +120,20 @@ void ProbVerifier::start(int maxClass)
             cout << st->toString() << ": "  ;
 #endif
             if( nChilds == 0 ) {
-                // No child found. Report deadlock TODO (Printint the sequence, blah blah)
+                // No child found. Report deadlock TODO (Print the sequence, blah blah)
                 cout << "Deadlock found." << endl ;
+
+                vector<GlobalState*> seq;
+                st->pathRoot(seq);
+                printSeq(seq);
+
                 return ;
             }
-            else {                
+            else {                   
                 // Explore all its childs
                 for( size_t idx = 0 ; idx < nChilds ; ++idx ) {
-                    GlobalState* childNode = st->getChild(idx);
-                    if( childNode->getDistance() > _max ) {
-                        cout << "Livelock found. " << endl ;
-                        return ;
-                    }                    
+
+                    GlobalState* childNode = st->getChild(idx);                                      
 
                     int prob = st->getProb(idx);                   
                     int dist = childNode->getDistance();
@@ -179,4 +190,15 @@ GSVecMap::iterator ProbVerifier::find(GSVecMap& collection, GlobalState* gs)
 GSMap::iterator ProbVerifier::find(GSMap& collection, GlobalState* gs)
 {
     return collection.find(gs);
+}
+
+void ProbVerifier::printSeq(const vector<GlobalState*>& seq) 
+{
+    for( size_t ii = 0 ; ii < seq.size()-1 ; ++ii ) {
+        if( seq[ii]->getProb() != seq[ii+1]->getProb() )
+            cout << seq[ii]->toString() << " -p-> ";
+        else
+            cout << seq[ii]->toString() << " -> ";
+    }
+    cout << seq.back()->toString() << endl ;
 }

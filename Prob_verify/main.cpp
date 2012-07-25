@@ -69,6 +69,8 @@ int main( int argc, char* argv[] )
              << re.what() << endl ;
     } catch (exception e) {        
         cerr << e.what() << endl;
+    } catch (...) { 
+        cerr << "Something wrong." << endl;
     }
 
     system("Pause");

@@ -3,6 +3,7 @@
 #include <string>
 #include <sstream>
 #include <queue>
+using namespace std;
 
 #include "globalstate.h"
 
@@ -90,7 +91,7 @@ void GlobalState::findSucc()
           
     for( size_t ii = 0 ; ii < vecTrans.size() ; ++ii ) {
         // Create a clone of current global state
-        GlobalState* cc = new GlobalState(*this) ;        
+        GlobalState* cc = new GlobalState(this) ;        
         
         // Execute state transition
         cc->execute(vecTrans[ii].getId(), subjects[ii]);        
@@ -190,8 +191,10 @@ bool GlobalState::init(GlobalState* s)
 string GlobalState::toString() 
 {
     stringstream ss ;
+    ss << "(" ;
     for( size_t ii = 0 ; ii < _gStates.size() ; ++ii ) 
-        ss << _gStates[ii] << " " ;
+        ss << _gStates[ii] << "," ;
+    ss << "\b)" ;
 
     return ss.str();
 }
@@ -202,16 +205,38 @@ void GlobalState::trim()
         // If the newly created global state is already in _uniqueTable, link the global state
         // If not, add such global state to _uniqueTable    
         GSHash::iterator it = _uniqueTable.find( GlobalStateHashKey(_childs[ii]) );
+        
         if( it != _uniqueTable.end() ) {
-            delete _childs[ii] ;
+            // Such GlobalState with the same state vector and of the same class 
+            // has already been created
+            GlobalState* dup = _childs[ii];
+            
             _childs[ii] = (*it).second;        
-            _childs[ii]->increaseVisit(this->_countVisit);                 
+            _childs[ii]->increaseVisit(this->_countVisit);             
+            _childs[ii]->addParents(dup->_parents);
+            
+            delete dup;
         }
         else {
             _uniqueTable.insert( GlobalStateHashKey(_childs[ii]), _childs[ii] ) ;
         }
     }
 }
+void GlobalState::addParents(const vector<GlobalState*>& arr)
+{
+    for( size_t ii = 0 ; ii < arr.size(); ++ii ) {
+        bool exist = false ;
+        for( size_t jj = 0 ; jj < this->_parents.size() ; ++jj ) {
+            if( _parents[jj] == arr[ii] )
+                exist = true;
+        }
+
+        if( !exist ) {
+            _parents.push_back(arr[ii]);
+        }
+    }
+}
+
 
 void GlobalState::execute(int transId, int subjectId)
 {
@@ -241,4 +266,174 @@ void GlobalState::recordProb()
     for( size_t i = 0 ; i < _childs.size() ; ++i ) {
         _probs.push_back(_childs[i]->_depth);
     }
+}
+
+
+bool rootStop(GlobalState* gsPtr)
+{
+    //if( gsPtr->_parents.size() == 0 )
+    if( true)
+        return true ;
+    else 
+        return false;
+}
+
+void GlobalState::pathRoot(vector<GlobalState*>& arr)
+{
+    resetColor();
+    arr.clear();
+
+    // Reverse breadth-first search until the root is found
+    queue<GlobalState*> unexplored;
+    unexplored.push(this);
+    
+    _trace = 0;
+    _trace--;
+
+    while( !unexplored.empty() ) {
+        GlobalState* gs = unexplored.front() ;
+        unexplored.pop();
+        gs->_white = false; // Paint the node black
+
+        if( gs->_parents.size() == 0 ) {
+            // root found
+            // Trace back
+            do {
+                arr.push_back(gs);
+                gs = gs->_childs[gs->_trace] ;
+            } while( gs != this );
+            arr.push_back(this);
+        }
+        else {
+            for( size_t ii = 0 ; ii < gs->_parents.size() ; ++ii ) {
+                GlobalState* par = gs->_parents[ii];
+                if( par->_white ) {
+                    par->markPath(gs);
+                    unexplored.push(par);
+                }
+            }
+        } // if
+    }
+    //BFS(arr, &rootStop);
+}
+
+GlobalState* self;
+bool selfStop(GlobalState* gsPtr)
+{
+    if( gsPtr == self )
+        return true ;
+    else 
+        return false;
+}
+
+void GlobalState::pathCycle(vector<GlobalState*>& arr)
+{
+    //self = this;
+    //BFS(arr, &selfStop);
+    resetColor();
+    arr.clear();
+
+    // Reverse breadth-first search until the root is found
+    queue<GlobalState*> unexplored;
+    for( size_t ii = 0 ; ii < _parents.size() ; ++ii ) { 
+        if( _parents[ii]->_depth != _depth )
+            continue;
+        _parents[ii]->markPath(this);
+        unexplored.push(_parents[ii]);
+    }
+    _trace = 0;
+    _trace--;
+
+    while( !unexplored.empty() ) {
+        GlobalState* gs = unexplored.front() ;
+        unexplored.pop();
+        gs->_white = false; // Paint the node black
+
+        if( this == gs ) {
+            // root found
+            // Trace back
+            do {
+                arr.push_back(gs);
+                gs = gs->_childs[gs->_trace] ;
+            } while( gs != this );
+            arr.push_back(this);
+        }
+        else {
+            for( size_t ii = 0 ; ii < gs->_parents.size() ; ++ii ) {
+                GlobalState* par = gs->_parents[ii];
+                if( par->_depth != _depth )
+                    continue;
+                if( par->_white ) {
+                    par->markPath(gs);
+                    unexplored.push(par);
+                }
+            }
+        } // if
+    }
+}
+
+
+void GlobalState::BFS(vector<GlobalState*>& arr, bool (*stop)(GlobalState*)) 
+{
+    resetColor();
+    arr.clear();
+
+    // Reverse breadth-first search until the root is found
+    queue<GlobalState*> unexplored;
+    for( size_t ii = 0 ; ii < _parents.size() ; ++ii ) {      
+        _parents[ii]->markPath(this);
+        unexplored.push(_parents[ii]);
+    }
+    _trace = 0;
+    _trace--;
+
+    while( !unexplored.empty() ) {
+        GlobalState* gs = unexplored.front() ;
+        unexplored.pop();
+        gs->_white = false; // Paint the node black
+
+        if( (*stop)(gs) ) {
+            // root found
+            // Trace back
+            do {
+                arr.push_back(gs);
+                gs = gs->_childs[gs->_trace] ;
+            } while( gs != this );
+        }
+        else {
+            for( size_t ii = 0 ; ii < gs->_parents.size() ; ++ii ) {
+                GlobalState* par = gs->_parents[ii];
+                if( par->_white ) {
+                    par->markPath(gs);
+                    unexplored.push(par);
+                }
+            }
+        } // if
+    }
+}
+
+
+void GlobalState::resetColor()
+{
+    for( GSHash::iterator it = _uniqueTable.begin() ; it != _uniqueTable.end() ; ++it ) 
+        (*it).second->_white = true;    
+}
+
+size_t GlobalState::markPath(GlobalState* ptr)
+{
+    for( size_t ii = 0 ; ii < _childs.size() ; ++ii ) {
+        if( _childs[ii] == ptr ) {
+            _trace = ii;
+            return _trace;
+        }
+    }
+
+    stringstream ss ;
+    ss << "Child " << ptr->toString() 
+       << " in GlobalState " << this->toString() ;
+    throw runtime_error(ss.str());
+
+    size_t ret = 0 ;
+    ret--;
+    return ret;
 }

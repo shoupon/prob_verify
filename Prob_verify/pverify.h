@@ -36,6 +36,7 @@ private:
     GSMap::iterator find(GSMap& collection, GlobalState* gs);
     void insert(GSVecMap& collection, GlobalState* gs) 
     { collection.insert( GSVecMapPair(gs->getStateVec(), gs->getProb()) ); }
+    void printSeq(const vector<GlobalState*>& seq) ;
     
 
 

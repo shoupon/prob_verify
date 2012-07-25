@@ -43,6 +43,7 @@ private:
     vector<int> _gStates;     
     
     vector<GlobalState*> _childs;
+    vector<GlobalState*> _parents;
     vector<int> _probs;
     queue<Matching> _fifo;
     queue<int> _subjects;
@@ -50,8 +51,13 @@ private:
     int _countVisit;
     int _dist ;
     int _depth;
+
+    // Used in breadth-first search
+    bool _white;
+    size_t _trace;
     
     void trim();      
+    void addParents(const vector<GlobalState*>& arr);
     void createNodes();
     //void execute(int macId, int transId, Transition* transPtr);
     vector<GlobalState*> evaluate();
@@ -65,6 +71,12 @@ private:
     Transition* getActive(int& macId, int& transId);
     bool setActive(int macId, int transId) ;
     void recordProb();
+
+    // Used in breadth-first search
+    void resetColor();
+    size_t markPath(GlobalState* ptr);
+    //bool rootStop(GlobalState* gsPtr);
+    //bool selfStop(GlobalState* gsPtr);
     
 
 public:
@@ -72,8 +84,8 @@ public:
     GlobalState():_countVisit(1),_dist(0) { init(); }
     // This copy constructor is used to create childs, 
     // it will automatically increase the distance of childs
-    GlobalState(const GlobalState& gs):_gStates(gs._gStates), _countVisit(1), 
-        _dist(gs._dist+1), _fifo(gs._fifo), _depth(gs._depth) {}
+    GlobalState(GlobalState* gs):_gStates(gs->_gStates), _countVisit(1), 
+        _dist(gs->_dist+1), _fifo(gs->_fifo), _depth(gs->_depth) { _parents.push_back(gs);}
     // This constructor is used to create a new GlobalState by specifying 
     // the state of its individual machines
     GlobalState(vector<int> stateVec):_gStates(stateVec), _countVisit(1),_dist(0) {}
@@ -97,6 +109,17 @@ public:
     // For each child global states, update their distance from initial state
     // increase the step length from the initial global state for livelock detection
     void updateTrip();    
+
+    // This function will start tracing back until root it found. The path will be saved in arr
+    // This is best used to print out the transitions from the initial state that lead to deadlock
+    void pathRoot(vector<GlobalState*>& arr);
+    // This function will start tracing back until a cycle is found. Only high probability transitions
+    // will be checked. 
+    // If there is no such cycle that contains no low probability transition, return false;
+    // If a cycle is found, return true and the found cycle is saved to arr. The first and the last
+    // element in the vector<GlobalState*> is the same.
+    void pathCycle(vector<GlobalState*>& arr);
+    void BFS(vector<GlobalState*>& arr, bool (*stop)(GlobalState*));
 
     string toString() ;
 
