@@ -9,24 +9,12 @@ bool ProbVerifier::addToClass(GlobalState* childNode, int toClass)
 {
     if( toClass >= _maxClass ) 
         return false;
-
-    /*GSMapIter it = _computedClass[toClass].find(childNode);
-    if( it != _computedClass[toClass].end() ) {
-        it->first->increaseVisit(childNode->getVisit());
-        return false;
-    }
-    else {
-        it = _arrClass[toClass].find(childNode)  ;
-        if( it != _arrClass[toClass].end() ) {
-            it->first->increaseVisit(childNode->getVisit());
-            return false ;
-        }
-        else {
-            _arrClass[toClass].insert( GSMapPair(childNode, 0) );
-            return true ;
-        }
-    }*/
-
+    
+    // If the child node is already a member of STATETABLE, which indicates the protocol under test
+    // has successfully completed its function, there is no need to explore this child node later on, 
+    // so do not add this child node to ST[k] (_arrClass[toClass])
+    if( find(_arrFinRS,childNode) != _arrFinRS.end() )
+        return false ;
 
     GSMapIter it = _arrClass[toClass].find(childNode)  ;
     if( it != _arrClass[toClass].end() ) {
@@ -95,7 +83,8 @@ void ProbVerifier::start(int maxClass)
         while( !_arrClass[_curClass].empty() ) {
             // Pop a globalstate pointer ptr from class[k] (_arrClass[_curClass])
             GSMapConstIter it = _arrClass[_curClass].begin();            
-            GlobalState* st = it->first ;  
+            GlobalState* st = it->first ;              
+
             if( st->getDistance() > _max ) {
                 cout << "Livelock found. " << endl ;
 
@@ -115,6 +104,14 @@ void ProbVerifier::start(int maxClass)
             }
             st->updateTrip();  
             size_t nChilds = st->size();
+
+            // If the explored GlobalState st is in RS, add st to STATETABLE (_arrFinRS), so 
+            // when the later probabilistic search reaches st, the search will stop and explore 
+            // some other paths
+            if( find(_RS,st) != _RS.end() ) {
+                insert(_arrFinStart, st);   
+                insert(_arrFinRS, st);
+            }
       
 #ifdef VERBOSE
             cout << st->toString() << ": "  ;
@@ -130,7 +127,7 @@ void ProbVerifier::start(int maxClass)
                 return ;
             }
             else {                   
-                // Explore all its childs
+                // Add the computed childs to class array ST[class].
                 for( size_t idx = 0 ; idx < nChilds ; ++idx ) {
 
                     GlobalState* childNode = st->getChild(idx);                                      
@@ -140,11 +137,9 @@ void ProbVerifier::start(int maxClass)
 #ifdef VERBOSE
                     cout << childNode->toString() << " Prob = " << prob 
                                                   << " Dist = " << dist << ", "  ;
-#endif
-                    if( find(_arrFinRS,childNode) == _arrFinRS.end() ) {
-                        // If the child node is not already a member of STATETABLE
-                        addToClass(childNode, prob);
-                    }
+#endif                                            
+                    addToClass(childNode, prob);
+                    
                 }   
 #ifdef VERBOSE 
                 cout << endl   ;
@@ -152,7 +147,6 @@ void ProbVerifier::start(int maxClass)
             }            
 
             // Finish exploring st. Remove st from class[k] (_arrClass[_curClass])
-            //_computedClass[_curClass].insert(*it);
             _arrClass[_curClass].erase(it);            
             
         } // while (explore the global state in class[_curClass] until all the global states in the class
