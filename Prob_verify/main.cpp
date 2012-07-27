@@ -57,9 +57,15 @@ int main( int argc, char* argv[] )
 #ifdef HALF_DUPLEX
         pvObj.addRS(vector<int>(5,0));
 #endif
+
+#ifndef UN_NUM_ACK
+        int rs2[6] = {2,1,0,0,0,0};
+#else
+        int rs2[6] = {3,3,0,0,0,0};
+#endif
+
 #ifdef FULL_DUPLEX
         pvObj.addRS(vector<int>(6,0));
-        int rs2[6] = {2,1,0,0,0,0};
         pvObj.addRS(vector<int>(rs2, rs2+6));
 #endif        
 
