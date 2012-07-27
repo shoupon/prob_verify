@@ -42,6 +42,7 @@ void ProbVerifier::start(int maxClass)
     int nMacs = _macPtrs.size() ;
     _root = new GlobalState(_macPtrs) ; 
     GlobalState::init(_root);
+    _root->setRoot();
 
     // Initialize _arrClass[0] to contain the initial global state. 
     // the other maps are initialized null.    

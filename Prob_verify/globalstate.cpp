@@ -12,6 +12,7 @@ using namespace std;
 int GlobalState::_nMacs = -1;
 vector<Fsm*> GlobalState::_machines;
 GSHash GlobalState::_uniqueTable = GSHash(15) ;
+GlobalState* GlobalState::_root = 0;
 
 GlobalState::GlobalState(const vector<Fsm*>& macs)
     :_countVisit(1), _dist(0)
@@ -73,6 +74,8 @@ void GlobalState::explore(int subject)
 
 void GlobalState::findSucc()
 {        
+    if( this->_gStates[5] == 2 )
+        cout << " " << endl ;
     vector<Transition> vecTrans;
     vector<int> subjects;
     // Execute each null input transition and create a new global state for each transition
@@ -184,6 +187,7 @@ void GlobalState::updateTrip()
    
 bool GlobalState::init(GlobalState* s) 
 {
+    _root = s;
     return _uniqueTable.insert( GlobalStateHashKey(s->_gStates), s );
 }
 
@@ -303,6 +307,7 @@ void GlobalState::pathRoot(vector<GlobalState*>& arr)
                 gs = gs->_childs[gs->_trace] ;
             } while( gs != this );
             arr.push_back(this);
+            break;
         }
         else {
             for( size_t ii = 0 ; ii < gs->_parents.size() ; ++ii ) {
@@ -349,7 +354,7 @@ void GlobalState::pathCycle(vector<GlobalState*>& arr)
         unexplored.pop();
         gs->_white = false; // Paint the node black
 
-        if( this == gs ) {
+        if( this == _root ) {
             // root found
             // Trace back
             do {

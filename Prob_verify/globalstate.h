@@ -40,6 +40,7 @@ private:
     // The ID's of states in a global state
     // A table stores all of the reachable global states
     static GSHash _uniqueTable ;
+    static GlobalState* _root;
     vector<int> _gStates;     
     
     vector<GlobalState*> _childs;
@@ -123,7 +124,8 @@ public:
 
     string toString() ;
 
-    static bool init(GlobalState*) ;
+    void setRoot() { _root = this; }
+    static bool init(GlobalState*) ;    
     static void clearAll() ;
 };
 
