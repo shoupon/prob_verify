@@ -9,24 +9,12 @@ bool ProbVerifier::addToClass(GlobalState* childNode, int toClass)
 {
     if( toClass >= _maxClass ) 
         return false;
-
-    /*GSMapIter it = _computedClass[toClass].find(childNode);
-    if( it != _computedClass[toClass].end() ) {
-        it->first->increaseVisit(childNode->getVisit());
-        return false;
-    }
-    else {
-        it = _arrClass[toClass].find(childNode)  ;
-        if( it != _arrClass[toClass].end() ) {
-            it->first->increaseVisit(childNode->getVisit());
-            return false ;
-        }
-        else {
-            _arrClass[toClass].insert( GSMapPair(childNode, 0) );
-            return true ;
-        }
-    }*/
-
+    
+    // If the child node is already a member of STATETABLE, which indicates the protocol under test
+    // has successfully completed its function, there is no need to explore this child node later on, 
+    // so do not add this child node to ST[k] (_arrClass[toClass])
+    if( find(_arrFinRS,childNode) != _arrFinRS.end() )
+        return false ;
 
     GSMapIter it = _arrClass[toClass].find(childNode)  ;
     if( it != _arrClass[toClass].end() ) {
@@ -54,6 +42,7 @@ void ProbVerifier::start(int maxClass)
     int nMacs = _macPtrs.size() ;
     _root = new GlobalState(_macPtrs) ; 
     GlobalState::init(_root);
+    _root->setRoot();
 
     // Initialize _arrClass[0] to contain the initial global state. 
     // the other maps are initialized null.    
@@ -95,50 +84,70 @@ void ProbVerifier::start(int maxClass)
         while( !_arrClass[_curClass].empty() ) {
             // Pop a globalstate pointer ptr from class[k] (_arrClass[_curClass])
             GSMapConstIter it = _arrClass[_curClass].begin();            
-            GlobalState* st = it->first ;           
+            GlobalState* st = it->first ;              
+
+            if( st->getDistance() > _max ) {
+                cout << "Livelock found. " << endl ;
+
+                vector<GlobalState*> seq;
+                st->pathCycle(seq);
+                printSeq(seq);
+                
+                return ;
+            }   
+
 
             if( !st->hasChild() ) {
                 // Compute all the globalstate's childs
-                st->findSucc();
-#ifdef VERBOSE
-                cout << st->toString() << ": "  ;
-#endif
-                size_t nChilds = st->size();
+                st->findSucc();                
                 // Increase the threshold of livelock detection
-                _max += nChilds;
-                if( nChilds == 0 ) {
-                    // No child found. Report deadlock TODO (Printint the sequence, blah blah)
-                    cout << "Deadlock found." << endl ;
-                    return ;
-                }
-                else {                
-                    // Explore all its childs
-                    for( size_t idx = 0 ; idx < nChilds ; ++idx ) {
-                        GlobalState* childNode = st->getChild(idx);
-                        if( childNode->getDistance() > _max ) {
-                            cout << "Livelock found. " << endl ;
-                            return ;
-                        }                    
-
-                        int prob = st->getProb(idx);                   
-                        int dist = childNode->getDistance();
-#ifdef VERBOSE
-                        cout << childNode->toString() << " Prob = " << prob 
-                                                      << " Dist = " << dist << ", "  ;
-#endif
-                        if( find(_arrFinRS,childNode) == _arrFinRS.end() ) {
-                            // If the child node is not already a member of STATETABLE
-                            addToClass(childNode, prob);
-                        }
-                    }   
-#ifdef VERBOSE 
-                    cout << endl   ;
-#endif
-                }
+                _max += st->size();
             }
+            st->updateTrip();  
+            size_t nChilds = st->size();
+
+            // If the explored GlobalState st is in RS, add st to STATETABLE (_arrFinRS), so 
+            // when the later probabilistic search reaches st, the search will stop and explore 
+            // some other paths
+            if( find(_RS,st) != _RS.end() ) {
+                insert(_arrFinStart, st);   
+                insert(_arrFinRS, st);
+            }
+      
+#ifdef VERBOSE
+            cout << st->toString() << ": "  ;
+#endif
+            if( nChilds == 0 ) {
+                // No child found. Report deadlock TODO (Print the sequence, blah blah)
+                cout << "Deadlock found." << endl ;
+
+                vector<GlobalState*> seq;
+                st->pathRoot(seq);
+                printSeq(seq);
+
+                return ;
+            }
+            else {                   
+                // Add the computed childs to class array ST[class].
+                for( size_t idx = 0 ; idx < nChilds ; ++idx ) {
+
+                    GlobalState* childNode = st->getChild(idx);                                      
+
+                    int prob = st->getProb(idx);                   
+                    int dist = childNode->getDistance();
+#ifdef VERBOSE
+                    cout << childNode->toString() << " Prob = " << prob 
+                                                  << " Dist = " << dist << ", "  ;
+#endif                                            
+                    addToClass(childNode, prob);
+                    
+                }   
+#ifdef VERBOSE 
+                cout << endl   ;
+#endif
+            }            
 
             // Finish exploring st. Remove st from class[k] (_arrClass[_curClass])
-            //_computedClass[_curClass].insert(*it);
             _arrClass[_curClass].erase(it);            
             
         } // while (explore the global state in class[_curClass] until all the global states in the class
@@ -176,4 +185,15 @@ GSVecMap::iterator ProbVerifier::find(GSVecMap& collection, GlobalState* gs)
 GSMap::iterator ProbVerifier::find(GSMap& collection, GlobalState* gs)
 {
     return collection.find(gs);
+}
+
+void ProbVerifier::printSeq(const vector<GlobalState*>& seq) 
+{
+    for( size_t ii = 0 ; ii < seq.size()-1 ; ++ii ) {
+        if( seq[ii]->getProb() != seq[ii+1]->getProb() )
+            cout << seq[ii]->toString() << " -p-> ";
+        else
+            cout << seq[ii]->toString() << " -> ";
+    }
+    cout << seq.back()->toString() << endl ;
 }

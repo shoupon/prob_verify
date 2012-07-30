@@ -6,6 +6,7 @@ using namespace std;
 
 //#define HALF_DUPLEX
 #define FULL_DUPLEX
+#define UN_NUM_ACK
 
 //#define ALLOW_UNMATCHED
 
