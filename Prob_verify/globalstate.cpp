@@ -94,7 +94,8 @@ void GlobalState::findSucc()
               
         for( size_t ii = 0 ; ii < vecTrans.size() ; ++ii ) {
             // Create a clone of current global state
-            GlobalState* cc = new GlobalState(*this) ;        
+            GlobalState* cc = new GlobalState(this) ;     
+            //cc->_childs.clear();
             
             // Execute state transition
             cc->execute(vecTrans[ii].getId(), subjects[ii]);        
@@ -113,7 +114,7 @@ void GlobalState::findSucc()
                     _childs.insert(_childs.end(), ret.begin(), ret.end());
                 }                
             } catch (string str) {
-                _childs.erase(_childs.begin()+cIdx);
+                _childs.erase(_childs.begin()+cIdx);                
                 cerr << "When finding successors (findSucc) " 
                      << this->toString() << endl ;
                 cerr << str << endl ;
@@ -190,7 +191,9 @@ vector<GlobalState*> GlobalState::evaluate()
                 // Multiple transitions: non-deterministic transition
                 ret.resize(matched.size());
                 for( size_t retIdx = 0 ; retIdx < ret.size() ; ++retIdx ) {
-                    ret[retIdx] = new GlobalState(*this);
+                    ret[retIdx] = new GlobalState(this);
+                    ret[retIdx]->_parents = this->_parents;
+
                     Transition tr = st->getTrans(matched[retIdx].first);
                     ret[retIdx]->execute(matched[retIdx].first, lbl.first);
                     ret[retIdx]->addTask(tr, lbl.first);
