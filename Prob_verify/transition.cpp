@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <map>
+#include <sstream>
 using namespace std;
 
 #include "transition.h"
@@ -52,3 +53,19 @@ bool Transition::operator == (const Transition& t) const
     return false ;
 }
         
+string Transition::toString() 
+{
+    stringstream ss ;
+    ss << "(" << _in.first << "?" << _in.second << "," ;
+    OutLabelMap::iterator it = this->_outs.begin();
+    OutLabelMap::iterator last = _outs.end() ;
+    last--;
+    for( ; it != last ; ++it ) {
+        ss << it->first << "!" << it->second << "*" ;
+    }
+    ss << it->first << "!" << it->second << ")" ;
+    if( !isHigh() )
+        ss << "low" ;
+
+    return ss.str();
+}

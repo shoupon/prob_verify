@@ -2,7 +2,7 @@
 
 #include "pverify.h"
     
-#define VERBOSE
+//#define VERBOSE
 
 
 bool ProbVerifier::addToClass(GlobalState* childNode, int toClass)
@@ -99,6 +99,9 @@ void ProbVerifier::start(int maxClass)
 
             if( !st->hasChild() ) {
                 // Compute all the globalstate's childs
+#ifdef VERBOSE
+                cout << "Finding successors of " << st->toString() << endl;
+#endif 
                 st->findSucc();                
                 // Increase the threshold of livelock detection
                 _max += st->size();
@@ -114,7 +117,7 @@ void ProbVerifier::start(int maxClass)
                 insert(_arrFinRS, st);
             }
       
-#ifdef VERBOSE
+#ifdef LOG
             cout << st->toString() << ": "  ;
 #endif
             if( nChilds == 0 ) {
@@ -135,14 +138,14 @@ void ProbVerifier::start(int maxClass)
 
                     int prob = st->getProb(idx);                   
                     int dist = childNode->getDistance();
-#ifdef VERBOSE
+#ifdef LOG
                     cout << childNode->toString() << " Prob = " << prob 
                                                   << " Dist = " << dist << ", "  ;
 #endif                                            
                     addToClass(childNode, prob);
                     
                 }   
-#ifdef VERBOSE 
+#ifdef LOG 
                 cout << endl   ;
 #endif
             }            
