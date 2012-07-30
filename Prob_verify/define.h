@@ -8,6 +8,13 @@ using namespace std;
 #define FULL_DUPLEX
 #define UN_NUM_ACK
 
+//#define VERBOSE
+#ifdef VERBOSE
+#define LOG
+#endif
+
+#define LOG
+
 typedef map<string,int> Table;
 typedef Table::value_type Entry;
 typedef pair<Table::iterator, bool> InsertResult;

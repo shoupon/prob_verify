@@ -46,6 +46,7 @@ public:
         return *it; 
     }
     OutLabel getOutLabel() { return *(_outs.begin()) ; }
+    string toString() ;
 
     void setId(int id) { this->_id = id; }
 

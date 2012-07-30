@@ -85,8 +85,7 @@ public:
     GlobalState():_countVisit(1),_dist(0) { init(); }
     // This copy constructor is used to create childs, 
     // it will automatically increase the distance of childs
-    GlobalState(GlobalState* gs):_gStates(gs->_gStates), _countVisit(1), 
-        _dist(gs->_dist+1), _fifo(gs->_fifo), _depth(gs->_depth) { _parents.push_back(gs);}
+    GlobalState(GlobalState* gs);
     // This constructor is used to create a new GlobalState by specifying 
     // the state of its individual machines
     GlobalState(vector<int> stateVec):_gStates(stateVec), _countVisit(1),_dist(0) {}

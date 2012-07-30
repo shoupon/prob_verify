@@ -6,13 +6,23 @@
 using namespace std;
 
 #include "globalstate.h"
+#include "define.h"
 
-#define VERBOSE
+//#define VERBOSE
 
 int GlobalState::_nMacs = -1;
 vector<Fsm*> GlobalState::_machines;
 GSHash GlobalState::_uniqueTable = GSHash(15) ;
 GlobalState* GlobalState::_root = 0;
+
+GlobalState::GlobalState(GlobalState* gs):_gStates(gs->_gStates), _countVisit(1), 
+        _dist(gs->_dist+1), _fifo(gs->_fifo), _depth(gs->_depth) 
+{ 
+    _parents.push_back(gs);
+#ifdef VERBOSE
+    cout << "Create new GlobalState from " << this->toString();
+#endif
+}
 
 GlobalState::GlobalState(const vector<Fsm*>& macs)
     :_countVisit(1), _dist(0)
@@ -74,8 +84,6 @@ void GlobalState::explore(int subject)
 
 void GlobalState::findSucc()
 {        
-    if( this->_gStates[5] == 2 )
-        cout << " " << endl ;
     vector<Transition> vecTrans;
     vector<int> subjects;
     // Execute each null input transition and create a new global state for each transition
@@ -97,7 +105,7 @@ void GlobalState::findSucc()
         GlobalState* cc = new GlobalState(this) ;        
         
         // Execute state transition
-        cc->execute(vecTrans[ii].getId(), subjects[ii]);        
+        cc->execute(vecTrans[ii].getId(), subjects[ii]);     
         
         // Push transition to be evaluated onto the queue
         cc->addTask(vecTrans[ii], subjects[ii]);    
@@ -127,6 +135,9 @@ void GlobalState::findSucc()
 
 vector<GlobalState*> GlobalState::evaluate() 
 {
+#ifdef VERBOSE
+    cout << "Evaluating tasks in " << this->toString() << endl ;
+#endif
     vector<Arrow> matched;
     vector<GlobalState*> ret;
     while( !_fifo.empty() ) {
@@ -140,8 +151,15 @@ vector<GlobalState*> GlobalState::evaluate()
             // This label send message to another machine
             State* st = _machines[lbl.first]->getState(_gStates[lbl.first]);
             st->receive(match._source, lbl.second, matched);
+#ifdef VERBOSE
+            cout << "Machine " << match._source << " sends message " << lbl.second 
+                 << " to machine " << lbl.first << endl ;
+#endif 
             
             if( matched.size() == 1 ) {
+#ifdef VERBOSE
+                cout << "Only one matching transition found. " <<  endl ;
+#endif
                 Transition tr = st->getTrans(matched[0].first);
                 execute(matched[0].first, lbl.first);
                 addTask(tr, lbl.first);
@@ -151,6 +169,9 @@ vector<GlobalState*> GlobalState::evaluate()
             }
             else {
                 // Multiple transitions: non-deterministic transition
+#ifdef VERBOSE
+                cout << "Multiple transitions found matching" << endl ;
+#endif
                 ret.resize(matched.size());
                 for( size_t retIdx = 0 ; retIdx < ret.size() ; ++retIdx ) {
                     ret[retIdx] = new GlobalState(*this);
@@ -171,10 +192,20 @@ vector<GlobalState*> GlobalState::evaluate()
 
 void GlobalState::addTask(Transition tr, int subject)
 {   
+#ifdef VERBOSE
+    cout << "Tasks: " << endl;
+#endif
     for( size_t iOuts = 0 ; iOuts < tr.getNumOutLabels() ; ++iOuts ) {
         OutLabel lbl = tr.getOutLabel(iOuts);        
         this->_fifo.push(Matching(lbl,subject,tr.getId()));
+#ifdef VERBOSE
+        cout << lbl.first << "!" << lbl.second << endl ;
+#endif
     }
+
+#ifdef VERBOSE
+    cout << "is(are) added to the task FIFO queue." << endl ;
+#endif
 }
 
 void GlobalState::updateTrip()
@@ -246,12 +277,23 @@ void GlobalState::execute(int transId, int subjectId)
 {
     // Change state of one of the component machines
     State* curState = _machines[subjectId]->getState(_gStates[subjectId]) ;        
+
+#ifdef VERBOSE
+    string origin = this->toString();
+    cout << "Machine " << subjectId 
+         << "executes transition " << curState->getTrans(transId).toString() << endl ;
+#endif 
+
     // Execute state transition
     _gStates[subjectId] = curState->getNextState(transId)->getID();
 
     // Low probability transition
     if( !curState->getTrans(transId).isHigh() )
         _depth++;
+
+#ifdef VERBOSE
+    cout << origin << "->" << this->toString() << endl ;
+#endif
 
 }
 
