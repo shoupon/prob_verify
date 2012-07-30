@@ -176,7 +176,12 @@ vector<GlobalState*> GlobalState::evaluate()
                        << " Message ID = " << lbl.second << endl ;
                 }
                     
-                throw ss.str();                
+#ifndef ALLOW_UNMATCHED
+                throw ss.str();
+#else
+                cout << ss.str() ;
+                cout << "SKIP unmatched transition. CONTINUE" << endl;
+#endif
             }
             else {
                 // Multiple transitions: non-deterministic transition
