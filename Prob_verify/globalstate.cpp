@@ -128,6 +128,7 @@ void GlobalState::findSucc()
                 cerr << "When finding successors (findSucc) " 
                      << this->toString() << endl ;
                 cerr << str << endl ;
+                cIdx--;
             }
 
         }                    
