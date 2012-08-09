@@ -7,8 +7,8 @@ using namespace std;
 
 typedef map<int,int>            OutLabelMap ;
 typedef map<int,int>::iterator  OutLabelMapIter;
-typedef pair<int,int>           OutLabel;
-typedef pair<int,int>           InLabel;
+typedef pair<int,int>           OutLabel; // ToMachine.id ! message.id
+typedef pair<int,int>           InLabel;  // FromMachine.id ? message.id
 
 class Transition
 {
