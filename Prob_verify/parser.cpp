@@ -19,6 +19,7 @@ using namespace std;
 Parser::Parser() 
 {
     _messages.insert( Entry("nul", 0) );
+    _listMsg.push_back("nul");
     _machineNames.insert( Entry("nul", -1) );
 }
 
@@ -142,10 +143,10 @@ Transition Parser::parseTransition(string& line, string& towardState)
     }
     
     // Find the ID corresponding to human readable name
-    int fromId = findOrCreate( _machineNames, fromMac );        
-    int inMsgId = findOrCreate( _messages, inputMsg );
-    int toId = findOrCreate( _machineNames, tos[0] );
-    int outMsgId = findOrCreate( _messages, outputs[0] );
+    int fromId = createMac( fromMac );        
+    int inMsgId = createMsg( inputMsg );
+    int toId = createMac( tos[0] );
+    int outMsgId = createMsg( outputs[0] );
 
     // Determine the probability of transition
     bool prob;
@@ -166,8 +167,8 @@ Transition Parser::parseTransition(string& line, string& towardState)
     assert(tos.size() == outputs.size());
     if( tos.size() > 1 ) {
         for( size_t i = 1 ; i < tos.size() ; ++i ) {
-            toId = findOrCreate( _machineNames, tos[i] );
-            outMsgId = findOrCreate( _messages, outputs[i] );
+            toId = createMac( tos[i] );
+            outMsgId = createMsg( outputs[i] );
             ret.addOutLabel(toId, outMsgId);
         }
     }
@@ -236,7 +237,8 @@ Fsm* Parser::addFSM(string name)
             // TODO: Need to check for duplicate input or message
             string inMsg = string(fromMachine)+"?"+inLabel;
             _inputs.insert( Entry(inMsg, _inputs.size()) ) ;
-            _messages.insert( Entry(string(inLabel), _messages.size()) );
+            createMsg(inLabel);
+            //_messages.insert( Entry(string(inLabel), _messages.size()) );
         }
     }
 
@@ -264,7 +266,8 @@ Fsm* Parser::addFSM(string name)
             // TODO: Need to check for duplicate input or message
             string outMsg = string(toMachine)+"!"+outLabel;
             _outputs.insert( Entry(outMsg, _outputs.size()) ) ;
-            _messages.insert( Entry(string(outLabel), _messages.size()) );
+            createMsg(outLabel);
+            //_messages.insert( Entry(string(outLabel), _messages.size()) );
         }
     }
 
@@ -394,6 +397,35 @@ int Parser::findOrCreate(Table& tab, string key)
         return it->second;
 }
 
+int Parser::createMsg(string msg)
+{
+    int ret = findOrCreate(this->_messages, msg);
+    if(  (size_t)ret >= _listMsg.size() ) {
+        // if the return idx >= the size of msg vector, which means the message is created, 
+        // a new entry in msg vector should be created, too
+        _listMsg.push_back(msg);
+    }
+
+    return ret;
+}
+   
+int Parser::createMac(string macName)
+{
+    // Search macName in the Table(map) _machineNames
+    // If the returned value == -1 or < size of list of machine names, the macName exists in the table
+    int ret = findOrCreate(this->_machineNames, macName) ;
+    
+    if( ret == -1 ) // macName == "nul", no need to create new entry
+        return ret;
+
+    if( (size_t)ret >= _listMacName.size() ) {
+        // If returned value is out of the range of the list, a new entry should be created at the
+        // back of ths list
+        _listMacName.push_back(macName);
+    }
+    return ret;
+}
+
 bool Parser::existInLabel(string label)
 {
     return existInTable(_inputs, label);
@@ -414,6 +446,72 @@ bool Parser::existInTable(const Table& tab, string label)
 
 void Parser::declareMachine(string name) 
 { 
-    if( _machineNames.find( name ) == _machineNames.end() )
-        _machineNames.insert( Entry(name, _machineNames.size()-1) ); 
+    if( _machineNames.find( name ) == _machineNames.end() ) {
+        assert(_listMacName.size() == _machineNames.size()-1 );
+
+        _machineNames.insert( Entry(name, _machineNames.size()-1) );         
+        _listMacName.push_back(name);
+    }
+}
+
+int Parser::messageToInt(string msg)
+{
+    Table::iterator it = this->_messages.find(msg);
+    if( it == _messages.end() ) {
+        _messages.insert( Entry(msg, _messages.size() - 1) );
+        _listMsg.push_back(msg);
+        return _messages.size() - 1;
+    }
+    else {
+        return it->second;
+    }
+}
+
+int Parser::machineToInt(string macName)
+{
+    Table::iterator it = this->_machineNames.find(macName);
+    if( it == _machineNames.end() ) {
+        _machineNames.insert( Entry(macName, _machineNames.size() - 1) );
+        _listMacName.push_back(macName);
+        return _machineNames.size() - 1;
+    }
+    else {
+        return it->second;
+    }
+}
+
+string Parser::IntToMessage(int id)
+{
+    if( id < 0 ) {
+        throw runtime_error("There is no message associated with id < 0, error must present");
+    }
+    else if( (size_t)id >= _listMsg.size() ) {
+        stringstream ss ;
+        ss << "Unable to find message corresponding to the id = " ;
+        ss << id ;
+        throw runtime_error(ss.str());
+    }
+    else {
+        return _listMsg[id];
+    }
+}
+
+string Parser::IntToMachine(int id)
+{
+    if( id < 0 ) {
+        if( id == -1 )
+            return string("nul");
+        else {
+            throw runtime_error("There is no machine with id < -1, error must present");
+        }
+    }
+    else if( (size_t)id >= _listMacName.size() ) {
+        stringstream ss ;
+        ss << "Unable to find machine corresponding to the id = " ;
+        ss << id ;
+        throw runtime_error(ss.str());
+    }
+    else {
+        return _listMacName[id];
+    }
 }
