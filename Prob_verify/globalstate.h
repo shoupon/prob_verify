@@ -8,13 +8,14 @@
 
 #include "fsm.h"
 #include "state.h"
+#include "statemachine.h"
 #include "myHash.h"
 
 class GlobalStateHashKey;
 class GlobalState;
 
 typedef Hash<GlobalStateHashKey, GlobalState*> GSHash;
-typedef Hash<GlobalStateHashKey, vector<int>> GSVecHash;
+typedef Hash<GlobalStateHashKey, vector<string>> GSVecHash;
 
 // A vector of int defines the states of machines in this global state using state number
 // An integer represents the probability class of global state transition
@@ -36,17 +37,17 @@ private:
     // Number of machines
     static int _nMacs ;
     // array of ptr to machines
-    static vector<Fsm*> _machines;    
+    static vector<StateMachine*> _machines;    
     // The ID's of states in a global state
     // A table stores all of the reachable global states
     static GSHash _uniqueTable ;
     static GlobalState* _root;
-    vector<int> _gStates;     
+    vector<Snapshot> _gStates;     
     
     vector<GlobalState*> _childs;
     vector<GlobalState*> _parents;
     vector<int> _probs;
-    queue<Matching> _fifo;
+    queue<MessageTuple> _fifo;
     queue<int> _subjects;
     vector<int> _class ;
     int _countVisit;
@@ -64,7 +65,7 @@ private:
     vector<GlobalState*> evaluate();
     // Invoke explore when an unexplored transition is push onto the queue
     void explore(int subject);
-    void addTask(Transition tr, int subject);
+    void addTask(vector<MessageTuple> msgs);
     void execute(int transId, int subjectId);
 
     void init() ;
@@ -88,10 +89,10 @@ public:
     GlobalState(GlobalState* gs);
     // This constructor is used to create a new GlobalState by specifying 
     // the state of its individual machines
-    GlobalState(vector<int> stateVec):_gStates(stateVec), _countVisit(1),_dist(0) {}
+    GlobalState(vector<Snapshot> stateVec):_gStates(stateVec), _countVisit(1),_dist(0) {}
     // This constructor should be called first. It will set the static member of GlobalState,
     // such as number of state machines, the pointers to machines, etc.
-    GlobalState(const vector<Fsm*>& macs);
+    GlobalState(const vector<StateMachine*>& macs);
     
     GlobalState* getChild (size_t i) { return _childs[i]; }
     int getProb( size_t i ) const { return _probs[i] ; }
@@ -108,7 +109,12 @@ public:
     int increaseVisit(int inc) { return _countVisit += inc ; }        
     // For each child global states, update their distance from initial state
     // increase the step length from the initial global state for livelock detection
-    void updateTrip();    
+    void updateTrip();   
+
+    // Take the states of machines as stored in _gStates
+    void restore();
+    // Save the current state of machines to _gStates
+    void store();
 
     // This function will start tracing back until root it found. The path will be saved in arr
     // This is best used to print out the transitions from the initial state that lead to deadlock
@@ -135,13 +141,13 @@ public:
     {
         _sum = 0 ;
         for( size_t ii = 0 ; ii < _gState.size() ; ++ii ) 
-            _sum += _gState[ii];
+            _sum += _gState[ii].toInt();
     }
     GlobalStateHashKey(const vector<int>& vec):_gState(vec)
     {
         _sum = 0 ;
         for( size_t ii = 0 ; ii < _gState.size() ; ++ii ) 
-            _sum += _gState[ii];
+            _sum += _gState[ii].toInt();
     }
 
     size_t operator() () const { return (_sum); }
@@ -158,7 +164,7 @@ public:
     }
  
 private:
-    vector<int> _gState;
+    vector<Snapshot> _gState;
     GlobalState* _ptr;
     int _depth;
 

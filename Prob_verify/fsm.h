@@ -10,7 +10,7 @@ using namespace std;
 #include "transition.h"
 #include "state.h"
 
-class Fsm
+class Fsm : class StateMachine
 {
 public:
     Fsm(string name);

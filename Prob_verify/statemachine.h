@@ -5,6 +5,7 @@
 #include "state.h"
 #include "transition.h"
 #include "fsm.h"
+#include "parser.h"
 
 #include <vector>
 #include <string>
@@ -13,12 +14,13 @@ class MessageTuple
 {
 public:    
     int srcID() = 0;
-    int destId() = 0 ;
+    int destId() = 0 ;   
     int srcMsgId() = 0;
     int destMsgId() = 0;
+    int subjectId() = 0 ;
 
-    size_t numParams() = 0;
-    int getParam(size_t arg);
+    virtual size_t numParams() = 0;
+    virtual int getParam(size_t arg) = 0;
 private:
 };
 
@@ -32,7 +34,9 @@ class StateMachine
 public:
     // When the class is constructed, a lookup function should be provided to the StateMachine,
     // so the StateMachine can convert a string of an input or an output label into id (integer)
-    virtual StateMachine( int (*lookupMachine)(string), int (*lookupMsg)(string) ) = 0 ;
+    // A pointer to Parser should be provided to the StateMachine. The Parser class contains the
+    // necessary look up function that StateMachine needs
+    StateMachine( Parser* ptr ): _psrPtr(ptr) { }
 
     virtual size_t transit(MessageTuple inMsg, vector<MessageTuple>& outMsgs, 
                            bool& high_prob, size_t startIdx = 0) = 0 ;
@@ -44,12 +48,16 @@ public:
     // by s StateSnapshot
     virtual void restore(StateSnapshot& snapshot) = 0;
     // Store current snapshot
-    virtual Snapshot curState();
+    virtual Snapshot curState();    
 
-private:
+protected:
+    Parser* _psrPtr;
+    int messageToInt(string msg) { checkPsrPtr(); _psrPtr->messageToInt(msg); }
+    int machineToInt(string macName) { checkPsrPtr(); _psrPtr->machineToInt(macName);]
+    string IntToMessage(int id) { checkPsrPtr(); _psrPtr->IntToMessage(id); }
+    string IntToMachine(int id) { checkPsrPtr(); _psrPtr->IntToMachine(id); }
 
-    int (*_lookupMachine)(string);
-    int (*_lookupMessage)(string);
+    bool checkPsrPtr() { if( _psrPtr == 0 ) throw runtime_error("_psrPtr is not initialized."); }
 };
 
 // Used for restore the state of a state machine back to a certain point. Should contain
@@ -61,7 +69,8 @@ public:
     virtual int curStateId() = 0 ;
     // Returns the name of current state as specified in the input file
     virtual string toString() = 0 ;
-    // Return number of null input transitions
+    // Cast the Snapshot into a integer. Used in HashTable
+    virtual int toInt() = 0;
 };
 
 #endif

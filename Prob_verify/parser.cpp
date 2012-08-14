@@ -417,3 +417,57 @@ void Parser::declareMachine(string name)
     if( _machineNames.find( name ) == _machineNames.end() )
         _machineNames.insert( Entry(name, _machineNames.size()-1) ); 
 }
+
+int Parser::messageToInt(string msg)
+{
+    Table::iterator it = this->_messages.find(msg);
+    if( it == _messages.end() ) {
+        _messages.insert( Entry(name, _messages.size() - 1 );
+        return _messages.size() - 1;
+    }
+    else {
+        return it->second;
+    }
+}
+
+int Parser::machineToInt(string macName)
+{
+    Table::iterator it = this->_machineNames.find(msg);
+    if( it == _machineNames.end() ) {
+        _machineNames.insert( Entry(name, _machineNames.size() - 1 );
+        return _machineNames.size() - 1;
+    }
+    else {
+        return it->second;
+    }
+}
+
+string Parser::IntToMessage(int id)
+{
+    Table::iterator it = _messages.begin() ;
+    while( it != _messages.end() ) {
+        if( it->second == id )
+            return it->first ;
+        it++;
+    }
+
+    stringstream ss ;
+    ss << "Unable to find message corresponding to the id = " ;
+    ss << id ;
+    throw runtime_error(ss.str());
+}
+
+string Parser::IntToMachine(int id)
+{
+    Table::iterator it = _machineNames.begin() ;
+    while( it != _machineNames.end() ) {
+        if( it->second == id )
+            return it->first ;
+        it++;
+    }
+
+    stringstream ss ;
+    ss << "Unable to find machine corresponding to the id = " ;
+    ss << id ;
+    throw runtime_error(ss.str());
+}

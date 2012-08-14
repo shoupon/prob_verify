@@ -24,7 +24,7 @@ GlobalState::GlobalState(GlobalState* gs):_gStates(gs->_gStates), _countVisit(1)
 #endif
 }
 
-GlobalState::GlobalState(const vector<Fsm*>& macs)
+GlobalState::GlobalState(const vector<StateMachine*>& macs)
     :_countVisit(1), _dist(0)
 {
     if( _nMacs < 0 ) {
@@ -85,7 +85,7 @@ void GlobalState::explore(int subject)
 void GlobalState::findSucc()
 {     
     try {
-        vector<Transition> vecTrans;
+        /*vector<Transition> vecTrans;        
         vector<int> subjects;
         // Execute each null input transition and create a new global state for each transition
         for( size_t m = 0 ; m < _machines.size() ; ++m ) {
@@ -99,9 +99,53 @@ void GlobalState::findSucc()
                     subjects.push_back(m);
                 } // if
             } // for
-        } // for   
+        } // for   */
 
+        // Store the current state
+        for( size_t m = 0 ; m < _machines.size() ; ++m ) {
+            _gStates[m] = _machines[m]->curState();
+        }
+
+        size_t idx = 0 ;
+        vector<vector<MessageTuple> > arrOutMsgs;
+        vector<Snapshot> statuses;
+        bool high_prob;
+        vector<bool> probs;
+        // Execute each null input transition 
+        for( size_t m = 0 ; m < _machines.size() ; ++m ) {
+            arrOutMsgs.clear();
+            statuses.clear();
+
+            while( idx >= 0 ) {
+                // Restore the states of machines to current GlobalState
+                restore();
+                // Find the next null input transition of current GlobalState. The idx is increased 
+                // to be the next starting point
+                arrOutMsgs.push_back(vector<MessageTuple>() );
+                idx = _machines[m]->nullInputTrans(arrOutMsgs.back(), high_prob, idx);  
+                // Store the Snapshot of the machine after execute the null input transition
+                statuses.push_back( _machines[m]->curState() ) ;
+                // Store the probability of this transition
+                probs.push_back(high_prob);                                
+            }
+
+            // Create a new global state for each transition
+            for( size_t ii = 0 ; ii < statuses.size() ; ++ii ) {
+                // Create a clone of current global state
+                GlobalState* cc = new GlobalState(this);
+                // Execute state transition
+                cc->_gStates[m] = statuses[ii] ;
+                // Push tasks to be evaluated onto the queue
+                cc->addTask(arrOutMsgs[ii]);                
+                // Record the probability
+                if( !probs[ii] )
+                    cc->_depth++;
+                // Store the newly created child GlobalState
+                _childs.push_back(cc);
+            }
+        }
               
+        /*
         for( size_t ii = 0 ; ii < vecTrans.size() ; ++ii ) {
             // Create a clone of current global state
             GlobalState* cc = new GlobalState(this) ;     
@@ -113,7 +157,7 @@ void GlobalState::findSucc()
             // Push transition to be evaluated onto the queue
             cc->addTask(vecTrans[ii], subjects[ii]);    
             _childs.push_back(cc);
-        }    
+        } */   
 
         for( size_t cIdx = 0 ; cIdx < _childs.size() ; ++cIdx ) {
             try {
@@ -154,50 +198,36 @@ vector<GlobalState*> GlobalState::evaluate()
 #ifdef VERBOSE
     cout << "Evaluating tasks in " << this->toString() << endl ;
 #endif
-    vector<Arrow> matched;
+    vector<MessageTuple> matched;
     vector<GlobalState*> ret;
     while( !_fifo.empty() ) {
         // Get a task out of the queue
-        Matching match = _fifo.front();
-        OutLabel lbl = match._outLabel;
+        MessageTuple tuple = _fifo.front() ;
         _fifo.pop();   
         
-
-        if( lbl.first >= 0 ) {
-            // This label send message to another machine
-            State* st = _machines[lbl.first]->getState(_gStates[lbl.first]);
-            st->receive(match._source, lbl.second, matched);
-#ifdef VERBOSE
-            cout << "Machine " << match._source << " sends message " << lbl.second 
-                 << " to machine " << lbl.first << endl ;
-#endif 
-            
-            if( matched.size() == 1 ) {
-#ifdef VERBOSE
-                cout << "Only one matching transition found. " <<  endl ;
-#endif
-                Transition tr = st->getTrans(matched[0].first);
-                execute(matched[0].first, lbl.first);
-                addTask(tr, lbl.first);
-            }
-            else if( matched.size() == 0 ) { 
+        size_t idx = 0;
+        bool high_prob ;
+        int macNum = tuple.destId();
+        if( tuple.destId() >= 0 ) {
+            // This label send message to another machine           
+            idx = _machines[macNum]->transit(tuple, matched, high_prob, idx);
+            if( matched.size() == 0 ) {
                 // No found matching transition, this null transition should not be carry out
                 // Another null input transition should be evaluate first
                 stringstream ss ;
                 ss << "No matching transition for outlabel: " 
-                   << "Destination Machine ID = " << lbl.first 
-                   << " Message ID = " << lbl.second << endl
+                   << "Destination Machine ID = " << tuple.destId()
+                   << " Message ID = " << tuple.destMsgId() << endl
                    << "GlobalState = " << this->toString() << endl ;   
 
                 // Print all the task in _fifo
                 ss << "Content in fifo: " << endl ;
                 while( !_fifo.empty() ) {
-                    match = _fifo.front();
-                    lbl = match._outLabel;
+                    tuple = _fifo.front();                    
                     _fifo.pop();
 
-                    ss << "Destination Machine ID = " << lbl.first 
-                       << " Message ID = " << lbl.second << endl ;
+                    ss << "Destination Machine ID = " << tuple.destId()
+                        << " Message ID = " << tuple.destMsgId() << endl ;
                 }
                     
 #ifndef ALLOW_UNMATCHED
@@ -206,42 +236,67 @@ vector<GlobalState*> GlobalState::evaluate()
                 cout << ss.str() ;
                 cout << "SKIP unmatched transition. CONTINUE" << endl;
 #endif
+            } // no matching transition found
+            else if( idx < 0 ) {
+                // Only one matching transition found. There is no need to create new child
+                // First, take a snapshot of current machine states
+                _gStates[macNum] = _machines[macNum]->curState() ;
+                // Add the matched tasks
+                addTask(matched);
+                // Increment the depth if a low probability transition is encountered
+                if( !high_prob )
+                    _depth++;                
             }
             else {
                 // Multiple transitions: non-deterministic transition
-#ifdef VERBOSE
-                cout << "Multiple transitions found matching" << endl ;
-#endif
-                ret.resize(matched.size());
-                for( size_t retIdx = 0 ; retIdx < ret.size() ; ++retIdx ) {
-                    ret[retIdx] = new GlobalState(this);
-                    ret[retIdx]->_parents = this->_parents;
+                // Need to create more childs
 
-                    Transition tr = st->getTrans(matched[retIdx].first);
-                    ret[retIdx]->execute(matched[retIdx].first, lbl.first);
-                    ret[retIdx]->addTask(tr, lbl.first);
+                ret.clear();
+                // Create a new child
+                GlobalState* creation = new GlobalState(this);
+                // Take snapshot, add tasks to queue and update probability as before, but
+                // this time operate on the created child
+                creation->_gStates[macNum] = _machines[macNum]->curState();
+                creation->addTask(matched);
+                creation->_parents = this->_parents;
+                if( !high_prob )
+                    creation->_depth++;
+                ret.push_back(creation);
+
+                while( idx >= 0 ) {
+                    // Undo previous action
+                    this->restore();
+                    idx = _machines[macNum]->transit(tuple, matched, high_prob, idx);
+                    // Create a new child
+                    GlobalState* creation = new GlobalState(this);
+                    // Take snapshot, add tasks to queue and update probability as before, but
+                    // this time operate on the created child
+                    creation->_gStates[macNum] = _machines[macNum]->curState();
+                    creation->addTask(matched);
+                    creation->_parents = this->_parents;
+                    if( !high_prob )
+                        creation->_depth++;
+                    ret.push_back(creation);
                 }
+
                 return ret;
-            }
-        }
-    }
+            } // end multiple-transition
+        } // if destId >=0, messages being passed to other machines
+    } // end while (task fifo)
 
     ret.push_back(this);
     return ret;
-
-
 }
 
-void GlobalState::addTask(Transition tr, int subject)
+void GlobalState::addTask(vector<MessageTuple> msgs)
 {   
 #ifdef VERBOSE
     cout << "Tasks: " << endl;
 #endif
-    for( size_t iOuts = 0 ; iOuts < tr.getNumOutLabels() ; ++iOuts ) {
-        OutLabel lbl = tr.getOutLabel(iOuts);        
-        this->_fifo.push(Matching(lbl,subject,tr.getId()));
+    for( size_t iOuts = 0 ; iOuts < msgs.size() ; ++iOuts ) {     
+        this->_fifo.push(msgs[iOuts]);
 #ifdef VERBOSE
-        cout << lbl.first << "!" << lbl.second << endl ;
+        cout << msgs[iOuts].destId() << "!" << msgs[iOuts].destMsgId() << endl ;
 #endif
     }
 
@@ -525,4 +580,16 @@ size_t GlobalState::markPath(GlobalState* ptr)
     size_t ret = 0 ;
     ret--;
     return ret;
+}
+
+void GlobalState::restore()
+{
+    for( size_t m = 0 ; m < _machines.size() ; ++m )
+        _machines[m]->restore(_gStates[m]);
+}
+
+void GlobalState::store()
+{
+    for( size_t m = 0 ; m < _machines.size(); ++m )
+        _gStates[m] = _machines[m]->curState();
 }

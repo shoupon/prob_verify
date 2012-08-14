@@ -23,6 +23,9 @@ private:
     Table _outputs;
     Table _messages;
 
+    vector<string> _listMacName;
+    vector<string> _listMsg;
+
     int _lineNum ;
     stringstream _line;
     ifstream* _file;
@@ -37,6 +40,11 @@ private:
     bool existInLabel(string label);
     bool existOutLabel(string label);
     bool existInTable(const Table& tab, string label);
+
+    int messageToInt(string msg);
+    int machineToInt(string macName);
+    string IntToMessage(int id);
+    string IntToMachine(int id);
 public:
     Parser();
     Fsm* addFSM(string name);

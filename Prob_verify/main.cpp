@@ -41,17 +41,17 @@ int main( int argc, char* argv[] )
 
         // Add the finite-state machines into ProbVerifier
         ProbVerifier pvObj ;
-        pvObj.addFsm(xmitter);
-        pvObj.addFsm(rcvr);
-        pvObj.addFsm(timer);
+        pvObj.addMachine(xmitter);
+        pvObj.addMachine(rcvr);
+        pvObj.addMachine(timer);
 #ifdef HALF_DUPLEX
-        pvObj.addFsm(comch);
+        pvObj.addMachine(comch);
 #endif
 #ifdef FULL_DUPLEX
-        pvObj.addFsm(fcomch);
-        pvObj.addFsm(rcomch);
+        pvObj.addMachine(fcomch);
+        pvObj.addMachine(rcomch);
 #endif    
-        pvObj.addFsm(serv);
+        pvObj.addMachine(serv);
 
         // Specify the global states in the set RS
 #ifdef HALF_DUPLEX
