@@ -7,7 +7,7 @@ using namespace std;
 #include "fsm.h"
 
 Fsm::Fsm(string name)
-:_name(name)
+:_name(name), _current(0)
 {
 }
 
@@ -65,3 +65,15 @@ void Fsm::reset()
         _states[ii]->reset();
     }
 }
+
+size_t Fsm::nullInputTrans(vector<MessageTuple>& outMsgs, bool& high_prob, size_t startIdx = 0)
+{
+    State* cs = _states[_current];
+    // Go through all the transition of current state
+    for( size_t tid = 0 ; tid < cs->getNumTrans() ; ++tid ) {
+        Transition tr = cs->getTrans(tid);
+        if( tr.getFromMachineId() == 0 ) {
+            // For each output label. There may be multiple output destined for different machines.
+            for( size_t oid = 0 ; oid < tr.getNumOutLabels() ; ++oid ) {
+                Outlabel lbl = tr.getOutLabel(oid);
+                FsmMessage out

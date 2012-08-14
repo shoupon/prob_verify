@@ -13,11 +13,11 @@
 class MessageTuple
 {
 public:    
-    int srcID() = 0;
-    int destId() = 0 ;   
-    int srcMsgId() = 0;
-    int destMsgId() = 0;
-    int subjectId() = 0 ;
+    virtual int srcID() = 0;
+    virtual int destId() = 0 ;   
+    virtual int srcMsgId() = 0;
+    virtual int destMsgId() = 0;
+    virtual int subjectId() = 0 ;
 
     virtual size_t numParams() = 0;
     virtual int getParam(size_t arg) = 0;
