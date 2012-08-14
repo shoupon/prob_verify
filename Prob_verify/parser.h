@@ -35,7 +35,10 @@ private:
     Transition parseTransition(string& line, string& towardState);   
     bool addToTable(Table& tab, Entry& ent);
     bool separateLabel(const string& label, string& machine, string& message);    
+    
     int findOrCreate(Table& tab, string key);
+    int createMsg(string msg);
+    int createMac(string macName);
     
     bool existInLabel(string label);
     bool existOutLabel(string label);
