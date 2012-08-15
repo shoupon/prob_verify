@@ -14,17 +14,16 @@ using namespace std;
 #include "state.h"
 #include "transition.h"
 #include "fsm.h"
-
-class Fsm;
+#include "lookup.h"
 
 class Parser
 {
 private: 
-    string _fileName;
-    Table _machineNames ;   
+    string _fileName;    
     Table _inputs;
     Table _outputs;
-    Table _messages;
+    Lookup* _messages;
+    Lookup* _machineNames ;   
 
     vector<string> _listMacName;
     vector<string> _listMsg;

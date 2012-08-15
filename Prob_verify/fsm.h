@@ -15,7 +15,7 @@ using namespace std;
 class Fsm : public StateMachine
 {
 public:
-    Fsm(string name, Parser* ptr);
+    Fsm(string name, Lookup* msg, Lookup* mac);
     
     bool addState(string name);
     bool addTransition(string from, string to, Transition& label);

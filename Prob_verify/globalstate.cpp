@@ -96,7 +96,7 @@ void GlobalState::findSucc()
                     // null input transition
                     //child->execute(m, tt, &tr);
                     vecTrans.push_back(tr);
-                    subjects.push_back(m);
+                    subjects.push_back(m+1);
                 } // if
             } // for
         } // for   */
@@ -210,7 +210,11 @@ vector<GlobalState*> GlobalState::evaluate()
         int macNum = tuple.destId();
         if( tuple.destId() >= 0 ) {
             // This label send message to another machine           
-            idx = _machines[macNum]->transit(tuple, matched, high_prob, idx);
+            idx = _machines[macNum-1]->transit(tuple, matched, high_prob, idx);
+#ifdef VERBOSE
+            cout << "Machine " << tuple.subject() << " sends message " << tuple.destMsg()
+                 << " to machine " << tuple.destId() << endl ;
+#endif 
             if( matched.size() == 0 ) {
                 // No found matching transition, this null transition should not be carry out
                 // Another null input transition should be evaluate first
@@ -239,6 +243,9 @@ vector<GlobalState*> GlobalState::evaluate()
             } // no matching transition found
             else if( idx < 0 ) {
                 // Only one matching transition found. There is no need to create new child
+#ifdef VERBOSE
+                cout << "Only one matching transition found. " <<  endl ;
+#endif
                 // First, take a snapshot of current machine states
                 _gStates[macNum] = _machines[macNum]->curState() ;
                 // Add the matched tasks
@@ -373,7 +380,7 @@ void GlobalState::addParents(const vector<GlobalState*>& arr)
 void GlobalState::execute(int transId, int subjectId)
 {
     // Change state of one of the component machines
-    State* curState = _machines[subjectId]->getState(_gStates[subjectId]) ;        
+    State* curState = _machines[subjectId-1]->getState(_gStates[subjectId-1]) ;        
 
 #ifdef VERBOSE
     string origin = this->toString();
@@ -382,7 +389,7 @@ void GlobalState::execute(int transId, int subjectId)
 #endif 
 
     // Execute state transition
-    _gStates[subjectId] = curState->getNextState(transId)->getID();
+    _gStates[subjectId-1] = curState->getNextState(transId)->getID();
 
     // Low probability transition
     if( !curState->getTrans(transId).isHigh() )
