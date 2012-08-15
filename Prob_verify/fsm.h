@@ -9,11 +9,13 @@ using namespace std;
 #include "define.h"
 #include "transition.h"
 #include "state.h"
+#include "statemachine.h"
+#include "parser.h"
 
-class Fsm : class StateMachine
+class Fsm : public StateMachine
 {
 public:
-    Fsm(string name);
+    Fsm(string name, Parser* ptr);
     
     bool addState(string name);
     bool addTransition(string from, string to, Transition& label);
@@ -27,8 +29,8 @@ public:
     // Implement the virtual functions in StateMachine
     size_t transit(MessageTuple inMsg, vector<MessageTuple>& outMsgs, bool& high_prob, size_t startIdx = 0);
     size_t nullInputTrans(vector<MessageTuple>& outMsgs, bool& high_prob, size_t startIdx = 0);    
-    void restore(StateSnapshot& snapshot);    
-    Snapshot curState();  
+    void restore(StateSnapshot& snapshot);
+    StateSnapshot curState();
 
 private:
     vector<State*> _states;
@@ -38,9 +40,12 @@ private:
     Table _stateNames;
 };
 
-class FsmMessage : class MessageTuple
+class FsmMessage : public MessageTuple
 {
-public:    
+public:
+    FsmMessage(int src, int dest, int srcMsg, int destMsg, int subject)
+    :_src(src), _dest(dest), _srcMsg(srcMsg), _destMsg(destMsg), _subject(subject) {};
+    
     int srcID() {return _src;}
     int destId() {return _dest;}
     int srcMsgId() {return _srcMsg;}

@@ -281,7 +281,7 @@ Fsm* Parser::addFSM(string name)
     }
 
     _line >> token ;
-    Fsm* newMachine = new Fsm( string(fsmName) );
+    Fsm* newMachine = new Fsm( string(fsmName), this );
     newMachine->addState(token);
 
     if( !_line.eof() ) {

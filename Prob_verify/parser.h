@@ -13,6 +13,9 @@ using namespace std;
 #include "fsm.h"
 #include "state.h"
 #include "transition.h"
+#include "fsm.h"
+
+class Fsm;
 
 class Parser
 {
@@ -44,14 +47,15 @@ private:
     bool existOutLabel(string label);
     bool existInTable(const Table& tab, string label);
 
-    int messageToInt(string msg);
-    int machineToInt(string macName);
-    string IntToMessage(int id);
-    string IntToMachine(int id);
 public:
     Parser();
     Fsm* addFSM(string name);
     void declareMachine(string name);
+    
+    int messageToInt(string msg);
+    int machineToInt(string macName);
+    string IntToMessage(int id);
+    string IntToMachine(int id);
 };
 
 #endif

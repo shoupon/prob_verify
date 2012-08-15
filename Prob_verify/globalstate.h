@@ -42,7 +42,7 @@ private:
     // A table stores all of the reachable global states
     static GSHash _uniqueTable ;
     static GlobalState* _root;
-    vector<Snapshot> _gStates;     
+    vector<StateSnapshot> _gStates;
     
     vector<GlobalState*> _childs;
     vector<GlobalState*> _parents;
@@ -89,7 +89,7 @@ public:
     GlobalState(GlobalState* gs);
     // This constructor is used to create a new GlobalState by specifying 
     // the state of its individual machines
-    GlobalState(vector<Snapshot> stateVec):_gStates(stateVec), _countVisit(1),_dist(0) {}
+    GlobalState(vector<StateSnapshot> stateVec):_gStates(stateVec), _countVisit(1),_dist(0) {}
     // This constructor should be called first. It will set the static member of GlobalState,
     // such as number of state machines, the pointers to machines, etc.
     GlobalState(const vector<StateMachine*>& macs);
@@ -100,7 +100,7 @@ public:
     //GlobalState* getGlobalState( vector<int> gs ) ;
     int getVisit() { return _countVisit ;}
     int getDistance() { return _dist;}
-    const vector<int> getStateVec() const { return _gStates ;}
+    const vector<StateSnapshot> getStateVec() const { return _gStates ;}
     size_t size() { return _childs.size() ; }
     bool hasChild() { return size()!=0; }
     bool isBusy() { return !_fifo.empty();}
@@ -164,7 +164,7 @@ public:
     }
  
 private:
-    vector<Snapshot> _gState;
+    vector<StateSnapshot> _gState;
     GlobalState* _ptr;
     int _depth;
 

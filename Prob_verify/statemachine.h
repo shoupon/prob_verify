@@ -1,26 +1,26 @@
 #ifndef STATEMACHINE_H
 #define STATEMACHINE_H
 
-#include "define.h"
-#include "state.h"
-#include "transition.h"
-#include "fsm.h"
-#include "parser.h"
-
 #include <vector>
 #include <string>
+#include <exception>
+#include <stdexcept>
+using namespace std;
+
+#include "define.h"
+#include "parser.h"
 
 class MessageTuple
 {
 public:    
-    virtual int srcID() = 0;
-    virtual int destId() = 0 ;   
-    virtual int srcMsgId() = 0;
-    virtual int destMsgId() = 0;
-    virtual int subjectId() = 0 ;
+    int srcID() ;
+    int destId() ;
+    int srcMsgId() ;
+    int destMsgId();
+    int subjectId() ;
 
-    virtual size_t numParams() = 0;
-    virtual int getParam(size_t arg) = 0;
+    size_t numParams() ;
+    int getParam(size_t arg);
 private:
 };
 
@@ -28,6 +28,8 @@ typedef map<int,MessageTuple>            OutMessageMap ;
 typedef map<int,MessageTuple>::iterator  OutMessageMapIter;
 typedef pair<int,MessageTuple>           OutMessage;   // ToMachine.id ! message
 typedef pair<int,MessageTuple>           InMessage;
+
+class StateSnapshot;
 
 class StateMachine
 {
@@ -48,21 +50,22 @@ public:
     // by s StateSnapshot
     virtual void restore(StateSnapshot& snapshot) = 0;
     // Store current snapshot
-    virtual Snapshot curState();    
+    virtual StateSnapshot curState();
 
 protected:
     Parser* _psrPtr;
-    int messageToInt(string msg) { checkPsrPtr(); _psrPtr->messageToInt(msg); }
-    int machineToInt(string macName) { checkPsrPtr(); _psrPtr->machineToInt(macName);]
-    string IntToMessage(int id) { checkPsrPtr(); _psrPtr->IntToMessage(id); }
-    string IntToMachine(int id) { checkPsrPtr(); _psrPtr->IntToMachine(id); }
 
-    bool checkPsrPtr() { if( _psrPtr == 0 ) throw runtime_error("_psrPtr is not initialized."); }
+    bool checkPsrPtr() { if( _psrPtr == 0 ) throw runtime_error("_psrPtr is not initialized."); return true;}
+    
+    int messageToInt(string msg) { checkPsrPtr(); return _psrPtr->messageToInt(msg); }
+    int machineToInt(string macName) { checkPsrPtr(); return _psrPtr->machineToInt(macName);}
+    string IntToMessage(int id) { checkPsrPtr(); return _psrPtr->IntToMessage(id); }
+    string IntToMachine(int id) { checkPsrPtr(); return _psrPtr->IntToMachine(id); }
 };
 
 // Used for restore the state of a state machine back to a certain point. Should contain
 // the state in which the machine was, the internal variables at that point
-abstract class StateSnapshot
+class StateSnapshot
 {
     friend class StateMachine;
 public:

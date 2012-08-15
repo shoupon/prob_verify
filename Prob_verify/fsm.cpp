@@ -6,15 +6,15 @@ using namespace std;
 
 #include "fsm.h"
 
-Fsm::Fsm(string name)
-:_name(name), _current(0)
+Fsm::Fsm(string name, Parser* ptr)
+:_name(name), _current(0), StateMachine(ptr)
 {
 }
 
 
 bool Fsm::addState(string name)
 {
-    int id = _stateNames.size();
+    int id = (int)_stateNames.size();
     InsertResult ir = _stateNames.insert( Entry(name, id) );
     if( ir.second == false ) 
         return false ;
@@ -59,21 +59,43 @@ State* Fsm::getState(int id)
         return 0 ;
 }
 
-void Fsm::reset() 
+void Fsm::reset()
 {
     for( size_t ii = 0 ; ii < _states.size() ; ++ii ) {
         _states[ii]->reset();
     }
 }
 
-size_t Fsm::nullInputTrans(vector<MessageTuple>& outMsgs, bool& high_prob, size_t startIdx = 0)
+size_t Fsm::nullInputTrans(vector<MessageTuple>& outMsgs, bool& high_prob, size_t startIdx )
 {
     State* cs = _states[_current];
+    outMsgs.clear();
+    
     // Go through all the transition of current state
-    for( size_t tid = 0 ; tid < cs->getNumTrans() ; ++tid ) {
-        Transition tr = cs->getTrans(tid);
+    for( size_t tid = startIdx ; tid < cs->getNumTrans() ; ++tid ) {
+        Transition tr = cs->getTrans((int)tid);
         if( tr.getFromMachineId() == 0 ) {
             // For each output label. There may be multiple output destined for different machines.
             for( size_t oid = 0 ; oid < tr.getNumOutLabels() ; ++oid ) {
-                Outlabel lbl = tr.getOutLabel(oid);
-                FsmMessage out
+                OutLabel lbl = tr.getOutLabel(oid);
+                FsmMessage out(0,0, lbl.first, lbl.second, _psrPtr->machineToInt(this->_name) );
+                outMsgs.push_back(out);
+            }
+            
+            if( tr.isHigh() )
+                high_prob = true;
+            else
+                high_prob = false;
+            
+            return tid+1;
+        }
+    }
+    
+    // The function will get to this line only when no null input transition is found
+    return -1;
+}
+                
+
+
+
+
