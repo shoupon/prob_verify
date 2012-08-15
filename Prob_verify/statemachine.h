@@ -8,7 +8,7 @@
 using namespace std;
 
 #include "define.h"
-#include "parser.h"
+#include "lookup.h"
 
 class MessageTuple
 {
@@ -38,7 +38,7 @@ public:
     // so the StateMachine can convert a string of an input or an output label into id (integer)
     // A pointer to Parser should be provided to the StateMachine. The Parser class contains the
     // necessary look up function that StateMachine needs
-    StateMachine( Parser* ptr ): _psrPtr(ptr) { }
+    StateMachine( Lookup* msg, Lookup* mac ): _msgLookup(msg), _macLookup(mac) { }
 
     virtual size_t transit(MessageTuple inMsg, vector<MessageTuple>& outMsgs, 
                            bool& high_prob, size_t startIdx = 0) = 0 ;
@@ -53,14 +53,15 @@ public:
     virtual StateSnapshot curState();
 
 protected:
-    Parser* _psrPtr;
+    Lookup* _msgLookup;
+    Lookup* _macLookup;
 
     bool checkPsrPtr() { if( _psrPtr == 0 ) throw runtime_error("_psrPtr is not initialized."); return true;}
     
-    int messageToInt(string msg) { checkPsrPtr(); return _psrPtr->messageToInt(msg); }
-    int machineToInt(string macName) { checkPsrPtr(); return _psrPtr->machineToInt(macName);}
-    string IntToMessage(int id) { checkPsrPtr(); return _psrPtr->IntToMessage(id); }
-    string IntToMachine(int id) { checkPsrPtr(); return _psrPtr->IntToMachine(id); }
+    int messageToInt(string msg) { checkPsrPtr(); return _msgLookup->toInt(msg); }
+    int machineToInt(string macName) { checkPsrPtr(); return _macLookup->toInt(macName);}
+    string IntToMessage(int id) { checkPsrPtr(); return _msgLookup->toString(id); }
+    string IntToMachine(int id) { checkPsrPtr(); return _macLookup->toString(id); }
 };
 
 // Used for restore the state of a state machine back to a certain point. Should contain
