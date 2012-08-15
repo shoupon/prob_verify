@@ -96,7 +96,7 @@ void GlobalState::findSucc()
                     // null input transition
                     //child->execute(m, tt, &tr);
                     vecTrans.push_back(tr);
-                    subjects.push_back(m);
+                    subjects.push_back(m+1);
                 } // if
             } // for
         } // for   
@@ -163,9 +163,9 @@ vector<GlobalState*> GlobalState::evaluate()
         _fifo.pop();   
         
 
-        if( lbl.first >= 0 ) {
+        if( lbl.first > 0 ) {
             // This label send message to another machine
-            State* st = _machines[lbl.first]->getState(_gStates[lbl.first]);
+            State* st = _machines[lbl.first-1]->getState(_gStates[lbl.first-1]);
             st->receive(match._source, lbl.second, matched);
 #ifdef VERBOSE
             cout << "Machine " << match._source << " sends message " << lbl.second 
@@ -318,7 +318,7 @@ void GlobalState::addParents(const vector<GlobalState*>& arr)
 void GlobalState::execute(int transId, int subjectId)
 {
     // Change state of one of the component machines
-    State* curState = _machines[subjectId]->getState(_gStates[subjectId]) ;        
+    State* curState = _machines[subjectId-1]->getState(_gStates[subjectId-1]) ;        
 
 #ifdef VERBOSE
     string origin = this->toString();
@@ -327,7 +327,7 @@ void GlobalState::execute(int transId, int subjectId)
 #endif 
 
     // Execute state transition
-    _gStates[subjectId] = curState->getNextState(transId)->getID();
+    _gStates[subjectId-1] = curState->getNextState(transId)->getID();
 
     // Low probability transition
     if( !curState->getTrans(transId).isHigh() )

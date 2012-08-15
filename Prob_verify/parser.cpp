@@ -11,16 +11,17 @@ using namespace std;
 
 #include "fsm.h"
 #include "transition.h"
-
+#include "lookup.h"
 #include "parser.h"
 
 #pragma warning(disable : 4996)
 
 Parser::Parser() 
 {
-    _messages.insert( Entry("nul", 0) );
-    _listMsg.push_back("nul");
-    _machineNames.insert( Entry("nul", -1) );
+    _messages = new Lookup();
+    _machineNames = new Lookup();
+    _messages->insert("nul");
+    _machineNames->insert("nul");        
 }
 
 // Read in a new line from the file and get rid of the semicolon at the end of line
@@ -202,9 +203,8 @@ Fsm* Parser::addFSM(string name)
         error( "Identifier 'NAME' is expected" );
         return 0 ;
     }
-
-    InsertResult ir;
-    ir = _machineNames.insert( Entry(string(fsmName), _machineNames.size()+1) ) ;
+    
+    _machineNames->insert(fsmName);
     /*
     if( ir.second == false ) {
         error( "Machine " + string(fsmName) + " has already been defined!" );
@@ -399,30 +399,13 @@ int Parser::findOrCreate(Table& tab, string key)
 
 int Parser::createMsg(string msg)
 {
-    int ret = findOrCreate(this->_messages, msg);
-    if(  (size_t)ret >= _listMsg.size() ) {
-        // if the return idx >= the size of msg vector, which means the message is created, 
-        // a new entry in msg vector should be created, too
-        _listMsg.push_back(msg);
-    }
-
-    return ret;
+    int ret = _messages->insert(msg);
+    return ret;    
 }
    
 int Parser::createMac(string macName)
-{
-    // Search macName in the Table(map) _machineNames
-    // If the returned value == -1 or < size of list of machine names, the macName exists in the table
-    int ret = findOrCreate(this->_machineNames, macName) ;
-    
-    if( ret == -1 ) // macName == "nul", no need to create new entry
-        return ret;
-
-    if( (size_t)ret >= _listMacName.size() ) {
-        // If returned value is out of the range of the list, a new entry should be created at the
-        // back of ths list
-        _listMacName.push_back(macName);
-    }
+{    
+    int ret = _machineNames->insert(macName);
     return ret;
 }
 
@@ -446,72 +429,39 @@ bool Parser::existInTable(const Table& tab, string label)
 
 void Parser::declareMachine(string name) 
 { 
-    if( _machineNames.find( name ) == _machineNames.end() ) {
-        assert(_listMacName.size() == _machineNames.size()-1 );
-
-        _machineNames.insert( Entry(name, _machineNames.size()-1) );         
-        _listMacName.push_back(name);
-    }
+    _machineNames->insert(name);
 }
 
 int Parser::messageToInt(string msg)
 {
-    Table::iterator it = this->_messages.find(msg);
-    if( it == _messages.end() ) {
-        _messages.insert( Entry(msg, _messages.size() - 1) );
-        _listMsg.push_back(msg);
-        return _messages.size() - 1;
+    int ret = _messages->toInt(msg);
+
+    if( ret == -1 ) {
+        // msg is not in the lookup table
+        ret = _messages->insert(msg);
     }
-    else {
-        return it->second;
-    }
+    
+    return ret ;
 }
 
 int Parser::machineToInt(string macName)
 {
-    Table::iterator it = this->_machineNames.find(macName);
-    if( it == _machineNames.end() ) {
-        _machineNames.insert( Entry(macName, _machineNames.size() - 1) );
-        _listMacName.push_back(macName);
-        return _machineNames.size() - 1;
+    int ret = _machineNames->toInt(macName);
+
+    if( ret == -1 ) {
+        // machine name cannot be found in the lookup table
+        ret = _machineNames->insert(macName);
     }
-    else {
-        return it->second;
-    }
+
+    return ret;
 }
 
 string Parser::IntToMessage(int id)
 {
-    if( id < 0 ) {
-        throw runtime_error("There is no message associated with id < 0, error must present");
-    }
-    else if( (size_t)id >= _listMsg.size() ) {
-        stringstream ss ;
-        ss << "Unable to find message corresponding to the id = " ;
-        ss << id ;
-        throw runtime_error(ss.str());
-    }
-    else {
-        return _listMsg[id];
-    }
+    return _messages->toString(id);   
 }
 
 string Parser::IntToMachine(int id)
 {
-    if( id < 0 ) {
-        if( id == -1 )
-            return string("nul");
-        else {
-            throw runtime_error("There is no machine with id < -1, error must present");
-        }
-    }
-    else if( (size_t)id >= _listMacName.size() ) {
-        stringstream ss ;
-        ss << "Unable to find machine corresponding to the id = " ;
-        ss << id ;
-        throw runtime_error(ss.str());
-    }
-    else {
-        return _listMacName[id];
-    }
+    return _machineNames->toString(id);
 }
