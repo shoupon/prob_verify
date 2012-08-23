@@ -1,6 +1,6 @@
 NAME	receiver;
 INPUTS		fcomch?m0, fcomch?m1;
-OUTPUTS		rcomch!ack1, rcomch!ack0, service!m;
+OUTPUTS		rcomch!ack, service!m;
 INITIAL_STATE	S0;
 OTHER_STATES	S1;
 TRANSITIONS	S0	: S1 WHEN (fcomch?m0,rcomch!ack*service!m) COST 1 HIGH
