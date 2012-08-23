@@ -16,7 +16,7 @@ GSHash GlobalState::_uniqueTable = GSHash(15) ;
 GlobalState* GlobalState::_root = 0;
 
 GlobalState::GlobalState(GlobalState* gs): _countVisit(1), 
-        _dist(gs->_dist+1), _depth(gs->_depth) 
+        _dist(gs->_dist+1), _depth(gs->_depth), _white(true)
 { 
     _parents.push_back(gs);
     
@@ -40,7 +40,7 @@ GlobalState::GlobalState(GlobalState* gs): _countVisit(1),
 }
 
 GlobalState::GlobalState(const vector<StateMachine*>& macs)
-    :_countVisit(1), _dist(0)
+    :_countVisit(1), _dist(0), _white(true)
 {
     if( _nMacs < 0 ) {
         _nMacs = (int)macs.size();
@@ -118,14 +118,6 @@ const vector<string> GlobalState::getStringVec() const
 void GlobalState::findSucc()
 {     
     try {
-
-        /*
-        // Store the current state
-        for( size_t m = 0 ; m < _machines.size() ; ++m ) {
-            _gStates[m] = _machines[m]->curState();
-        }
-        */
-
         vector<vector<MessageTuple*> > arrOutMsgs;
         vector<StateSnapshot*> statuses;
         bool high_prob;
@@ -174,13 +166,6 @@ void GlobalState::findSucc()
                     cIdx--;
                     _childs.insert(_childs.end(), ret.begin(), ret.end());
                 }
-                /*
-                else if( ret.size() == 1 ) {
-                    ret.front()->_parents = _childs[cIdx]->_parents ;
-                    delete _childs[cIdx];
-                    _childs[cIdx] = ret.front();
-                    cIdx--;
-                }*/
             } catch (string str) {
                 // This catch phrase should only be reached when no matching transition found for a message reception
                 // When such occurs, erase the child that has no matching transition and print the error message.
@@ -335,8 +320,6 @@ vector<GlobalState*> GlobalState::evaluate()
                 // GlobalState
                 delete only;
                 ret.clear();
-                //delete tuple;
-                //return ret;
             }
             else {
                 // Multiple transitions: non-deterministic transition
@@ -480,9 +463,12 @@ void GlobalState::pathRoot(vector<GlobalState*>& arr)
         unexplored.pop();
         gs->_white = false; // Paint the node black
 
-        if( gs->_parents.size() == 0 ) {
+        if( gs == _root ) {
             // root found
             // Trace back
+#ifdef VERBOSE
+            cout << "Root found when tracing back. " << endl;
+#endif
             do {
                 arr.push_back(gs);
                 gs = gs->_childs[gs->_trace] ;
@@ -501,6 +487,9 @@ void GlobalState::pathRoot(vector<GlobalState*>& arr)
         } // if
     }
     //BFS(arr, &rootStop);
+#ifdef VERBOSE
+    cout << "The length of the path towards to the deadlock state = " << arr.size() << endl;
+#endif
 }
 
 GlobalState* self;

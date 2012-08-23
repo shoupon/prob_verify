@@ -51,6 +51,8 @@ void ProbVerifier::start(int maxClass)
 #endif
    
     for( _curClass = 0 ; _curClass < _maxClass ; ++_curClass ) {
+        cout << "-------- Exploring GlobalStates of class[" << _curClass
+             << "] --------" << endl ;
         // Check if the members in class[k] are already contained in STATET (_arrFinStart).
         // If yes, remove the member from class[k];
         // otherwise, add that member to STATET

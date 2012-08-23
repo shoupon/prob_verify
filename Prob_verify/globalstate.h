@@ -83,13 +83,14 @@ private:
 
 public:
     // Default constructor creates a global state with all its Fsm's set to initial state 0.
-    GlobalState():_countVisit(1),_dist(0) { init(); }
+    GlobalState():_countVisit(1),_dist(0), _white(true) { init(); }
     // This copy constructor is used to create childs, 
     // it will automatically increase the distance of childs
     GlobalState(GlobalState* gs);
     // This constructor is used to create a new GlobalState by specifying 
     // the state of its individual machines
-    GlobalState(vector<StateSnapshot*> stateVec):_gStates(stateVec), _countVisit(1),_dist(0) {}
+    GlobalState(vector<StateSnapshot*> stateVec)
+        :_gStates(stateVec), _countVisit(1),_dist(0), _white(true) {}
     // This constructor should be called first. It will set the static member of GlobalState,
     // such as number of state machines, the pointers to machines, etc.
     GlobalState(const vector<StateMachine*>& macs);
