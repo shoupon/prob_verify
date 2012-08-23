@@ -12,10 +12,11 @@
 #include "myHash.h"
 
 class GlobalStateHashKey;
+class GSVecHashKey;
 class GlobalState;
 
 typedef Hash<GlobalStateHashKey, GlobalState*> GSHash;
-typedef Hash<GlobalStateHashKey, vector<string>> GSVecHash;
+typedef Hash<GSVecHashKey, vector<string> > GSVecHash;
 
 // A vector of int defines the states of machines in this global state using state number
 // An integer represents the probability class of global state transition
@@ -42,12 +43,12 @@ private:
     // A table stores all of the reachable global states
     static GSHash _uniqueTable ;
     static GlobalState* _root;
-    vector<StateSnapshot> _gStates;
+    vector<StateSnapshot*> _gStates;
     
     vector<GlobalState*> _childs;
     vector<GlobalState*> _parents;
     vector<int> _probs;
-    queue<MessageTuple> _fifo;
+    queue<MessageTuple*> _fifo;
     queue<int> _subjects;
     vector<int> _class ;
     int _countVisit;
@@ -65,9 +66,8 @@ private:
     vector<GlobalState*> evaluate();
     // Invoke explore when an unexplored transition is push onto the queue
     void explore(int subject);
-    void addTask(vector<MessageTuple> msgs);
-    void execute(int transId, int subjectId);
-
+    void addTask(vector<MessageTuple*> msgs);
+    
     void init() ;
     bool active();
     Transition* getActive(int& macId, int& transId);
@@ -89,10 +89,11 @@ public:
     GlobalState(GlobalState* gs);
     // This constructor is used to create a new GlobalState by specifying 
     // the state of its individual machines
-    GlobalState(vector<StateSnapshot> stateVec):_gStates(stateVec), _countVisit(1),_dist(0) {}
+    GlobalState(vector<StateSnapshot*> stateVec):_gStates(stateVec), _countVisit(1),_dist(0) {}
     // This constructor should be called first. It will set the static member of GlobalState,
     // such as number of state machines, the pointers to machines, etc.
     GlobalState(const vector<StateMachine*>& macs);
+    ~GlobalState();
     
     GlobalState* getChild (size_t i) { return _childs[i]; }
     int getProb( size_t i ) const { return _probs[i] ; }
@@ -100,7 +101,8 @@ public:
     //GlobalState* getGlobalState( vector<int> gs ) ;
     int getVisit() { return _countVisit ;}
     int getDistance() { return _dist;}
-    const vector<StateSnapshot> getStateVec() const { return _gStates ;}
+    const vector<StateSnapshot*> getStateVec() const { return _gStates ;}
+    const vector<string> getStringVec() const;
     size_t size() { return _childs.size() ; }
     bool hasChild() { return size()!=0; }
     bool isBusy() { return !_fifo.empty();}
@@ -137,25 +139,35 @@ public:
 class GlobalStateHashKey
 {
 public:
-    GlobalStateHashKey(const GlobalState* gs):_gState(gs->getStateVec()), _depth(gs->getProb())
+    GlobalStateHashKey(const GlobalState* gs)
+        : _depth(gs->getProb())
     {
+        vector<StateSnapshot*> mirror = gs->getStateVec() ;
+        //_gState.resize( mirror.size() );
+        
+        _arrInt.resize(mirror.size());
         _sum = 0 ;
-        for( size_t ii = 0 ; ii < _gState.size() ; ++ii ) 
-            _sum += _gState[ii].toInt();
+        for( size_t m = 0 ; m < _arrInt.size() ; ++m ) {
+            //_gState[m] = mirror[m]->clone() ;
+            _arrInt[m] = mirror[m]->toInt() ;
+            _sum += _arrInt[m];
+        }
     }
-    GlobalStateHashKey(const vector<int>& vec):_gState(vec)
+    
+    ~GlobalStateHashKey()
     {
-        _sum = 0 ;
-        for( size_t ii = 0 ; ii < _gState.size() ; ++ii ) 
-            _sum += _gState[ii].toInt();
+        /*
+        for( size_t m = 0 ; m < _gState.size() ; ++m ) {
+            delete _gState[m];
+        }*/
     }
 
     size_t operator() () const { return (_sum); }
     bool operator == (const GlobalStateHashKey& k) 
     {
-        assert(_gState.size() == k._gState.size() );
-        for( size_t ii = 0 ; ii < _gState.size() ; ++ii ) 
-            if( _gState[ii] != k._gState[ii] )
+        assert(_arrInt.size() == k._arrInt.size() );
+        for( size_t ii = 0 ; ii < _arrInt.size() ; ++ii ) 
+            if( _arrInt[ii] != k._arrInt[ii] )
                 return false ;
 
         if( _depth != k._depth )
@@ -164,13 +176,44 @@ public:
     }
  
 private:
-    vector<StateSnapshot> _gState;
-    GlobalState* _ptr;
+    vector<int> _arrInt;
     int _depth;
-
+    
     int _sum;
 };
 
+class GSVecHashKey
+{
+public:
+    GSVecHashKey(const vector<StateSnapshot*>& vec)
+    {
+        _sum = 0 ;
+        _states.resize(vec.size());
+        _arrStr.resize(vec.size());
+        for( size_t ii = 0 ; ii < vec.size() ; ++ii ) {
+            _states[ii] = vec[ii]->toInt() ;
+            _arrStr[ii] = vec[ii]->toString();
+            _sum += _states[ii];
+        }        
+    }
+    
+    size_t operator() () const { return (_sum); }
+    bool operator == (const GSVecHashKey& k)
+    {
+        assert(_arrStr.size() == k._arrStr.size() );
+        for( size_t ii = 0 ; ii < _arrStr.size() ; ++ii ) {
+            if( _arrStr[ii] != k._arrStr[ii] )
+                return false ;
+        }
+        
+        return true;
+    }
+    
+private:
+    vector<int> _states;
+    vector<string> _arrStr;
+    int _sum ;
+};
 
 
 

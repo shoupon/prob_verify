@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <sstream>
 using namespace std;
 
 #ifndef FSM
@@ -10,7 +11,7 @@ using namespace std;
 #include "transition.h"
 #include "state.h"
 #include "statemachine.h"
-#include "parser.h"
+#include "lookup.h"
 
 class Fsm : public StateMachine
 {
@@ -22,15 +23,15 @@ public:
     bool addTransition(int from, int to, Transition& label);
     State* getState(string name);
     State* getState(int id);
-    State* getInitState() { return _states[0]; }    
-
-    void reset() ;
+    State* getInitState() { return _states[0]; }        
 
     // Implement the virtual functions in StateMachine
-    size_t transit(MessageTuple inMsg, vector<unique_ptr<MessageTuple> >& outMsgs, bool& high_prob, size_t startIdx = 0);
-    size_t nullInputTrans(vector<unique_ptr<MessageTuple> >& outMsgs, bool& high_prob, size_t startIdx = 0);    
-    void restore(unique_ptr<StateSnapshot> snapshot);
-    unique_ptr<StateSnapshot> curState();
+    int transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
+                   bool& high_prob, int startIdx = 0);
+    int nullInputTrans(vector<MessageTuple*>& outMsgs, bool& high_prob, int startIdx = 0);
+    void restore(const StateSnapshot* snapshot);
+    StateSnapshot* curState();
+    void reset() ;    
 
 private:
     vector<State*> _states;
@@ -54,6 +55,10 @@ public:
 
     size_t numParams() { return 0 ;}
     int getParam(size_t arg) {return 0;}
+    
+    string toString() ;
+    
+    MessageTuple* clone();
 private:
     int _src;
     int _dest;
@@ -63,7 +68,20 @@ private:
 
 };
 
-class
+class FsmSnapshot : public StateSnapshot
+{
+public:
+    FsmSnapshot(int stateId):_stateId(stateId) {}
+    ~FsmSnapshot() {}
+    
+    int curStateId() const { return _stateId ;}
+    string toString() { stringstream ss ; ss << _stateId ; return ss.str(); }
+    int toInt() { return _stateId; }
+    StateSnapshot* clone() ;
+private:
+    int _stateId;
+    
+};
 
  
 #endif

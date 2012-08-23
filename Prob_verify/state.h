@@ -35,7 +35,7 @@ public:
     int isActive() ;
 
     void deactivate(int id) { assert(id>=0 && id < (int)_actives.size()); _actives[id] = false; }
-    void reset() { _actives = vector<bool>(_nexts.size(), false); }
+    void reset() { }
 
     // Return the pointer of next state of the machine (receiver) which executes the transition that 
     // matches the transition of the this machine (sender). Return null pointer if the machine does not 

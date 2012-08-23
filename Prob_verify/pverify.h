@@ -15,15 +15,15 @@ typedef pair<GlobalState*, int>                  GSMapPair;
 typedef map<GlobalState*, int>::iterator         GSMapIter;
 typedef map<GlobalState*, int>::const_iterator   GSMapConstIter;
 
-typedef map<vector<int>, int>                    GSVecMap;
-typedef pair<vector<int>, int>                   GSVecMapPair;
+typedef map<vector<string>, int>          GSVecMap;
+typedef pair<vector<string>, int>         GSVecMapPair;
 
 class ProbVerifier
 {
 private:
     vector<StateMachine*> _macPtrs;
     vector<GSMap> _arrClass;
-    vector<GSMap> _computedClass;
+    // TODO
     GSVecMap _arrFinRS;
     GSVecMap _arrFinStart;
     GSVecMap _RS;
@@ -36,7 +36,7 @@ private:
     GSVecMap::iterator find(GSVecMap& collection, GlobalState* gs);
     GSMap::iterator find(GSMap& collection, GlobalState* gs);
     void insert(GSVecMap& collection, GlobalState* gs) 
-    { collection.insert( GSVecMapPair(gs->getStateVec(), gs->getProb()) ); }
+    { collection.insert( GSVecMapPair(gs->getStringVec(), gs->getProb()) ); }
     void printSeq(const vector<GlobalState*>& seq) ;
     
 
@@ -46,10 +46,11 @@ public:
 
     void addMachine(StateMachine* machine) { _macPtrs.push_back(machine); }
     //void setRS(vector<GlobalState*> rs); 
-    void addRS(vector<int> rs);
+    void addRS(vector<StateSnapshot*> rs);
     // The basic procedure, start when all machines are in its initial state
     void start(int maxClass);
     // void start(vector<GlobalState*> initStates);
+    void clear();
 };
 
 

@@ -59,14 +59,28 @@ int main( int argc, char* argv[] )
 #endif
 
 #ifndef UN_NUM_ACK
-        int rs2[6] = {2,1,0,0,0,0};
+        //int rs2[6] = {2,1,0,0,0,0};
 #else
-        int rs2[6] = {3,3,0,0,0,0};
+        //int rs2[6] = {3,3,0,0,0,0};
 #endif
 
 #ifdef FULL_DUPLEX
-        pvObj.addRS(vector<int>(6,0));
-        pvObj.addRS(vector<int>(rs2, rs2+6));
+        vector<StateSnapshot*> rs1;
+        for( size_t i = 0 ; i < 6 ; ++i ) {
+            StateSnapshot* snap = new FsmSnapshot(0);
+            rs1.push_back(snap);
+        }
+        vector<StateSnapshot*> rs2;
+        for( size_t i = 0 ; i < 2 ; ++i ) {
+            StateSnapshot* snap = new FsmSnapshot(3);
+            rs2.push_back(snap);
+        }
+        for( size_t i = 2; i < 6 ; ++i ) {
+            StateSnapshot* snap = new FsmSnapshot(0);
+            rs2.push_back(snap);
+        }
+        pvObj.addRS(rs1);
+        pvObj.addRS(rs2);
 #endif        
 
         // Start the procedure of probabilistic verification. 

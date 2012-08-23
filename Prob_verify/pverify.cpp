@@ -35,11 +35,9 @@ void ProbVerifier::start(int maxClass)
 {
     _maxClass = maxClass ;
     _arrClass.resize(maxClass, GSMap());
-    _computedClass.resize(maxClass, GSMap());
     for( size_t ii = 0 ; ii < _macPtrs.size() ; ++ii ) 
         _macPtrs[ii]->reset();
 
-    int nMacs = _macPtrs.size() ;
     _root = new GlobalState(_macPtrs) ; 
     GlobalState::init(_root);
     _root->setRoot();
@@ -145,7 +143,7 @@ void ProbVerifier::start(int maxClass)
                     addToClass(childNode, prob);
                     
                 }   
-#ifdef LOG 
+#ifdef LOG
                 cout << endl   ;
 #endif
             }            
@@ -169,16 +167,25 @@ void ProbVerifier::setRS(vector<GlobalState*> rs)
     }
 } // setRS()*/
 
-void ProbVerifier::addRS(vector<int> rs)
+void ProbVerifier::addRS(vector<StateSnapshot*> rs)
 {
-    _RS.insert( GSVecMapPair(rs,0) );
+    if( rs.size() != _macPtrs.size()) {
+        throw runtime_error("The number of machines in the specification of addRS() function does not match the number in ProbVerifier object");
+    }
+    vector<string> vec(_macPtrs.size());
+    for( size_t m = 0 ; m < this->_macPtrs.size() ; ++m ) {
+        _macPtrs[m]->restore(rs[m]);
+        StateSnapshot* snap = _macPtrs[m]->curState();
+        vec[m] = snap->toString();
+    }
+    _RS.insert( GSVecMapPair(vec,0) );
     // This should be also added to GlobalState::_uniqueTable
 
 }
 
 GSVecMap::iterator ProbVerifier::find(GSVecMap& collection, GlobalState* gs)
 {
-    vector<int> vec = gs->getStateVec();
+    vector<string> vec = gs->getStringVec();
     if( collection.begin()->first.size() != vec.size() )
         return collection.end();
 
@@ -200,3 +207,17 @@ void ProbVerifier::printSeq(const vector<GlobalState*>& seq)
     }
     cout << seq.back()->toString() << endl ;
 }
+
+void ProbVerifier::clear()
+{
+    GSMap::iterator it ;
+    for( size_t c = 0 ; c < _maxClass ; ++c ) {
+        it = _arrClass[c].begin() ;
+        while( it != _arrClass[c].end() ) {
+            delete it->first ;
+            ++it;
+        }
+    }
+}
+
+

@@ -32,14 +32,14 @@ void State::receive(int from, int message, vector<Arrow>& matched )
     for( size_t ii = 0 ; ii < _trans.size() ; ++ii ) {
         if( _trans[ii].getFromMachineId() == from 
                 && _trans[ii].getInputMessageId() == message ) {            
-            matched.push_back( Arrow(ii, this->_nexts[ii]) );  
+            matched.push_back( Arrow((int)ii, this->_nexts[ii]) );
         }
     }    
 }
 
 void State::addOutEdge(Transition edge, State* nextState )
 {
-    edge.setId(_trans.size());
+    edge.setId((int)_trans.size());
     _trans.push_back(edge);
     _nexts.push_back(nextState);
 }
@@ -73,6 +73,6 @@ int State::isActive()
 {
     for( size_t ii = 0 ; ii < _actives.size(); ++ii ) 
         if( _actives[ii] )
-            return ii;
+            return (int)ii;
     return -1 ;
 }

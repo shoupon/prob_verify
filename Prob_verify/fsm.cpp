@@ -5,6 +5,7 @@ using namespace std;
 #include "define.h"
 
 #include "fsm.h"
+#include "statemachine.h"
 
 Fsm::Fsm(string name, Lookup* msg, Lookup* mac)
 :_name(name), _current(0), StateMachine(msg, mac)
@@ -64,11 +65,13 @@ void Fsm::reset()
     for( size_t ii = 0 ; ii < _states.size() ; ++ii ) {
         _states[ii]->reset();
     }
+    
+    _current = 0;
 }
 
-size_t Fsm::nullInputTrans(vector<unique_ptr<MessageTuple> >& outMsgs, bool& high_prob, size_t startIdx )
+int Fsm::nullInputTrans(vector<MessageTuple*>& outMsgs, bool& high_prob, int startIdx )
 {
-    State* cs = _states[_current];
+    /*State* cs = _states[_current];
     outMsgs.clear();
     
     // Go through all the transition of current state
@@ -78,12 +81,13 @@ size_t Fsm::nullInputTrans(vector<unique_ptr<MessageTuple> >& outMsgs, bool& hig
             // For each output label. There may be multiple output destined for different machines.
             for( size_t oid = 0 ; oid < tr.getNumOutLabels() ; ++oid ) {
                 OutLabel lbl = tr.getOutLabel(oid);
-                FsmMessage out(0, lbl.first, 0, lbl.second, _macLookup->toInt(this->_name) );
+                unique_ptr<MessageTuple> out(new FsmMessage(0, lbl.first,
+                                                             0, lbl.second, _macLookup->toInt(this->_name)) );
                 outMsgs.push_back(out);
             }
 
             // Change state
-            State* next = cs->getNextState((int)tid));
+            State* next = cs->getNextState((int)tid);
             _current = next->getID();
             
             if( tr.isHigh() )
@@ -96,31 +100,34 @@ size_t Fsm::nullInputTrans(vector<unique_ptr<MessageTuple> >& outMsgs, bool& hig
     }
     
     // The function will get to this line only when no null input transition is found
-    return -1;
+    return -1;*/
+    MessageTuple* nullInput = new FsmMessage(0,0,0,0,0) ;
+    int retIdx = transit(nullInput, outMsgs, high_prob, startIdx);
+    delete nullInput;
+    return retIdx;
 }
 
 // Consider merging this funciton with nullInputTransit()
-size_t transit(unique_ptr<MessageTuple> inMsg, vector<unique_ptr<MessageTuple> >& outMsgs, 
-               bool& high_prob, size_t startIdx )
+int Fsm::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs, bool& high_prob, int startIdx )
 {
-    State* cs = _state[_current];
+    State* cs = _states[_current];
     outMsgs.clear();
 
     // Go through the possible transitions, find that matches the message
-    for( size_t tid = startIdx ; tid < cs->getNumTrans(); ++tid ) {
+    for( int tid = startIdx ; tid < cs->getNumTrans(); ++tid ) {
         Transition tr = cs->getTrans((int)tid);
 
-        if( tr.getFromMachineId() == inMsg.subjectId() && tr.getInputMessageId() == inMsg.destMsgId() ) {
+        if( tr.getFromMachineId() == inMsg->subjectId() && tr.getInputMessageId() == inMsg->destMsgId() ) {
             // Matching found. Get all the outLabels
             for( size_t oid = 0 ; oid < tr.getNumOutLabels() ; ++oid ) {
                 OutLabel lbl = tr.getOutLabel(oid);
-                FsmMessage out(tr.getFromMachineId(), lbl.first, 
-                               tr.getInputMessageId(), lbl.second, _macLookup->toInt(this->_name) );
+                MessageTuple* out = new FsmMessage(tr.getFromMachineId(), lbl.first,
+                                tr.getInputMessageId(), lbl.second, _macLookup->toInt(this->_name)) ;
                 outMsgs.push_back(out);
             }
 
             // Change state
-            State* next = cs->getNextState((int)tid));
+            State* next = cs->getNextState((int)tid);
             _current = next->getID();
             
             if( tr.isHigh() )
@@ -134,6 +141,37 @@ size_t transit(unique_ptr<MessageTuple> inMsg, vector<unique_ptr<MessageTuple> >
 
     // The function will get to this line when no more matching transition is found
     return -1;
+}
+
+void Fsm::restore(const StateSnapshot* snapshot)
+{
+    _current = snapshot->curStateId() ;
+}
+
+StateSnapshot* Fsm::curState()
+{
+    StateSnapshot* ssPtr = new FsmSnapshot(_current);
+    return ssPtr;
+}
+
+string FsmMessage::toString()
+{
+    stringstream ss;
+    ss << "subject=" << _subject << ":" ;
+    ss << "(" << _src << "?" << _srcMsg << "," << _dest << "!" << _destMsg << ")" ;
+    return ss.str() ;
+}
+
+MessageTuple* FsmMessage::clone()
+{
+    MessageTuple* ret = new FsmMessage(_src, _dest, _srcMsg, _destMsg, _subject);
+    return ret;
+}
+
+StateSnapshot* FsmSnapshot::clone()
+{
+    StateSnapshot* ret = new FsmSnapshot(_stateId);
+    return ret;
 }
 
 

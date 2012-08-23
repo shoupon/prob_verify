@@ -9,6 +9,7 @@ using namespace std;
 #define UN_NUM_ACK
 
 //#define VERBOSE
+//#define VERBOSE_EVAL
 #ifdef VERBOSE
 #define LOG
 #endif

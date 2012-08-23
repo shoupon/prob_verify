@@ -60,7 +60,7 @@ Transition Parser::parseTransition(string& line, string& towardState)
     
     // N0 WHEN (UI_1?rel,UI_1!relcom) COST 1
     // N0 WHEN (UI_1?rel,UI_1!relcom) COST 1,
-    char* trimmed = new char[line.size()+1];   
+    //char* trimmed = new char[line.size()+1];
         
     stringstream ss ;
     string dump ;
@@ -236,7 +236,7 @@ Fsm* Parser::addFSM(string name)
         else {   
             // TODO: Need to check for duplicate input or message
             string inMsg = string(fromMachine)+"?"+inLabel;
-            _inputs.insert( Entry(inMsg, _inputs.size()) ) ;
+            _inputs.insert( Entry(inMsg, (int)_inputs.size()) ) ;
             createMsg(inLabel);
             //_messages.insert( Entry(string(inLabel), _messages.size()) );
         }
@@ -265,7 +265,7 @@ Fsm* Parser::addFSM(string name)
         else {   
             // TODO: Need to check for duplicate input or message
             string outMsg = string(toMachine)+"!"+outLabel;
-            _outputs.insert( Entry(outMsg, _outputs.size()) ) ;
+            _outputs.insert( Entry(outMsg, (int)_outputs.size()) ) ;
             createMsg(outLabel);
             //_messages.insert( Entry(string(outLabel), _messages.size()) );
         }
@@ -281,7 +281,7 @@ Fsm* Parser::addFSM(string name)
     }
 
     _line >> token ;
-    Fsm* newMachine = new Fsm( string(fsmName), this );
+    Fsm* newMachine = new Fsm( string(fsmName), _messages, _machineNames );
     newMachine->addState(token);
 
     if( !_line.eof() ) {
@@ -390,8 +390,8 @@ int Parser::findOrCreate(Table& tab, string key)
 {
     Table::iterator it = tab.find(key);
     if( it == tab.end() ) {
-        tab.insert( Entry(key, tab.size()) );
-        return tab.size()-1;
+        tab.insert( Entry(key, (int)tab.size()) );
+        return (int) (tab.size()-1);
     }
     else
         return it->second;
