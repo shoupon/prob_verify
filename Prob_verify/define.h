@@ -8,6 +8,9 @@ using namespace std;
 #define FULL_DUPLEX
 #define UN_NUM_ACK
 
+#define ALLOW_UNMATCHED
+
+// Debugging flags
 #define VERBOSE
 //#define VERBOSE_EVAL
 #ifdef VERBOSE

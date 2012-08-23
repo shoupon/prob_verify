@@ -100,7 +100,7 @@ void ProbVerifier::start(int maxClass)
             if( !st->hasChild() ) {
                 // Compute all the globalstate's childs
 #ifdef VERBOSE
-                cout << "Finding successors of " << st->toString() << endl;
+                cout << "====  Finding successors of " << st->toString() << endl;
 #endif 
                 st->findSucc();                
                 // Increase the threshold of livelock detection

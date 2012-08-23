@@ -229,15 +229,16 @@ vector<GlobalState*> GlobalState::evaluate()
                 // Print all the task in _fifo
                 ss << "Content in fifo: " << endl ;
                 while( !_fifo.empty() ) {
-                    tuple = _fifo.front();                    
+                    MessageTuple* content = _fifo.front();
                     _fifo.pop();
 
-                    ss << "Destination Machine ID = " << tuple->destId()
-                        << " Message ID = " << tuple->destMsgId() << endl ;
-                    delete tuple;
+                    ss << "Destination Machine ID = " << content->destId()
+                        << " Message ID = " << content->destMsgId() << endl ;
+                    delete content;
                 }
                     
 #ifndef ALLOW_UNMATCHED
+                delete tuple;
                 throw ss.str();
 #else
                 cout << ss.str() ;
@@ -321,9 +322,12 @@ vector<GlobalState*> GlobalState::evaluate()
                 delete only;
                 ret.clear();
             }
-            else {
+            else if( ret.size() > 1 ){
                 // Multiple transitions: non-deterministic transition
                 // Return the created childs right away
+#ifdef VERBOSE_EVAL
+                cout << "Multiple matching transitions found. " << endl;
+#endif
                 delete tuple;
                 return ret;
             }
