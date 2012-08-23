@@ -6,8 +6,8 @@ using namespace std;
 
 #include "fsm.h"
 
-Fsm::Fsm(string name, Parser* ptr)
-:_name(name), _current(0), StateMachine(ptr)
+Fsm::Fsm(string name, Lookup* msg, Lookup* mac)
+:_name(name), _current(0), StateMachine(msg, mac)
 {
 }
 
@@ -66,7 +66,7 @@ void Fsm::reset()
     }
 }
 
-size_t Fsm::nullInputTrans(vector<MessageTuple>& outMsgs, bool& high_prob, size_t startIdx )
+size_t Fsm::nullInputTrans(vector<unique_ptr<MessageTuple> >& outMsgs, bool& high_prob, size_t startIdx )
 {
     State* cs = _states[_current];
     outMsgs.clear();
@@ -78,9 +78,13 @@ size_t Fsm::nullInputTrans(vector<MessageTuple>& outMsgs, bool& high_prob, size_
             // For each output label. There may be multiple output destined for different machines.
             for( size_t oid = 0 ; oid < tr.getNumOutLabels() ; ++oid ) {
                 OutLabel lbl = tr.getOutLabel(oid);
-                FsmMessage out(0,0, lbl.first, lbl.second, _psrPtr->machineToInt(this->_name) );
+                FsmMessage out(0, lbl.first, 0, lbl.second, _macLookup->toInt(this->_name) );
                 outMsgs.push_back(out);
             }
+
+            // Change state
+            State* next = cs->getNextState((int)tid));
+            _current = next->getID();
             
             if( tr.isHigh() )
                 high_prob = true;
@@ -94,7 +98,44 @@ size_t Fsm::nullInputTrans(vector<MessageTuple>& outMsgs, bool& high_prob, size_
     // The function will get to this line only when no null input transition is found
     return -1;
 }
-                
+
+// Consider merging this funciton with nullInputTransit()
+size_t transit(unique_ptr<MessageTuple> inMsg, vector<unique_ptr<MessageTuple> >& outMsgs, 
+               bool& high_prob, size_t startIdx )
+{
+    State* cs = _state[_current];
+    outMsgs.clear();
+
+    // Go through the possible transitions, find that matches the message
+    for( size_t tid = startIdx ; tid < cs->getNumTrans(); ++tid ) {
+        Transition tr = cs->getTrans((int)tid);
+
+        if( tr.getFromMachineId() == inMsg.subjectId() && tr.getInputMessageId() == inMsg.destMsgId() ) {
+            // Matching found. Get all the outLabels
+            for( size_t oid = 0 ; oid < tr.getNumOutLabels() ; ++oid ) {
+                OutLabel lbl = tr.getOutLabel(oid);
+                FsmMessage out(tr.getFromMachineId(), lbl.first, 
+                               tr.getInputMessageId(), lbl.second, _macLookup->toInt(this->_name) );
+                outMsgs.push_back(out);
+            }
+
+            // Change state
+            State* next = cs->getNextState((int)tid));
+            _current = next->getID();
+            
+            if( tr.isHigh() )
+                high_prob = true;
+            else
+                high_prob = false;
+            
+            return tid+1;
+        }
+    }
+
+    // The function will get to this line when no more matching transition is found
+    return -1;
+}
+
 
 
 

@@ -27,10 +27,10 @@ public:
     void reset() ;
 
     // Implement the virtual functions in StateMachine
-    size_t transit(MessageTuple inMsg, vector<MessageTuple>& outMsgs, bool& high_prob, size_t startIdx = 0);
-    size_t nullInputTrans(vector<MessageTuple>& outMsgs, bool& high_prob, size_t startIdx = 0);    
-    void restore(StateSnapshot& snapshot);
-    StateSnapshot curState();
+    size_t transit(MessageTuple inMsg, vector<unique_ptr<MessageTuple> >& outMsgs, bool& high_prob, size_t startIdx = 0);
+    size_t nullInputTrans(vector<unique_ptr<MessageTuple> >& outMsgs, bool& high_prob, size_t startIdx = 0);    
+    void restore(unique_ptr<StateSnapshot> snapshot);
+    unique_ptr<StateSnapshot> curState();
 
 private:
     vector<State*> _states;
@@ -62,6 +62,8 @@ private:
     int _subject;
 
 };
+
+class
 
  
 #endif

@@ -85,21 +85,6 @@ void GlobalState::explore(int subject)
 void GlobalState::findSucc()
 {     
     try {
-        /*vector<Transition> vecTrans;        
-        vector<int> subjects;
-        // Execute each null input transition and create a new global state for each transition
-        for( size_t m = 0 ; m < _machines.size() ; ++m ) {
-            State* st = _machines[m]->getState(_gStates[m]);
-            for( size_t tt = 0 ; tt < st->getNumTrans() ; ++tt ) {           
-                Transition tr = st->getTrans(tt) ;
-                if( tr.getInputMessageId() == 0 ) {
-                    // null input transition
-                    //child->execute(m, tt, &tr);
-                    vecTrans.push_back(tr);
-                    subjects.push_back(m+1);
-                } // if
-            } // for
-        } // for   */
 
         // Store the current state
         for( size_t m = 0 ; m < _machines.size() ; ++m ) {

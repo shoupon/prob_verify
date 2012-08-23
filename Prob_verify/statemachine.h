@@ -5,6 +5,7 @@
 #include <string>
 #include <exception>
 #include <stdexcept>
+#include <memory>
 using namespace std;
 
 #include "define.h"
@@ -40,17 +41,21 @@ public:
     // necessary look up function that StateMachine needs
     StateMachine( Lookup* msg, Lookup* mac ): _msgLookup(msg), _macLookup(mac) { }
 
-    virtual size_t transit(MessageTuple inMsg, vector<MessageTuple>& outMsgs, 
-                           bool& high_prob, size_t startIdx = 0) = 0 ;
+    virtual size_t transit(unique_ptr<MessageTuple> inMsg, vector<unique_ptr<MessageTuple> >& outMsgs, 
+                           bool& high_prob, size_t startIdx = 0) = 0;
     // Returns the identifier of current state
-    virtual size_t nullInputTrans(vector<MessageTuple>& outMsgs, 
-                                  bool& high_prob, size_t startIdx = 0) = 0 ;
-    
+    virtual size_t nullInputTrans(vector<unique_ptr<MessageTuple> >& outMsgs, 
+                                  bool& high_prob, size_t startIdx = 0) = 0;        
     // Restore the state of a StateMachine back to a previous point which can be completely specified
     // by s StateSnapshot
-    virtual void restore(StateSnapshot& snapshot) = 0;
+    virtual void restore(unique_ptr<StateSnapshot> snapshot) = 0;
     // Store current snapshot
-    virtual StateSnapshot curState();
+    virtual unique_ptr<StateSnapshot> curState();
+
+    
+    
+    
+    
 
 protected:
     Lookup* _msgLookup;
