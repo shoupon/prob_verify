@@ -249,8 +249,9 @@ vector<GlobalState*> GlobalState::evaluate()
                 do {
                     // Create a new child
                     GlobalState* creation = new GlobalState(this);
-                    // Take snapshot, add tasks to queue and update probability as before, but
-                    // this time operate on the created child
+                    // Take snapshot, add tasks to queue and update probability as
+                    // before, but this time operate on the created child
+                    delete creation->_gStates[macNum-1];
                     creation->_gStates[macNum-1] = _machines[macNum-1]->curState();
                     creation->addTask(pending);
                     creation->_parents = this->_parents;
@@ -330,6 +331,12 @@ vector<GlobalState*> GlobalState::evaluate()
 #endif
                 delete tuple;
                 return ret;
+            }
+            else {
+                // No matching transition is found.
+                // Save current snapshot of the machine, and continue execution
+                delete _gStates[macNum-1];
+                _gStates[macNum-1] = _machines[macNum-1]->curState();
             }
         } // if destId >=0, messages being passed to other machines
         
