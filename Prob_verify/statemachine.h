@@ -14,12 +14,16 @@ using namespace std;
 class MessageTuple
 {
 public:
+    MessageTuple(int src, int dest, int srcMsg, int destMsg, int subject)
+    :_src(src), _dest(dest), _srcMsg(srcMsg), _destMsg(destMsg), _subject(subject) {};
+    
     virtual ~MessageTuple() {}
-    virtual int srcID() =0 ;
-    virtual int destId() = 0 ;
-    virtual int srcMsgId() = 0 ;
-    virtual int destMsgId() = 0;
-    virtual int subjectId() = 0;
+    
+    int srcID() {return _src;}
+    int destId() {return _dest;}
+    int srcMsgId() {return _srcMsg;}
+    int destMsgId() {return _destMsg;}
+    int subjectId() {return _subject;}
 
     virtual size_t numParams() = 0;
     virtual int getParam(size_t arg) = 0 ;
@@ -27,7 +31,12 @@ public:
     virtual string toString() = 0;
     
     virtual MessageTuple* clone() = 0 ;
-private:
+protected:
+    int _src;
+    int _dest;
+    int _srcMsg;
+    int _destMsg;
+    int _subject;
 };
 
 
@@ -76,8 +85,8 @@ protected:
     
     int messageToInt(string msg) { return _msgLookup->toInt(msg); }
     int machineToInt(string macName) { return _macLookup->toInt(macName);}
-    string IntToMessage(int id) { return _msgLookup->toString(id); }
-    string IntToMachine(int id) { return _macLookup->toString(id); }
+    string IntToMessage(int num) { return _msgLookup->toString(num); }
+    string IntToMachine(int num) { return _macLookup->toString(num); }
 };
 
 // Used for restore the state of a state machine back to a certain point. Should contain

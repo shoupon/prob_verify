@@ -45,14 +45,8 @@ class FsmMessage : public MessageTuple
 {
 public:
     FsmMessage(int src, int dest, int srcMsg, int destMsg, int subject)
-    :_src(src), _dest(dest), _srcMsg(srcMsg), _destMsg(destMsg), _subject(subject) {};
+    :MessageTuple(src, dest, srcMsg, destMsg, subject) {}
     
-    int srcID() {return _src;}
-    int destId() {return _dest;}
-    int srcMsgId() {return _srcMsg;}
-    int destMsgId() {return _destMsg;}
-    int subjectId() {return _subject;}
-
     size_t numParams() { return 0 ;}
     int getParam(size_t arg) {return 0;}
     
@@ -60,11 +54,6 @@ public:
     
     MessageTuple* clone();
 private:
-    int _src;
-    int _dest;
-    int _srcMsg;
-    int _destMsg;
-    int _subject;
 
 };
 
