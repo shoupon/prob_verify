@@ -55,7 +55,22 @@ int main( int argc, char* argv[] )
 
         // Specify the global states in the set RS
 #ifdef HALF_DUPLEX
-        pvObj.addRS(vector<int>(5,0));
+        vector<StateSnapshot*> rshalf;
+        for( size_t i = 0 ; i < 5 ; ++i ) {
+            StateSnapshot* snap = new FsmSnapshot(0);
+            rshalf.push_back(snap);
+        }
+        vector<StateSnapshot*> rshalf2;
+        for( size_t i = 0 ; i < 2 ; ++i ) {
+            StateSnapshot* snap = new FsmSnapshot(3);
+            rshalf2.push_back(snap);
+        }
+        for( size_t i = 2 ; i < 5 ; ++i ) {
+            StateSnapshot* snap = new FsmSnapshot(0);
+            rshalf2.push_back(snap);
+        }
+        pvObj.addRS(rshalf);
+        pvObj.addRS(rshalf2);
 #endif
 
 #ifndef UN_NUM_ACK

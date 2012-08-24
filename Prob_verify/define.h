@@ -4,14 +4,14 @@ using namespace std;
 #ifndef DEFINE_H
 #define DEFINE_H
 
-//#define HALF_DUPLEX
-#define FULL_DUPLEX
+#define HALF_DUPLEX
+//#define FULL_DUPLEX
 #define UN_NUM_ACK
 
 //#define ALLOW_UNMATCHED
 
 // Debugging flags
-#define VERBOSE
+//#define VERBOSE
 //#define VERBOSE_EVAL
 #ifdef VERBOSE
 #define LOG
