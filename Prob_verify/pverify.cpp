@@ -140,7 +140,7 @@ void ProbVerifier::start(int maxClass)
                     int dist = childNode->getDistance();
 #ifdef LOG
                     cout << childNode->toString() << " Prob = " << prob 
-                                                  << " Dist = " << dist << ", "  ;
+                                                  << " Dist = " << dist << endl;
 #endif                                            
                     addToClass(childNode, prob);
                     
