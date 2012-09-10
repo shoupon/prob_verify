@@ -9,6 +9,9 @@
 #ifndef CHANNEL_H
 #define CHANNEL_H
 
+#include <vector>
+using namespace std;
+
 #include "../statemachine.h"
 #include "lock.h"
 #include "competitor.h"
@@ -16,11 +19,12 @@
 
 class ChannelSnapshot;
 
+
 class Channel: public StateMachine
 {
 public:
     Channel( int num, Lookup* msg, Lookup* mac ) ;
-    ~Channel() { if(_mem) delete _mem; }
+    ~Channel() { clearMem(_mem); }
     
     int transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                         bool& high_prob, int startIdx);
@@ -31,12 +35,15 @@ public:
     // Reset the machine to initial state
     void reset() ;
     
+    static void copyMem(const vector<MessageTuple*>& fifo, vector<MessageTuple*>& dest) ;
+    static void clearMem(vector<MessageTuple*>& fifo);
+    
 protected:
     const int _range;
     string _name;
     int _machineId;
     
-    MessageTuple* _mem;
+    vector<MessageTuple*> _mem;
     
     MessageTuple* createDelivery() ;
 };
@@ -47,19 +54,19 @@ class ChannelSnapshot: public StateSnapshot
 {
     friend class Channel;
 public:
-    ChannelSnapshot() { _ss_mem = 0 ;}
+    ChannelSnapshot() {}
     ChannelSnapshot( const ChannelSnapshot& item );
-    ChannelSnapshot( const MessageTuple* msg ) { _ss_mem = msg->clone(); }
-    ~ChannelSnapshot() { delete _ss_mem ;} 
-    int curStateId() const { if( _ss_mem ) return _ss_mem->destMsgId(); else return 0; }
+    ChannelSnapshot( const vector<MessageTuple*>& fifo);
+    ~ChannelSnapshot() { Channel::clearMem(_ss_mem) ;}
+    int curStateId() const ; 
     // Returns the name of current state as specified in the input file
-    string toString() { if(_ss_mem)return _ss_mem->toString(); else return string("empty");}
+    string toString() ;
     // Cast the Snapshot into a integer. Used in HashTable
     int toInt() ;
     ChannelSnapshot* clone() const { return new ChannelSnapshot(*this) ; }
     
 private:
-    MessageTuple* _ss_mem;
+    vector<MessageTuple*> _ss_mem;
 };
 
 #endif

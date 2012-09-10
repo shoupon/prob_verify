@@ -9,7 +9,7 @@
 #include "channel.h"
 
 Channel::Channel(int num, Lookup* msg, Lookup* mac)
-: StateMachine(msg,mac), _range(num), _mem(0)
+: StateMachine(msg,mac), _range(num)
 {
     // The name of the lock is "lock(i)", where i is the id of the machine
     _name = Lock_Utils::getChannelName(num, num) ;
@@ -27,20 +27,19 @@ int Channel::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
     }
         
 
-    if( _mem == 0 ) {
+    if( _mem.size() < 10000 ) {
         // Channel is empty
         if( startIdx == 0 ) {
             // Transimission succeeds
             high_prob = true ;
             // Change state
-            _mem = inMsg->clone() ;
+            _mem.push_back( inMsg->clone() );
             return 1;
         }
         else if( startIdx == 1 ) {
             // Message loss
             high_prob = false;
-            // channel remain empty
-            _mem = 0 ;
+            // channel content remains the same
             return 2;
         }
         else if(startIdx >=2 ) {
@@ -61,14 +60,16 @@ int Channel::nullInputTrans(vector<MessageTuple*>& outMsgs, bool& high_prob, int
     outMsgs.clear() ;
     high_prob = true ;
 
-    if( _mem != 0 ) {
+    if( !_mem.empty() ) {
         if( startIdx == 0 ) {
+            // Create message
             MessageTuple* msg = createDelivery() ;
             outMsgs.push_back(msg);
 
             // Change state
-            delete _mem ;
-            _mem = 0;
+            delete _mem.front();
+            _mem.erase(_mem.begin()) ;
+            
             return 3;
         }
         else if( startIdx > 0 ) {
@@ -88,15 +89,15 @@ void Channel::restore(const StateSnapshot* snapshot)
     assert( typeid(*snapshot) == typeid(ChannelSnapshot));
     const ChannelSnapshot* css = dynamic_cast<const ChannelSnapshot*>(snapshot) ;
     
-    if( css->_ss_mem == 0 )
-        _mem = 0;
+    if( css->_ss_mem.empty() )
+        clearMem(_mem) ;
     else
-        _mem = css->_ss_mem->clone() ;
+        copyMem(css->_ss_mem, _mem);
 }
 
 StateSnapshot* Channel::curState()
 {
-    if( _mem == 0 )
+    if( _mem.empty() )
         return new ChannelSnapshot();
     else
         return new ChannelSnapshot(_mem);
@@ -104,34 +105,54 @@ StateSnapshot* Channel::curState()
 
 void Channel::reset()
 {
-    if( _mem )
-        delete _mem;
+    clearMem(_mem);
+}
+
+void Channel::copyMem(const vector<MessageTuple*>& fifo, vector<MessageTuple*>& dest)
+{
+    clearMem(dest);
+    dest.resize(fifo.size()) ;
+    
+    for( size_t i = 0 ; i < fifo.size() ; ++i ) {
+        dest[i] = fifo[i]->clone() ;
+    }
+}
+void Channel::clearMem(vector<MessageTuple*>& fifo)
+{
+    for( size_t i = 0 ; i < fifo.size() ; ++i ) {
+        delete fifo[i];
+    }
+    fifo.clear() ;
 }
 
 MessageTuple* Channel::createDelivery()
 {
-    int outMsgId = _mem->destMsgId();
-    assert(_mem->destId() == _machineId);
+    if( _mem.empty() )
+        return 0;
+    
+    MessageTuple* msg = _mem.front() ;
+    
+    int outMsgId = msg->destMsgId();
     
     // The message stored in _mem should be either of type CompetitorMessage or of type
     // LockMessage
-    int toward = _mem->getParam(1);
+    int toward = msg->getParam(1);
     
     MessageTuple* ret ;
-    if( typeid(*_mem) == typeid(CompetitorMessage) ) {
+    if( typeid(*msg) == typeid(CompetitorMessage) ) {
         // This message destined for a lock
         string lockName = Lock_Utils::getLockName(toward) ;
         int dstId = machineToInt(lockName);
         
-        CompetitorMessage* compMsgPtr = dynamic_cast<CompetitorMessage*>(_mem) ;
+        CompetitorMessage* compMsgPtr = dynamic_cast<CompetitorMessage*>(msg) ;
         ret = new CompetitorMessage(0,dstId,0,outMsgId,_machineId, *compMsgPtr);
     }
-    else if( typeid(*_mem) == typeid(LockMessage) ) {
+    else if( typeid(*msg) == typeid(LockMessage) ) {
         // This message destined for a competitor
         string compName = Lock_Utils::getCompetitorName(toward);
         int dstId = machineToInt(compName) ;
         
-        LockMessage* lockMsgPtr = dynamic_cast<LockMessage*>(_mem);
+        LockMessage* lockMsgPtr = dynamic_cast<LockMessage*>(msg);
         ret = new LockMessage(0,dstId,0,outMsgId,_machineId, *lockMsgPtr);
     }
     else {
@@ -143,16 +164,44 @@ MessageTuple* Channel::createDelivery()
 
 ChannelSnapshot::ChannelSnapshot( const ChannelSnapshot& item )
 {
-    if( item._ss_mem )
-        _ss_mem = item._ss_mem->clone() ;
-    else
-        _ss_mem = 0 ;
+    if( !item._ss_mem.empty() )
+        Channel::copyMem(item._ss_mem, _ss_mem);
 }
 
-int ChannelSnapshot::toInt() 
+ChannelSnapshot::ChannelSnapshot( const vector<MessageTuple*>& fifo)
+{
+    if( !fifo.empty())
+        Channel::copyMem(fifo, _ss_mem);
+}
+
+int ChannelSnapshot::curStateId() const
+{
+    if( !_ss_mem.empty() )
+        return _ss_mem.front()->destMsgId();
+    else
+        return 0;
+}
+
+string ChannelSnapshot::toString()
+{
+    stringstream ss ;
+    ss << "(" ;
+
+    for( size_t i  = 0 ; i < _ss_mem.size() ; ++i ) {
+        ss << _ss_mem[i]->toString() ;
+        if( i != _ss_mem.size()-1 )
+            ss << "," ;
+    }
+    ss << ")" ;
+        
+    return ss.str() ;
+}
+
+int ChannelSnapshot::toInt()
 { 
-    if( _ss_mem ) 
-        return _ss_mem->srcMsgId() + _ss_mem->destMsgId(); 
+    if( !_ss_mem.empty() )
+        return _ss_mem.front()->srcMsgId() + _ss_mem.front()->destMsgId();
     else
         return 0 ;
 }
+

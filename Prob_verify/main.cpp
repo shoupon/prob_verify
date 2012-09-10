@@ -93,7 +93,7 @@ int main( int argc, char* argv[] )
 
         // Start the procedure of probabilistic verification. 
         // Specify the maximum probability depth to be explored
-        pvObj.start(5);
+        pvObj.start(3);
 
         // When complete, deallocate all machines
         delete ctrl ;
