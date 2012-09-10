@@ -19,7 +19,7 @@ class ChannelSnapshot;
 class Channel: public StateMachine
 {
 public:
-    Channel( int from, int to, Lookup* msg, Lookup* mac ) ;
+    Channel( int num, Lookup* msg, Lookup* mac ) ;
     ~Channel() { if(_mem) delete _mem; }
     
     int transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
@@ -32,8 +32,7 @@ public:
     void reset() ;
     
 protected:
-    const int _from;
-    const int _to;
+    const int _range;
     string _name;
     int _machineId;
     

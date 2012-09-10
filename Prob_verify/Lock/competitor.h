@@ -43,8 +43,8 @@ private:
     
     const int _range;
     
-    MessageTuple* createResponse(string msg, string dst, MessageTuple* inMsg);
-    MessageTuple* createReq(string dst, MessageTuple* inMsg) ;
+    MessageTuple* createResponse(string msg, string dst, MessageTuple* inMsg, int toLock);
+    MessageTuple* createReq(string dst, MessageTuple* inMsg, int toLock) ;
     
     string getFrontCh() {return Lock_Utils::getChannelName( _id, _front);}
     string getBackCh() { return Lock_Utils::getChannelName( _id, _back); }
@@ -58,17 +58,23 @@ private:
 class CompetitorMessage : public MessageTuple
 {
 public:
-    CompetitorMessage(int src, int dest, int srcMsg, int destMsg, int subject, int k)
-    :MessageTuple(src, dest, srcMsg, destMsg, subject), _k(k) { _nParams = 1;}
+    // Constructor: src, dest, srcMsg, destMsg, subject all retain the same implication as
+    // is ancestor, MessageTuple;
+    // k: the ID of the source competitor
+    // lock: the ID of the destination lock. Exception: -1 when the destination is the
+    // controller
+    CompetitorMessage(int src, int dest, int srcMsg, int destMsg, int subject
+                      , int k, int lock)
+    :MessageTuple(src, dest, srcMsg, destMsg, subject), _k(k),_lock(lock) { _nParams = 2;}
     
     CompetitorMessage( const CompetitorMessage& msg )
     :MessageTuple(msg._src, msg._dest, msg._srcMsg, msg._destMsg, msg._subject)
-    , _k(msg._k), _t(msg._t), _nParams(msg._nParams) {}
+    , _k(msg._k), _lock(msg._lock), _t(msg._t), _nParams(msg._nParams) {}
     
     CompetitorMessage(int src, int dest, int srcMsg, int destMsg, int subject,
                       const CompetitorMessage& msg)
     :MessageTuple(src, dest, srcMsg, destMsg, subject),
-    _k(msg._k), _t(msg._t), _nParams(msg._nParams) {}
+    _k(msg._k), _lock(msg._lock), _t(msg._t), _nParams(msg._nParams) {}
     
     ~CompetitorMessage() {}
     
@@ -77,14 +83,17 @@ public:
     CompetitorMessage* createReq(int timeGen);
     
     size_t numParams() { return _nParams; }
-    int getParam(size_t arg) { return (arg==1)?_t:_k ; }
+    int getParam(size_t arg) { return (arg==2)?_t:((arg==1)?_lock:_k) ; }
     
     string toString();
     
     CompetitorMessage* clone() const ;
     
 private:
+    // The ID of the competitor from which this message is generated
     const int _k;
+    // The ID of the lock to which this message is destined
+    const int _lock;
     int _t;
     int _nParams;
 };

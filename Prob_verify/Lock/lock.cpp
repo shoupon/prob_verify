@@ -43,8 +43,7 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                 _old = i;
                 // Response
                 if( _old != _id ) {
-                    string channel = Lock_Utils::getChannelName(_id, _old) ;
-                    MessageTuple* response = createResponse("LOCKED", channel, inMsg);
+                    MessageTuple* response = createResponse("LOCKED", "channel", inMsg, _old);
                     outMsgs.push_back(response);
                 }
                 // Change State
@@ -57,7 +56,7 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                 // Response
                 if(  inMsg->getParam(0) == _id ) {
                     string ownComp = Lock_Utils::getCompetitorName(_id) ;
-                    MessageTuple* response = createResponse("free", ownComp, inMsg);
+                    MessageTuple* response = createResponse("free", ownComp, inMsg, _id);
                     outMsgs.push_back(response);
                     
                     return 3;
@@ -79,7 +78,7 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                 // Response
                 if(  inMsg->getParam(0) == _id ) {
                     string ownComp = Lock_Utils::getCompetitorName(_id) ;
-                    MessageTuple* response = createResponse("secured", ownComp, inMsg);
+                    MessageTuple* response = createResponse("secured", ownComp, inMsg, _id);
                     outMsgs.push_back(response);
                     
                     return 3;
@@ -95,8 +94,8 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                     if( _t2 < _ts ) {
                         // True
                         // Response
-                        string oldChan = Lock_Utils::getChannelName(_id, _old) ;
-                        MessageTuple* react = createResponse("INQUIRE", oldChan, inMsg );
+                        MessageTuple* react = createResponse("INQUIRE", "channel",
+                                                             inMsg, _old );
                         outMsgs.push_back(react);
                         
                         // Change state
@@ -105,8 +104,8 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                     else {
                         // False
                         // Response
-                        string newChan = Lock_Utils::getChannelName(_id, _new);
-                        MessageTuple* response = createResponse("FAILED", newChan, inMsg );
+                        MessageTuple* response = createResponse("FAILED", "channel",
+                                                                inMsg, _new );
                         outMsgs.push_back(response);
                         // Change state
                         _current = 1;
@@ -127,8 +126,7 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
             if( msg == "ENGAGED" ) {
                 if( inMsg->getParam(0) == _old) {
                     // Respond
-                    string newComp = Lock_Utils::getCompetitorName(_new) ;
-                    MessageTuple* react = createResponse("FAILED", newComp, inMsg) ;
+                    MessageTuple* react = createResponse("FAILED", "channel", inMsg, _new) ;
                     outMsgs.push_back(react);
                     // Change state
                     _current = 1;
@@ -142,8 +140,7 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                     _ts = _t2;
                     _old = _new ;
                     // Respond
-                    string newComp = Lock_Utils::getCompetitorName(_new) ;
-                    MessageTuple* react = createResponse("LOCKED", newComp, inMsg);
+                    MessageTuple* react = createResponse("LOCKED", "channel", inMsg, _new);
                     outMsgs.push_back(react);
                     // Change state
                     _current = 1;
@@ -156,7 +153,7 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                 // Response
                 if(  inMsg->getParam(0) == _id ) {
                     string ownComp = Lock_Utils::getCompetitorName(_id) ;
-                    MessageTuple* response = createResponse("secured", ownComp, inMsg);
+                    MessageTuple* response = createResponse("secured", ownComp, inMsg, _id);
                     outMsgs.push_back(response);
                     
                     return 3;
@@ -209,22 +206,23 @@ void Lock::reset()
     _new = -1 ;
 }
 
-MessageTuple* Lock::createResponse(string msg, string dst, MessageTuple* inMsg)
+MessageTuple* Lock::createResponse(string msg, string dst, MessageTuple* inMsg, int toComp)
 {
     int outMsgId = messageToInt(msg);
     int dstId = machineToInt(dst);
     
     assert(inMsg->destId() == _machineId);
+    assert(toComp < _range) ;
     
     MessageTuple* ret = new LockMessage(inMsg->subjectId(), dstId,
                                         inMsg->destMsgId(), outMsgId,
-                                        _machineId, _id);
+                                        _machineId, _id, toComp);
     return ret;
 }
 
 LockMessage* LockMessage::clone() const
 {
-    return new LockMessage(_src, _dest, _srcMsg, _destMsg, _subject, _k ) ;
+    return new LockMessage(*this) ;
 }
 
 string LockMessage::toString()

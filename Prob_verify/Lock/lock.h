@@ -44,34 +44,40 @@ private:
     
     const int _range;
     
-    MessageTuple* createResponse(string msg, string dst, MessageTuple* inMsg);
+    MessageTuple* createResponse(string msg, string dst, MessageTuple* inMsg, int toComp);
 };
 
 class LockMessage : public MessageTuple
 {
 public:
-    LockMessage(int src, int dest, int srcMsg, int destMsg, int subject, int k)
-    :MessageTuple(src, dest, srcMsg, destMsg, subject), _k(k) {}
+    // Constructor: src, dest, srcMsg, destMsg, subject all retain the same implication as
+    // is ancestor, MessageTuple;
+    // k: the ID of the source lock
+    // lock: the ID of the destination competitor. Exception: -1 when the destination is
+    // the controller
+    LockMessage(int src, int dest, int srcMsg, int destMsg, int subject, int k, int comp)
+    :MessageTuple(src, dest, srcMsg, destMsg, subject), _k(k), _comp(comp) {}
     
     LockMessage( const LockMessage& msg )
     :MessageTuple(msg._src, msg._dest, msg._srcMsg, msg._destMsg, msg._subject)
-    , _k(msg._k) {}
+    , _k(msg._k), _comp(msg._comp) {}
     
     LockMessage(int src, int dest, int srcMsg, int destMsg, int subject,
                       const LockMessage& msg)
     :MessageTuple(src, dest, srcMsg, destMsg, subject)
-    , _k(msg._k) {}
+    , _k(msg._k), _comp(msg._comp) {}
     
     ~LockMessage() {}
     
-    size_t numParams() {return 0; }
-    int getParam(size_t arg) { return _k; }
+    size_t numParams() {return 2; }
+    int getParam(size_t arg) { return (arg==1)?_comp:_k; }
     
     string toString() ;
     
     LockMessage* clone() const ;
 private:
     const int _k ;
+    const int _comp ;
         
 };
 

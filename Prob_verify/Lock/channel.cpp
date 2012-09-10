@@ -8,11 +8,11 @@
 
 #include "channel.h"
 
-Channel::Channel(int from, int to, Lookup* msg, Lookup* mac)
-: StateMachine(msg,mac), _from(from), _to(to), _mem(0)
+Channel::Channel(int num, Lookup* msg, Lookup* mac)
+: StateMachine(msg,mac), _range(num), _mem(0)
 {
     // The name of the lock is "lock(i)", where i is the id of the machine
-    _name = Lock_Utils::getChannelName(from, to) ;
+    _name = Lock_Utils::getChannelName(num, num) ;
     _machineId = machineToInt(_name);
 }
 
@@ -113,10 +113,14 @@ MessageTuple* Channel::createDelivery()
     int outMsgId = _mem->destMsgId();
     assert(_mem->destId() == _machineId);
     
+    // The message stored in _mem should be either of type CompetitorMessage or of type
+    // LockMessage
+    int toward = _mem->getParam(1);
+    
     MessageTuple* ret ;
     if( typeid(*_mem) == typeid(CompetitorMessage) ) {
         // This message destined for a lock
-        string lockName = Lock_Utils::getLockName(_to) ;
+        string lockName = Lock_Utils::getLockName(toward) ;
         int dstId = machineToInt(lockName);
         
         CompetitorMessage* compMsgPtr = dynamic_cast<CompetitorMessage*>(_mem) ;
@@ -124,7 +128,7 @@ MessageTuple* Channel::createDelivery()
     }
     else if( typeid(*_mem) == typeid(LockMessage) ) {
         // This message destined for a competitor
-        string compName = Lock_Utils::getCompetitorName(_to);
+        string compName = Lock_Utils::getCompetitorName(toward);
         int dstId = machineToInt(compName) ;
         
         LockMessage* lockMsgPtr = dynamic_cast<LockMessage*>(_mem);

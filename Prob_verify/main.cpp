@@ -45,18 +45,15 @@ int main( int argc, char* argv[] )
         
         vector<Lock*> arrLock ;
         vector<Competitor*> arrComp;
-        vector<Channel*> arrChan;                      
         for( size_t i = 0 ; i < num ; ++i )
-            arrLock.push_back( new Lock(i,delta,num,psrPtr->getMsgTable(), psrPtr->getMacTable() ) );
+            arrLock.push_back( new Lock((int)i,delta,num,psrPtr->getMsgTable(),
+                                        psrPtr->getMacTable() ) );
         for( int i = 0 ; i < num ; ++i ) 
-            arrComp.push_back( new Competitor(i,delta,num,psrPtr->getMsgTable(), psrPtr->getMacTable() ) );
-        for( int i = 0 ; i < num ; ++i ) {                     
-            for( int j = 0 ; j < num ; ++j ) {
-                if( i == j )
-                    continue ;
-                arrChan.push_back( new Channel(i,j,psrPtr->getMsgTable(), psrPtr->getMacTable() ) );
-            }
-        }   
+            arrComp.push_back( new Competitor(i,delta,num,psrPtr->getMsgTable(),
+                                              psrPtr->getMacTable() ) );
+
+        Channel* chan = new Channel(num, psrPtr->getMsgTable(),
+                                    psrPtr->getMacTable() ) ;
 
         // Add the state machines into ProbVerifier
         ProbVerifier pvObj ;
@@ -65,8 +62,7 @@ int main( int argc, char* argv[] )
             pvObj.addMachine(arrLock[i]);
         for( size_t i = 0 ; i < arrComp.size() ; ++i )
             pvObj.addMachine(arrComp[i]);
-        for( size_t i = 0 ; i < arrChan.size() ; ++i )
-            pvObj.addMachine(arrChan[i]);
+        pvObj.addMachine(chan);
 
         // Specify the global states in the set RS
         // TODO: only all zero RS
@@ -90,15 +86,9 @@ int main( int argc, char* argv[] )
             rs.push_back(compSnap);
         }
         // channel snapshots
-        for( int i = 0 ; i < num ; ++i ) {
-            for( int j = 0 ; j < num ; ++j ) {
-                if( i == j )
-                    continue ;
-                StateSnapshot* chanSnap = new ChannelSnapshot();
-                rs.push_back(chanSnap);                
-            }
-        }
-                                                      
+        StateSnapshot* chanSnap = new ChannelSnapshot();
+        rs.push_back(chanSnap);
+                                                              
         pvObj.addRS(rs);
 
         // Start the procedure of probabilistic verification. 
@@ -106,13 +96,13 @@ int main( int argc, char* argv[] )
         pvObj.start(5);
 
         // When complete, deallocate all machines
+        delete ctrl ;
         for( size_t i = 0 ; i < arrLock.size() ; ++i ) 
             delete arrLock[i];
         for( size_t i = 0 ; i < arrComp.size() ; ++i )
             delete arrComp[i];
-        for( size_t i = 0 ; i < arrChan.size() ; ++i )
-            delete arrChan[i];
-
+        delete chan ;
+        
     } catch( runtime_error& re ) {
         cerr << "Runtime error:" << endl 
              << re.what() << endl ;

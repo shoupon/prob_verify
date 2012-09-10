@@ -38,7 +38,8 @@ int Competitor::transit(MessageTuple *inMsg, vector<MessageTuple *> &outMsgs,
                 _back = inMsg->getParam(2);
                 // Response
                 MessageTuple* response = createResponse("status",
-                                                        Lock_Utils::getLockName(_id), inMsg);
+                                                        Lock_Utils::getLockName(_id),
+                                                        inMsg, _id);
                 outMsgs.push_back(response);
                 // Change State
                 _current = 1;
@@ -52,9 +53,9 @@ int Competitor::transit(MessageTuple *inMsg, vector<MessageTuple *> &outMsgs,
                 if( inMsg->getParam(0) == _id ) {
                     // The free message should always come from own lock
                     // Response
-                    MessageTuple* rOwn = createReq(Lock_Utils::getLockName(_id), inMsg);
-                    MessageTuple* rFront = createReq(getFrontCh(), inMsg);
-                    MessageTuple* rBack = createReq(getBackCh(), inMsg);
+                    MessageTuple* rOwn = createReq(Lock_Utils::getLockName(_id), inMsg, _id);
+                    MessageTuple* rFront = createReq("channel", inMsg, _front);
+                    MessageTuple* rBack = createReq("channel", inMsg, _back);
                     outMsgs.push_back(rOwn);
                     outMsgs.push_back(rFront);
                     outMsgs.push_back(rBack);
@@ -164,17 +165,17 @@ int Competitor::nullInputTrans(vector<MessageTuple *> &outMsgs, bool &high_prob,
         if( _current == 4 ) {
             MessageTuple* ctrlRes = new CompetitorMessage(0, machineToInt("controller"),
                                                           0, messageToInt("complete"),
-                                                          _machineId, _id);
+                                                          _machineId, _id, -1);
             MessageTuple* ownRel =
                 new CompetitorMessage(0, machineToInt(Lock_Utils::getLockName(_id)),
-                                      0, relId, _machineId, _id);
+                                      0, relId, _machineId, _id, _id);
             MessageTuple* fRel =
-                new CompetitorMessage(0, machineToInt(getFrontCh()),
-                                      0, relId, _machineId, _id);
+                new CompetitorMessage(0, machineToInt("channel"),
+                                      0, relId, _machineId, _id, _front);
             
             MessageTuple* bRel =
-                new CompetitorMessage(0, machineToInt(getBackCh()),
-                                      0, relId, _machineId, _id);
+                new CompetitorMessage(0, machineToInt("channel"),
+                                      0, relId, _machineId, _id, _back);
             
             outMsgs.push_back(ctrlRes);
             outMsgs.push_back(ownRel);
@@ -214,7 +215,8 @@ void Competitor::reset()
     _current = 0;
 }
 
-MessageTuple* Competitor::createResponse(string msg, string dst, MessageTuple* inMsg)
+MessageTuple* Competitor::createResponse(string msg, string dst, MessageTuple* inMsg,
+                                         int toLock)
 {
     int outMsgId = messageToInt(msg);
     int dstId = machineToInt(dst);
@@ -223,14 +225,14 @@ MessageTuple* Competitor::createResponse(string msg, string dst, MessageTuple* i
     
     MessageTuple* ret = new CompetitorMessage(inMsg->subjectId(), dstId,
                                               inMsg->destMsgId(), outMsgId,
-                                              _machineId, _id);
+                                              _machineId, _id, toLock);
     return ret;
 }
 
-MessageTuple* Competitor::createReq(string dst, MessageTuple* inMsg)
+MessageTuple* Competitor::createReq(string dst, MessageTuple* inMsg, int toLock)
 {
     // Create a typical message with source identifier
-    MessageTuple* ret = createResponse("REQUEST", dst, inMsg);
+    MessageTuple* ret = createResponse("REQUEST", dst, inMsg, toLock);
     // Add timestamp onto the message
     CompetitorMessage* compMsg = dynamic_cast<CompetitorMessage*>(ret) ;
     compMsg->createReq(_t) ;
@@ -245,9 +247,10 @@ bool Competitor::toRelease(MessageTuple *inMsg, vector<MessageTuple *> &outMsgs)
     int from = inMsg->getParam(0);
     if( msg == "INQUIRE" && (from == _front || from == _back) ) {
         // Response
-        MessageTuple* rFront = createResponse("RELEASE", getFrontCh(), inMsg);
-        MessageTuple* rBack = createResponse("RELEASE", getBackCh(), inMsg);
-        MessageTuple* rOwn = createResponse("RELEASE", Lock_Utils::getLockName(_id), inMsg );
+        MessageTuple* rFront = createResponse("RELEASE", "channel", inMsg, _front);
+        MessageTuple* rBack = createResponse("RELEASE", "channel", inMsg, _back);
+        MessageTuple* rOwn = createResponse("RELEASE", Lock_Utils::getLockName(_id),
+                                            inMsg, _id );
         outMsgs.push_back(rFront);
         outMsgs.push_back(rBack);
         outMsgs.push_back(rOwn);
@@ -255,15 +258,17 @@ bool Competitor::toRelease(MessageTuple *inMsg, vector<MessageTuple *> &outMsgs)
     }
     else if( msg == "FAILED") {
         if( from == _front ) {
-            MessageTuple* rBack = createResponse("RELEASE", getBackCh(), inMsg);
-            MessageTuple* rOwn = createResponse("RELEASE", Lock_Utils::getLockName(_id), inMsg );
+            MessageTuple* rBack = createResponse("RELEASE", "channel", inMsg, _back);
+            MessageTuple* rOwn = createResponse("RELEASE", Lock_Utils::getLockName(_id),
+                                                inMsg, _id );
             outMsgs.push_back(rBack);
             outMsgs.push_back(rOwn);
             outMsgs.push_back(abortMsg());
         }
         else if( from == _back ) {
-            MessageTuple* rFront = createResponse("RELEASE", getFrontCh(), inMsg);
-            MessageTuple* rOwn = createResponse("RELEASE", Lock_Utils::getLockName(_id), inMsg );
+            MessageTuple* rFront = createResponse("RELEASE", "channel", inMsg, _front);
+            MessageTuple* rOwn = createResponse("RELEASE", Lock_Utils::getLockName(_id),
+                                                inMsg, _id );
             outMsgs.push_back(rFront);
             outMsgs.push_back(rOwn);
             outMsgs.push_back(abortMsg());
@@ -296,26 +301,27 @@ CompetitorMessage* Competitor::abortMsg()
 {
     return new CompetitorMessage(0, machineToInt("controller"),
                                  0, messageToInt("abort"),
-                                 _machineId, _id);
+                                 _machineId, _id, -1);
 }
 
 CompetitorMessage* CompetitorMessage::createReq(int timeGen)
 {
-    _nParams = 2;
+    _nParams = 3;
     _t = timeGen ;
     return this;
 }
 
 string CompetitorMessage::toString()
 {
-    if( _nParams == 2 ) {
+    if( _nParams == 3 ) {
         stringstream ss ;
-        ss << MessageTuple::toString() << "(k=" << _k << ",t=" << _t << ")" ;
+        ss << MessageTuple::toString()
+           << "(k=" << _k << ",l=" << _lock << ",t=" << _t << ")" ;
         return ss.str() ;
     }
     else {
         stringstream ss ;
-        ss << MessageTuple::toString() << "(k=" << _k << ")" ;
+        ss << MessageTuple::toString() << "(k=" << _k << ",l=" << _lock << ")" ;
         return ss.str() ;
     }
 }

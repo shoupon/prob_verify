@@ -22,9 +22,9 @@ string Lock_Utils::getLockName(int i)
 
 string Lock_Utils::getChannelName(int i, int j)
 {
-    stringstream ss;
-    ss << "channel(" << i << "," << j << ")" ;
-    return ss.str();
+    //stringstream ss;
+    //ss << "channel(" << i << "," << j << ")" ;
+    return string("channel");
 }
 
 string Lock_Utils::getCompetitorName(int i)
