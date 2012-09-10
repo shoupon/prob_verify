@@ -188,6 +188,8 @@ void ProbVerifier::addRS(vector<StateSnapshot*> rs)
 GSVecMap::iterator ProbVerifier::find(GSVecMap& collection, GlobalState* gs)
 {
     vector<string> vec = gs->getStringVec();
+    if( collection.empty() )
+        return collection.end();
     if( collection.begin()->first.size() != vec.size() )
         return collection.end();
 

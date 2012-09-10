@@ -154,21 +154,13 @@ StateSnapshot* Fsm::curState()
     return ssPtr;
 }
 
-string FsmMessage::toString()
-{
-    stringstream ss;
-    ss << "subject=" << _subject << ":" ;
-    ss << "(" << _src << "?" << _srcMsg << "," << _dest << "!" << _destMsg << ")" ;
-    return ss.str() ;
-}
-
 MessageTuple* FsmMessage::clone()
 {
     MessageTuple* ret = new FsmMessage(_src, _dest, _srcMsg, _destMsg, _subject);
     return ret;
 }
 
-StateSnapshot* FsmSnapshot::clone()
+StateSnapshot* FsmSnapshot::clone() const
 {
     StateSnapshot* ret = new FsmSnapshot(_stateId);
     return ret;

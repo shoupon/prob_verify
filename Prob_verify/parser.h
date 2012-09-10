@@ -55,6 +55,9 @@ public:
     int machineToInt(string macName);
     string IntToMessage(int id);
     string IntToMachine(int id);
+
+    Lookup* getMsgTable() { return _messages; }
+    Lookup* getMacTable() { return _machineNames;}
 };
 
 #endif

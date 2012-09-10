@@ -134,6 +134,8 @@ void GlobalState::findSucc()
             // to be the next starting point
             vector<MessageTuple*> pendingTasks;
             do {
+                restore();
+                pendingTasks.clear();
                 idx = _machines[m]->nullInputTrans(pendingTasks, high_prob, idx);
                 if( idx < 0 ) {
                     // No null transition is found for machines[m]
@@ -215,6 +217,7 @@ vector<GlobalState*> GlobalState::evaluate()
             << " to machine " << tuple->destId() << endl ;
 #endif
             this->restore();
+            pending.clear();
             idx = _machines[macNum-1]->transit(tuple, pending, high_prob, 0);
 
             if( idx < 0 ) {
@@ -384,10 +387,10 @@ bool GlobalState::init(GlobalState* s)
 string GlobalState::toString() 
 {
     stringstream ss ;
-    ss << "(" ;
+    ss << "[" ;
     for( size_t ii = 0 ; ii < _gStates.size()-1 ; ++ii )
         ss << _gStates[ii]->toString() << "," ;
-    ss << _gStates.back()->toString() << ")" ;
+    ss << _gStates.back()->toString() << "]" ;
 
     return ss.str();
 }

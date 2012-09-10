@@ -50,7 +50,7 @@ public:
     size_t numParams() { return 0 ;}
     int getParam(size_t arg) {return 0;}
     
-    string toString() ;
+    string toString() { return MessageTuple::toString(); }
     
     MessageTuple* clone();
 private:
@@ -66,7 +66,7 @@ public:
     int curStateId() const { return _stateId ;}
     string toString() { stringstream ss ; ss << _stateId ; return ss.str(); }
     int toInt() { return _stateId; }
-    StateSnapshot* clone() ;
+    StateSnapshot* clone() const;
 private:
     int _stateId;
     

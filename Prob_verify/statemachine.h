@@ -15,7 +15,10 @@ class MessageTuple
 {
 public:
     MessageTuple(int src, int dest, int srcMsg, int destMsg, int subject)
-    :_src(src), _dest(dest), _srcMsg(srcMsg), _destMsg(destMsg), _subject(subject) {};
+    :_src(src), _dest(dest), _srcMsg(srcMsg), _destMsg(destMsg), _subject(subject) {}
+    
+    MessageTuple( const MessageTuple& tuple ):_src(tuple._src), _dest(tuple._dest),
+    _srcMsg(tuple._srcMsg), _destMsg(tuple._destMsg), _subject(tuple._subject) {}
     
     virtual ~MessageTuple() {}
     
@@ -25,12 +28,18 @@ public:
     int destMsgId() {return _destMsg;}
     int subjectId() {return _subject;}
 
-    virtual size_t numParams() = 0;
-    virtual int getParam(size_t arg) = 0 ;
+    virtual size_t numParams() { return 0 ; }
+    virtual int getParam(size_t arg) { return 0 ; }
     
-    virtual string toString() = 0;
+    virtual string toString()
+    {
+        stringstream ss;
+        ss << "subject=" << _subject << ":" ;
+        ss << "(" << _src << "?" << _srcMsg << "," << _dest << "!" << _destMsg << ")" ;
+        return ss.str() ;
+    }
     
-    virtual MessageTuple* clone() = 0 ;
+    virtual MessageTuple* clone() const {return new MessageTuple(*this); }
 protected:
     int _src;
     int _dest;
@@ -51,6 +60,7 @@ public:
     // label into id (integer). A pointer to Parser should be provided to the StateMachine.
     // The Parser class contains the necessary look up function that StateMachine needs
     StateMachine( Lookup* msg, Lookup* mac ): _msgLookup(msg), _macLookup(mac) { }
+    virtual ~StateMachine() {}
 
     // Simulate message reception
     // inMsg: the message transmitted to this StateMachine
@@ -83,8 +93,8 @@ protected:
     Lookup* _msgLookup;
     Lookup* _macLookup;
     
-    int messageToInt(string msg) { return _msgLookup->toInt(msg); }
-    int machineToInt(string macName) { return _macLookup->toInt(macName);}
+    int messageToInt(string msg) ;
+    int machineToInt(string macName) ;
     string IntToMessage(int num) { return _msgLookup->toString(num); }
     string IntToMachine(int num) { return _macLookup->toString(num); }
 };
@@ -97,11 +107,12 @@ class StateSnapshot
 public:
     virtual ~StateSnapshot() {} ;
     virtual int curStateId() const = 0 ;
-    // Returns the name of current state as specified in the input file
+    // Returns the name of current state as specified in the input file. Used to identify states
+    // in the set STATET, STATETABLE, RS
     virtual string toString() = 0 ;
     // Cast the Snapshot into a integer. Used in HashTable
     virtual int toInt() = 0;
-    virtual StateSnapshot* clone() = 0 ;
+    virtual StateSnapshot* clone() const = 0;
 };
 
 #endif
