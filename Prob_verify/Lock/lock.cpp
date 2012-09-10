@@ -5,5 +5,239 @@
 //  Created by Shou-pon Lin on 8/24/12.
 //  Copyright (c) 2012 Shou-pon Lin. All rights reserved.
 //
+#include <sstream>
+#include <string>
+using namespace std;
 
 #include "lock.h"
+#include "competitor.h"
+
+Lock::Lock(int k, int delta, int num, Lookup* msg, Lookup* mac)
+:_id(k), _delta(delta), _range(num), StateMachine(msg,mac)
+{
+    // The name of the lock is "lock(i)", where i is the id of the machine
+    _name = Lock_Utils::getLockName(_id);
+    _machineId = machineToInt(_name);
+}
+
+
+int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
+                  bool& high_prob, int startIdx )
+{
+    outMsgs.clear();
+
+    if( startIdx != 0 )
+        return -1 ;
+        
+    high_prob = true ;
+    
+    string msg = IntToMessage(inMsg->destMsgId() ) ;
+    switch ( _current ) {
+        case 0 :
+            if( msg == "REQUEST" ) {
+                assert( typeid(*inMsg) == typeid(CompetitorMessage) );
+                // Assignments
+                int i = inMsg->getParam(0) ;
+                int t = inMsg->getParam(1) ;
+                _ts = t ;
+                _old = i;
+                // Response
+                if( _old != _id ) {
+                    string channel = Lock_Utils::getChannelName(_id, _old) ;
+                    MessageTuple* response = createResponse("LOCKED", channel, inMsg);
+                    outMsgs.push_back(response);
+                }
+                // Change State
+                _current = 1;
+                
+                return 3;
+            }
+            else if( msg == "status" ) {
+                assert( typeid(*inMsg) == typeid(CompetitorMessage)) ;
+                // Response
+                if(  inMsg->getParam(0) == _id ) {
+                    string ownComp = Lock_Utils::getCompetitorName(_id) ;
+                    MessageTuple* response = createResponse("free", ownComp, inMsg);
+                    outMsgs.push_back(response);
+                    
+                    return 3;
+                }
+            }
+            break;
+        
+        case 1:
+            if( msg == "RELEASE" ) {
+                if( inMsg->getParam(0) == _old ) {
+                    // Change state
+                    _current = 0;
+                    
+                    return 3;
+                }
+            }
+            else if( msg == "status" ) {
+                assert( typeid(*inMsg) == typeid(CompetitorMessage)) ;
+                // Response
+                if(  inMsg->getParam(0) == _id ) {
+                    string ownComp = Lock_Utils::getCompetitorName(_id) ;
+                    MessageTuple* response = createResponse("secured", ownComp, inMsg);
+                    outMsgs.push_back(response);
+                    
+                    return 3;
+                }
+            }
+            else if( msg == "REQUEST" ) {
+                int j = inMsg->getParam(0) ;
+                if( j != _old ) {
+                    // Assignments
+                    _t2 = inMsg->getParam(1);
+                    _new = j ;
+                    
+                    if( _t2 < _ts ) {
+                        // True
+                        // Response
+                        string oldChan = Lock_Utils::getChannelName(_id, _old) ;
+                        MessageTuple* react = createResponse("INQUIRE", oldChan, inMsg );
+                        outMsgs.push_back(react);
+                        
+                        // Change state
+                        _current = 2;
+                    }
+                    else {
+                        // False
+                        // Response
+                        string newChan = Lock_Utils::getChannelName(_id, _new);
+                        MessageTuple* response = createResponse("FAILED", newChan, inMsg );
+                        outMsgs.push_back(response);
+                        // Change state
+                        _current = 1;
+                    }
+                    
+                    return 3;
+                }
+            }
+            else if( msg == "timeout" ) {
+                assert( inMsg->subjectId() == machineToInt("time") ) ;
+                // Change state
+                _current = 0;
+                
+                return 3;
+            }
+            
+        case 2:
+            if( msg == "ENGAGED" ) {
+                if( inMsg->getParam(0) == _old) {
+                    // Respond
+                    string newComp = Lock_Utils::getCompetitorName(_new) ;
+                    MessageTuple* react = createResponse("FAILED", newComp, inMsg) ;
+                    outMsgs.push_back(react);
+                    // Change state
+                    _current = 1;
+                    
+                    return 3;
+                }
+            }
+            else if( msg == "RELEASE" ) {
+                if( inMsg->getParam(0) == _old ) {
+                    // Assignments
+                    _ts = _t2;
+                    _old = _new ;
+                    // Respond
+                    string newComp = Lock_Utils::getCompetitorName(_new) ;
+                    MessageTuple* react = createResponse("LOCKED", newComp, inMsg);
+                    outMsgs.push_back(react);
+                    // Change state
+                    _current = 1;
+                    
+                    return 3;
+                }
+            }
+            else if( msg == "status" ) {
+                assert( typeid(*inMsg) == typeid(CompetitorMessage)) ;
+                // Response
+                if(  inMsg->getParam(0) == _id ) {
+                    string ownComp = Lock_Utils::getCompetitorName(_id) ;
+                    MessageTuple* response = createResponse("secured", ownComp, inMsg);
+                    outMsgs.push_back(response);
+                    
+                    return 3;
+                }
+            }
+            else if( msg == "timeout" ) {
+                assert( inMsg->subjectId() == machineToInt("time") ) ;
+                // Change state
+                _current = 0;
+                
+                return 3;
+            }
+        default:
+            return -1;
+            break;
+    }
+    
+    return -1;
+}
+
+int Lock::nullInputTrans(vector<MessageTuple*>& outMsgs,
+                   bool& high_prob, int startIdx)
+{
+    outMsgs.clear();
+    return -1;
+}
+
+void Lock::restore(const StateSnapshot* snapshot)
+{
+    assert( typeid(*snapshot) == typeid(LockSnapshot) ) ;
+    
+    const LockSnapshot* sslock = dynamic_cast<const LockSnapshot*>(snapshot);
+    _ts = sslock->_ss_ts;
+    _t2 = sslock->_ss_t2;
+    _old = sslock->_ss_old;
+    _new = sslock->_ss_new;
+    _current = sslock->_stateId;
+}
+
+StateSnapshot* Lock::curState()
+{
+    return new LockSnapshot(_ts, _t2, _old, _new, _current);
+}
+
+
+void Lock::reset()
+{
+    _ts = 0 ;
+    _old = -1 ;
+    _new = -1 ;
+}
+
+MessageTuple* Lock::createResponse(string msg, string dst, MessageTuple* inMsg)
+{
+    int outMsgId = messageToInt(msg);
+    int dstId = machineToInt(dst);
+    
+    assert(inMsg->destId() == _machineId);
+    
+    MessageTuple* ret = new LockMessage(inMsg->subjectId(), dstId,
+                                        inMsg->destMsgId(), outMsgId,
+                                        _machineId, _id);
+    return ret;
+}
+
+LockMessage* LockMessage::clone() const
+{
+    return new LockMessage(_src, _dest, _srcMsg, _destMsg, _subject, _k ) ;
+}
+
+string LockMessage::toString()
+{
+    stringstream ss ;
+    ss << MessageTuple::toString() << "(k=" << _k << ")" ;
+    return ss.str() ;
+}
+
+string LockSnapshot::toString()
+{
+    stringstream ss;
+    ss << _stateId << "(" << _ss_ts << "," << _ss_t2 << ","
+       << _ss_old << "," << _ss_new << ")" ;
+    return ss.str() ;
+}

@@ -8,99 +8,111 @@ using namespace std;
 #include "fsm.h"
 #include "pverify.h"
 #include "define.h"
+#include "./Lock/lock_utils.h"
+#include "./Lock/controller.h"
+#include "./Lock/lock.h"
+#include "./Lock/competitor.h"
+#include "./Lock/channel.h"
 
 int main( int argc, char* argv[] ) 
 {
     try {
         // Declare the names of component machines so as to register these names as id's in the parser
-        Parser* psrPtr = new Parser() ;
-        psrPtr->declareMachine("transmitter");
-        psrPtr->declareMachine("receiver");
-        psrPtr->declareMachine("timer");
-#ifdef HALF_DUPLEX
-        psrPtr->declareMachine("comch");
-#endif
-#ifdef FULL_DUPLEX
-        psrPtr->declareMachine("fcomch");
-        psrPtr->declareMachine("rcomch");
-#endif
-        psrPtr->declareMachine("service");
+        Parser* psrPtr = new Parser() ;    
+        /*
+        for( int i = 0 ; i < 5 ; ++i ) {
+            psrPtr->declareMachine( Lock_Utils::getLockName(i) );
+            psrPtr->declareMachine( Lock_Utils::getCompetitorName(i) );
+            for( int j = 0 ; j < 5 ; ++j ) {
+                if( i == j )
+                    continue;
+                psrPtr->declareMachine( Lock_Utils::getChannelName(i,j) );
+            }
+        }*/
 
-        // Create FSM objects from .fsm files
-        Fsm* xmitter = psrPtr->addFSM("transmitter.fsm");
-        Fsm* rcvr = psrPtr->addFSM("receiver.fsm");
-        Fsm* timer = psrPtr->addFSM("timer.fsm");    
-#ifdef HALF_DUPLEX
-        Fsm* comch = psrPtr->addFSM("comch.fsm");
-#endif
-#ifdef FULL_DUPLEX
-        Fsm* fcomch = psrPtr->addFSM("fcomch.fsm");
-        Fsm* rcomch = psrPtr->addFSM("rcomch.fsm");
-#endif
-        Fsm* serv = psrPtr->addFSM("service.fsm"); 
+        // Create StateMachine objects
+        int num = 5 ;
+        int delta = 50; 
+        Controller* ctrl = new Controller(psrPtr->getMsgTable(), psrPtr->getMacTable(),
+                                          5, delta);
+        vector<bool> active(5,false) ;
+        active[3] = active[4] = true ;
+        vector<vector<pair<int,int> > > nbrs(5);
+        nbrs[3].push_back(make_pair(0,1)) ;
+        nbrs[4].push_back(make_pair(1,2)) ;
+        ctrl->setActives(active);
+        ctrl->setNbrs(nbrs);
+        
+        vector<Lock*> arrLock ;
+        vector<Competitor*> arrComp;
+        vector<Channel*> arrChan;                      
+        for( size_t i = 0 ; i < num ; ++i )
+            arrLock.push_back( new Lock(i,delta,num,psrPtr->getMsgTable(), psrPtr->getMacTable() ) );
+        for( int i = 0 ; i < num ; ++i ) 
+            arrComp.push_back( new Competitor(i,delta,num,psrPtr->getMsgTable(), psrPtr->getMacTable() ) );
+        for( int i = 0 ; i < num ; ++i ) {                     
+            for( int j = 0 ; j < num ; ++j ) {
+                if( i == j )
+                    continue ;
+                arrChan.push_back( new Channel(i,j,psrPtr->getMsgTable(), psrPtr->getMacTable() ) );
+            }
+        }   
 
-        // Add the finite-state machines into ProbVerifier
+        // Add the state machines into ProbVerifier
         ProbVerifier pvObj ;
-        pvObj.addMachine(xmitter);
-        pvObj.addMachine(rcvr);
-        pvObj.addMachine(timer);
-#ifdef HALF_DUPLEX
-        pvObj.addMachine(comch);
-#endif
-#ifdef FULL_DUPLEX
-        pvObj.addMachine(fcomch);
-        pvObj.addMachine(rcomch);
-#endif    
-        pvObj.addMachine(serv);
+        pvObj.addMachine(ctrl);
+        for( size_t i = 0 ; i < arrLock.size() ; ++i )
+            pvObj.addMachine(arrLock[i]);
+        for( size_t i = 0 ; i < arrComp.size() ; ++i )
+            pvObj.addMachine(arrComp[i]);
+        for( size_t i = 0 ; i < arrChan.size() ; ++i )
+            pvObj.addMachine(arrChan[i]);
 
         // Specify the global states in the set RS
-#ifdef HALF_DUPLEX
-        vector<StateSnapshot*> rshalf;
-        for( size_t i = 0 ; i < 5 ; ++i ) {
-            StateSnapshot* snap = new FsmSnapshot(0);
-            rshalf.push_back(snap);
+        // TODO: only all zero RS
+        // create snapshots
+        vector<StateSnapshot*> rs;
+        // controller snapshot
+        vector<int> engaged ;
+        vector<int> busy(num,-1) ;
+        StateSnapshot* cSnap = new ControllerSnapshot(engaged,busy,0);
+        rs.push_back(cSnap);
+        // lock snapshots
+        for( int i = 0 ; i < num; ++i ) {
+            // LockSnapshot(int ts, int t2, int oldCom, int newCom, int state)
+            StateSnapshot* lSnap = new LockSnapshot(0,0,-1,-1,0);
+            rs.push_back(lSnap);
         }
-        vector<StateSnapshot*> rshalf2;
-        for( size_t i = 0 ; i < 2 ; ++i ) {
-            StateSnapshot* snap = new FsmSnapshot(3);
-            rshalf2.push_back(snap);
+        // competitor snapshots
+        for( int i = 0 ; i < num ; ++i ) {
+            //CompetitorSnapshot(int t, int front, int back,int state)
+            StateSnapshot* compSnap = new CompetitorSnapshot(0,-1,-1,0);
+            rs.push_back(compSnap);
         }
-        for( size_t i = 2 ; i < 5 ; ++i ) {
-            StateSnapshot* snap = new FsmSnapshot(0);
-            rshalf2.push_back(snap);
+        // channel snapshots
+        for( int i = 0 ; i < num ; ++i ) {
+            for( int j = 0 ; j < num ; ++j ) {
+                if( i == j )
+                    continue ;
+                StateSnapshot* chanSnap = new ChannelSnapshot();
+                rs.push_back(chanSnap);                
+            }
         }
-        pvObj.addRS(rshalf);
-        pvObj.addRS(rshalf2);
-#endif
-
-#ifndef UN_NUM_ACK
-        //int rs2[6] = {2,1,0,0,0,0};
-#else
-        //int rs2[6] = {3,3,0,0,0,0};
-#endif
-
-#ifdef FULL_DUPLEX
-        vector<StateSnapshot*> rs1;
-        for( size_t i = 0 ; i < 6 ; ++i ) {
-            StateSnapshot* snap = new FsmSnapshot(0);
-            rs1.push_back(snap);
-        }
-        vector<StateSnapshot*> rs2;
-        for( size_t i = 0 ; i < 2 ; ++i ) {
-            StateSnapshot* snap = new FsmSnapshot(3);
-            rs2.push_back(snap);
-        }
-        for( size_t i = 2; i < 6 ; ++i ) {
-            StateSnapshot* snap = new FsmSnapshot(0);
-            rs2.push_back(snap);
-        }
-        pvObj.addRS(rs1);
-        pvObj.addRS(rs2);
-#endif        
+                                                      
+        pvObj.addRS(rs);
 
         // Start the procedure of probabilistic verification. 
         // Specify the maximum probability depth to be explored
         pvObj.start(5);
+
+        // When complete, deallocate all machines
+        for( size_t i = 0 ; i < arrLock.size() ; ++i ) 
+            delete arrLock[i];
+        for( size_t i = 0 ; i < arrComp.size() ; ++i )
+            delete arrComp[i];
+        for( size_t i = 0 ; i < arrChan.size() ; ++i )
+            delete arrChan[i];
+
     } catch( runtime_error& re ) {
         cerr << "Runtime error:" << endl 
              << re.what() << endl ;
