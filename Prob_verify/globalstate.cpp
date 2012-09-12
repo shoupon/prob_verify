@@ -538,8 +538,9 @@ void GlobalState::pathCycle(vector<GlobalState*>& arr)
         unexplored.pop();
         gs->_white = false; // Paint the node black
 
-        if( this == _root ) {
-            // root found
+        if( gs == this ) {
+            // this: the globalstate where the BFS is started from
+            // gs == this: the search return to the starting point, a cycle must be found
             // Trace back
             do {
                 arr.push_back(gs);
