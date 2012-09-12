@@ -203,7 +203,7 @@ GSMap::iterator ProbVerifier::find(GSMap& collection, GlobalState* gs)
 
 void ProbVerifier::printSeq(const vector<GlobalState*>& seq) 
 {
-    for( size_t ii = 0 ; ii < seq.size()-1 ; ++ii ) {
+    for( int ii = 0 ; ii < (int)seq.size()-1 ; ++ii ) {
         if( seq[ii]->getProb() != seq[ii+1]->getProb() )
             cout << seq[ii]->toString() << " -p-> ";
         else

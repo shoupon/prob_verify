@@ -18,6 +18,7 @@ Lock::Lock(int k, int delta, int num, Lookup* msg, Lookup* mac)
     // The name of the lock is "lock(i)", where i is the id of the machine
     _name = Lock_Utils::getLockName(_id);
     _machineId = machineToInt(_name);
+    reset();
 }
 
 
@@ -67,8 +68,14 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
         case 1:
             if( msg == "RELEASE" ) {
                 if( inMsg->getParam(0) == _old ) {
+                    // Response
+                    MessageTuple* ctrlRes = new LockMessage(0, machineToInt("controller"),
+                                                            0, messageToInt("complete"),
+                                                            _machineId, _id, -1);
+                    outMsgs.push_back(ctrlRes);
                     // Change state
                     _current = 0;
+                    reset();
                     
                     return 3;
                 }
@@ -115,9 +122,10 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                 }
             }
             else if( msg == "timeout" ) {
-                assert( inMsg->subjectId() == machineToInt("time") ) ;
+                assert( inMsg->subjectId() == machineToInt("controller") ) ;
                 // Change state
                 _current = 0;
+                reset();
                 
                 return 3;
             }
@@ -163,6 +171,7 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                 assert( inMsg->subjectId() == machineToInt("time") ) ;
                 // Change state
                 _current = 0;
+                reset();
                 
                 return 3;
             }
@@ -201,7 +210,8 @@ StateSnapshot* Lock::curState()
 
 void Lock::reset()
 {
-    _ts = 0 ;
+    _ts = -1 ;
+    _t2 = -1 ;
     _old = -1 ;
     _new = -1 ;
 }
@@ -235,7 +245,22 @@ string LockMessage::toString()
 string LockSnapshot::toString()
 {
     stringstream ss;
-    ss << _stateId << "(" << _ss_ts << "," << _ss_t2 << ","
-       << _ss_old << "," << _ss_new << ")" ;
+    ss << _stateId << "(" ;
+
+    if( _ss_t2 == -1 ) {
+        if( _ss_ts == -1 )
+            ss << "n/a,n/a" ;
+        else
+            ss << "ts,n/a" ;
+    }
+    else {
+        if( _ss_t2 > _ss_ts )
+            ss << "ts<t2" ;
+        else
+            ss << "ts>t2" ;
+    }
+    
+    
+    ss << "," << _ss_old << "," << _ss_new << ")" ;
     return ss.str() ;
 }

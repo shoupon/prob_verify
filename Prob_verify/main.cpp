@@ -71,7 +71,7 @@ int main( int argc, char* argv[] )
         // controller snapshot
         vector<int> engaged ;
         vector<int> busy(num,-1) ;
-        StateSnapshot* cSnap = new ControllerSnapshot(engaged,busy,0);
+        StateSnapshot* cSnap = new ControllerSnapshot(engaged,busy,busy,busy,busy,0);
         rs.push_back(cSnap);
         // lock snapshots
         for( int i = 0 ; i < num; ++i ) {

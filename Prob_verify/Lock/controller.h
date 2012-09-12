@@ -38,7 +38,7 @@ public:
     // Specify the possible neighbors that are being tested
     void setNbrs(vector<vector<Neighbor> >& nbrs) { _nbrs = nbrs; }
     // Specify the competitors that will be tested; The default is true for all vehicles
-    void setActives(const vector<bool>& input) { if(input.size()==_actives.size()) _actives=input;}
+    void setActives(const vector<bool>& input) ;
 private:
     const int _numVehs ;
     string _name;
@@ -48,20 +48,28 @@ private:
     vector<vector<Neighbor> > _nbrs ;    
     // when _actives[i] = true, vehicle i is able to initiate a merge
     //                   false, vehicle i cannot start a merge
+    vector<bool> _actSetting;
     vector<bool> _actives;
     // The duration of the lock
     int _delta;
 
     // State variables
-    // To record which vehicles are engaged in merge. The sequence of timeout for vehicles should be
-    // the same as the sequence they are engaged in merge. The state of the controller can be
-    // modeled as an FIFO queue as a consequence
-    // the front of the queue is the zero-th element of the vector,
-    // while the end of the queue is the last element
+    // To record which vehicles are engaged in merge. The sequence of timeout for vehicles
+    // should be the same as the sequence they are engaged in merge. The state of the
+    // controller can be modeled as an FIFO queue as a consequence the front of the queue is
+    // the zero-th element of the vector, while the end of the queue is the last element
+    // A vehicle identifier will be removed of _engaged only when itself and the locks it
+    // requested are all released and reset
     vector<int> _engaged;
     // Indicates whether the competitor with the vector subscript is busy
     // negative value means idle. positive values record the starting timestamp of the lock
     vector<int> _busy;
+    // Indicate which locks are associated with a specific competitor. Along with _busy, are
+    // used to keep track of which locks are not being released, and which locks to send
+    // the timeout message
+    vector<int> _fronts;
+    vector<int> _backs;
+    vector<int> _selves;
     // The relative but not absolute time stamp for each event
     int _time ;
     // An alternating bit to check if any lock is successful. Initially with value 0, 
@@ -69,6 +77,7 @@ private:
     // another lock is completed. 
     int _altBit ;
     
+    bool removeEngaged(int i);
 };
 
 
@@ -100,7 +109,9 @@ class ControllerSnapshot: public StateSnapshot
 {
     friend class Controller;
 public:
-    ControllerSnapshot(vector<int> eng, vector<int> busy, int time);
+    ControllerSnapshot(vector<int> eng, vector<int> busy,
+                       vector<int> front, vector<int> back, vector<int> self, int time);
+    ControllerSnapshot(const ControllerSnapshot& item);
     ~ControllerSnapshot() {} 
     int curStateId() const ;
     // Returns the name of current state as specified in the input file
@@ -110,10 +121,14 @@ public:
     ControllerSnapshot* clone() const ;
 
 private:
+    // Keep track of the sequence of merge initiation
     vector<int> _ss_engaged;
     // Indicates whether the competitor with the vector subscript is busy
     // negative value means idle. positive values record the starting timestamp of the lock
     vector<int> _ss_busy;
+    vector<int> _ss_front;
+    vector<int> _ss_back;
+    vector<int> _ss_self;
     // The relative but not absolute time stamp for each event
     int _ss_time ;
     

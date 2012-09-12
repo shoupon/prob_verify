@@ -1,5 +1,8 @@
 #include "controller.h"
 #include "lock_utils.h"
+#include "competitor.h"
+#include "lock.h"
+#include "../define.h"
 
 Controller::Controller( Lookup* msg, Lookup* mac, int num, int delta )
 : StateMachine(msg, mac), _numVehs(num), _nbrs(num)
@@ -9,6 +12,7 @@ Controller::Controller( Lookup* msg, Lookup* mac, int num, int delta )
     _machineId = machineToInt(_name);
 
     reset();
+    _actives.resize(5,false);
 }
 
 int Controller::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
@@ -21,33 +25,46 @@ int Controller::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
         return -1;
 
     string msg = IntToMessage( inMsg->destMsgId() ) ;
-    if( msg == "complete" ) {
+    if( msg == "complete" || msg == "abort") {
         int veh = inMsg->getParam(0) ;
-        // Remove that vehicle id from _engaged list
-        for( vector<int>::iterator it = _engaged.begin() ; it != _engaged.end() ; ++it) {
-            if( *it == veh ) {
-                _engaged.erase(it) ;
-                assert(_time > _busy[veh]) ;
-                _busy[veh] = -1 ;
-                _time++;
-                return 3 ;
-                break ;
-            }
+        if( typeid(*inMsg) == typeid(CompetitorMessage) ) {
+            _busy[veh] = -1 ;
+            removeEngaged(veh);
+            _time++;
+            return 3 ;
         }
-    }
-    else if( msg == "abort" ) {
-        int veh = inMsg->getParam(0);
-        // Remove that vehicle id from _engaged list
-        for( vector<int>::iterator it = _engaged.begin() ; it != _engaged.end() ; ++it) {
-            if( *it == veh ) {
-                _engaged.erase(it) ;
-                assert(_time > _busy[veh]) ;
-                _busy[veh] = -1 ;
-                _time++;
-                return 3 ;
-                break ;
+        else if( typeid(*inMsg) == typeid(LockMessage) ) {
+            for( int i = 0 ; i < _fronts.size() ; ++i ) {
+                if( _fronts[i] == veh ) {
+                    _fronts[i] = -1;
+                    removeEngaged(i) ;
+                    _time++;
+                    return 3;
+                }
             }
+            for( int i = 0 ; i < _backs.size() ; ++i ) {
+                if( _backs[i] == veh) {
+                    _backs[i] = -1;
+                    removeEngaged(i);
+                    _time++;
+                    return 3;
+                }
+            }
+            for( int i = 0 ; i < _selves.size() ; ++i ) {
+                if( _selves[i] == veh) {
+                    _selves[i] = -1;
+                    removeEngaged(i);
+                    _time++;
+                    return 3;
+                }
+            }
+            
+            // This shouldn't happen:
+            // The lock send complete message to the controller, but the controller
+            // thought the lock is being released
+            assert(false);
         }
+
     }
     
     return -1;
@@ -69,21 +86,34 @@ int Controller::nullInputTrans(vector<MessageTuple*>& outMsgs,
             int b = _nbrs[veh].front().second ;
             // create response
             int vId = machineToInt(Lock_Utils::getCompetitorName(veh));
-            int fId = machineToInt(Lock_Utils::getCompetitorName(f));
-            int bId = machineToInt(Lock_Utils::getCompetitorName(b));
-            int dstMsgId = messageToInt("timeout");            
+            int fId = machineToInt(Lock_Utils::getLockName(f));
+            int bId = machineToInt(Lock_Utils::getLockName(b));
+            int sId = machineToInt(Lock_Utils::getLockName(veh));
+            int dstMsgId = messageToInt("timeout");
+            // send message to the competitor or the lock that has not been reset
+            // i.e. the some messages are loss during the course 
             ControllerMessage* vMsg = new ControllerMessage(0,vId,0,dstMsgId,_machineId);
             ControllerMessage* fMsg = new ControllerMessage(0,fId,0,dstMsgId,_machineId);
             ControllerMessage* bMsg = new ControllerMessage(0,bId,0,dstMsgId,_machineId);
-            outMsgs.push_back(vMsg);
-            outMsgs.push_back(fMsg);
-            outMsgs.push_back(bMsg);
+            ControllerMessage* sMsg = new ControllerMessage(0,sId,0,dstMsgId,_machineId);
+            if( _busy[veh] != -1 )
+                outMsgs.push_back(vMsg);
+            if( _fronts[veh] != -1 )
+                outMsgs.push_back(fMsg);
+            if( _backs[veh] != -1 )
+                outMsgs.push_back(bMsg);
+            if( _selves[veh] != -1 )
+                outMsgs.push_back(sMsg);
+            
             // Change state
             if( _busy[veh] >= _time )
                 throw logic_error("Relative event order is not maintained");
             _time++ ;
-            _busy[veh] = -1 ; 
-            _engaged.erase(_engaged.begin());
+            _busy[veh] = -1 ;
+            _fronts[veh] = -1 ;
+            _backs[veh] = -1;
+            _selves[veh] = -1 ;
+            removeEngaged(veh);
             
             high_prob = false ;
 
@@ -122,6 +152,9 @@ int Controller::nullInputTrans(vector<MessageTuple*>& outMsgs,
                     outMsgs.push_back(initMsg);                    
                     // Change state
                     _busy[i] = _time ;
+                    _selves[i] = (int)i ;
+                    _fronts[i] = f ;
+                    _backs[i] = b ;
                     _engaged.push_back((int)i);
                     _time++;                    
 
@@ -140,7 +173,8 @@ int Controller::nullInputTrans(vector<MessageTuple*>& outMsgs,
 
 StateSnapshot* Controller::curState() 
 {
-    StateSnapshot* ret = new ControllerSnapshot(_engaged, _busy, _time);
+    StateSnapshot* ret = new ControllerSnapshot(_engaged, _busy,
+                                                _fronts, _backs, _selves, _time);
     return ret ;
 }
 
@@ -152,13 +186,20 @@ void Controller::restore(const StateSnapshot* ss)
     const ControllerSnapshot* cs = dynamic_cast<const ControllerSnapshot*>(ss);
     _engaged = cs->_ss_engaged ;
     _busy = cs->_ss_busy ;
+    _fronts = cs->_ss_front ;
+    _backs = cs->_ss_back;
+    _selves = cs->_ss_self;
     _time = cs->_ss_time ;
 }
 
 void Controller::reset() 
 {
-    _actives.resize(_numVehs, true);  
+    _actives = _actSetting ;
     _busy.resize(_numVehs, -1);
+    _fronts.resize(_numVehs, -1);
+    _backs.resize(_numVehs, -1);
+    _selves.resize(_numVehs, -1);
+    
     _time = 0 ;
     _altBit = 0 ;
     _engaged.clear() ;
@@ -181,6 +222,36 @@ void Controller::allNbrs()
             }
         }
     }
+}
+
+void Controller::setActives(const vector<bool>& input)
+{
+    if(input.size()==_actives.size()) {
+        _actives=input;
+        _actSetting=input;
+    }
+}
+
+bool Controller::removeEngaged(int i)
+{
+    if( _busy[i] != -1 )
+        return false ;
+    if( _fronts[i] != -1 )
+        return false ;
+    if( _backs[i] != -1 )
+        return false ;
+    if( _selves[i] != -1 )
+        return false ;    
+    
+    vector<int>::iterator it ;
+    for( it = _engaged.begin() ; it != _engaged.end() ; ++it ) {
+        if( *it == i ) {
+            _engaged.erase(it);
+            return true ;
+        }
+    }
+    
+    assert(false);
 }
  
 int ControllerMessage::getParam(size_t arg) 
@@ -209,8 +280,11 @@ void ControllerMessage::addParams(int time, int front, int back)
     _nParams = 3;
 }
 
-ControllerSnapshot::ControllerSnapshot(vector<int> eng, vector<int> busy, int time)
-:_ss_engaged(eng), _ss_busy(busy), _ss_time(time)
+ControllerSnapshot::ControllerSnapshot(vector<int> eng, vector<int> busy,
+                                       vector<int> front, vector<int> back, vector<int> self,
+                                       int time)
+:_ss_engaged(eng), _ss_busy(busy), _ss_time(time),
+ _ss_back(back), _ss_front(front), _ss_self(self)
 {
     int sumEng = 0 ;
     for( size_t i = 0 ; i < _ss_engaged.size() ; ++i ) {
@@ -218,6 +292,13 @@ ControllerSnapshot::ControllerSnapshot(vector<int> eng, vector<int> busy, int ti
     }
     sumEng +=  _ss_time ;
     _hash_use  = (sumEng << 2) + (int)_ss_engaged.size() ;
+}
+
+ControllerSnapshot::ControllerSnapshot(const ControllerSnapshot& item)
+:_ss_engaged(item._ss_engaged), _ss_busy(item._ss_busy), _ss_front(item._ss_front),
+ _ss_back(item._ss_back), _ss_self(item._ss_self), _ss_time(item._ss_time)
+{
+    // empty
 }
 
 int ControllerSnapshot::curStateId() const
@@ -231,7 +312,11 @@ int ControllerSnapshot::curStateId() const
 string ControllerSnapshot::toString()
 {
     stringstream ss;
+#ifdef CONTROLLER_TIME
     ss << _ss_time << "(" ;
+#else
+    ss << "(" ;
+#endif
     if( _ss_engaged.empty() )
         ss << ")" ;
     else {
@@ -245,6 +330,6 @@ string ControllerSnapshot::toString()
 
 ControllerSnapshot* ControllerSnapshot::clone() const 
 {
-    return new ControllerSnapshot(_ss_engaged, _ss_busy, _ss_time) ;
+    return new ControllerSnapshot(*this) ;
     
 }

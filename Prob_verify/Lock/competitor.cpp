@@ -15,6 +15,7 @@ Competitor::Competitor(int k, int delta, int num, Lookup* msg, Lookup* mac)
     // The name of the lock is "lock(i)", where i is the id of the machine
     _name = Lock_Utils::getCompetitorName(_id);
     _machineId = machineToInt(_name);
+    reset();
 }
 
 int Competitor::transit(MessageTuple *inMsg, vector<MessageTuple *> &outMsgs,
@@ -70,6 +71,7 @@ int Competitor::transit(MessageTuple *inMsg, vector<MessageTuple *> &outMsgs,
                 if(  inMsg->getParam(0) == _id ) {
                     // Change state
                     _current = 0;
+                    reset();
                     
                     return 3;
                 }
@@ -278,6 +280,7 @@ bool Competitor::toRelease(MessageTuple *inMsg, vector<MessageTuple *> &outMsgs)
     
     if( outMsgs.size() != 0 ) {
         _current = 0;
+        reset();
         return true ;        
     }
     else
@@ -292,6 +295,7 @@ bool Competitor::toTimeout(MessageTuple *inMsg, vector<MessageTuple *> &outMsgs)
     if( msg == "timeout") {
         // Response
         _current = 0;
+        reset();
         return true;
     }
     
@@ -313,17 +317,10 @@ CompetitorMessage* CompetitorMessage::createReq(int timeGen)
 
 string CompetitorMessage::toString()
 {
-    if( _nParams == 3 ) {
-        stringstream ss ;
-        ss << MessageTuple::toString()
-           << "(k=" << _k << ",l=" << _lock << ",t=" << _t << ")" ;
-        return ss.str() ;
-    }
-    else {
-        stringstream ss ;
-        ss << MessageTuple::toString() << "(k=" << _k << ",l=" << _lock << ")" ;
-        return ss.str() ;
-    }
+    stringstream ss ;
+    ss << MessageTuple::toString() << "(k=" << _k << ",l=" << _lock << ")" ;
+    return ss.str() ;
+    
 }
 
 CompetitorMessage* CompetitorMessage::clone() const
@@ -336,7 +333,6 @@ CompetitorMessage* CompetitorMessage::clone() const
 string CompetitorSnapshot::toString()
 {
     stringstream ss;
-    ss << _stateId << "(" << _ss_t << ","
-    << _ss_f << "," << _ss_b << ")" ;
+    ss << _stateId << "(" << _ss_f << "," << _ss_b << ")" ;
     return ss.str() ;
 }
