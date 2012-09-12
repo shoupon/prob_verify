@@ -10,9 +10,11 @@ Controller::Controller( Lookup* msg, Lookup* mac, int num, int delta )
 { 
     _name = "controller" ;
     _machineId = machineToInt(_name);
-
+    
+    _actives.resize(num,false);
+    _actSetting.resize(num,false);
+    _seqReg = new SeqCtrl(num);
     reset();
-    _actives.resize(5,false);
 }
 
 int Controller::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
@@ -138,7 +140,14 @@ int Controller::nullInputTrans(vector<MessageTuple*>& outMsgs,
         size_t i = 0 ;
         while( i < _busy.size() ) {
             if( _busy[i] == -1 && _actives[i] == true ) {
-                --count ;
+                if( _seqReg->isAllow((int)i)) {
+                    --count ;
+                }
+#ifdef VERBOSE
+                else {
+                    cout << "Merge initiation denied" << endl ;
+                }
+#endif
                 if( count == 0 ) {
                     // merge start event
                     int f = _nbrs[i].front().first ;
@@ -156,6 +165,7 @@ int Controller::nullInputTrans(vector<MessageTuple*>& outMsgs,
                     _fronts[i] = f ;
                     _backs[i] = b ;
                     _engaged.push_back((int)i);
+                    _seqReg->engage((int)i) ;
                     _time++;                    
 
                     if( skip )
@@ -174,7 +184,7 @@ int Controller::nullInputTrans(vector<MessageTuple*>& outMsgs,
 StateSnapshot* Controller::curState() 
 {
     StateSnapshot* ret = new ControllerSnapshot(_engaged, _busy,
-                                                _fronts, _backs, _selves, _time);
+                                                _fronts, _backs, _selves, _time, _seqReg);
     return ret ;
 }
 
@@ -184,17 +194,20 @@ void Controller::restore(const StateSnapshot* ss)
         return ;
 
     const ControllerSnapshot* cs = dynamic_cast<const ControllerSnapshot*>(ss);
+    _seqReg = new SeqCtrl( *(cs->_ss_seqCtrl) ); 
     _engaged = cs->_ss_engaged ;
     _busy = cs->_ss_busy ;
     _fronts = cs->_ss_front ;
     _backs = cs->_ss_back;
     _selves = cs->_ss_self;
     _time = cs->_ss_time ;
+    
 }
 
 void Controller::reset() 
 {
     _actives = _actSetting ;
+    _seqReg->reset() ;
     _busy.resize(_numVehs, -1);
     _fronts.resize(_numVehs, -1);
     _backs.resize(_numVehs, -1);
@@ -247,6 +260,10 @@ bool Controller::removeEngaged(int i)
     for( it = _engaged.begin() ; it != _engaged.end() ; ++it ) {
         if( *it == i ) {
             _engaged.erase(it);
+            _seqReg->disengage(i);
+#ifdef VERBOSE
+            int kk = _seqReg->getFront();
+#endif
             return true ;
         }
     }
@@ -282,7 +299,7 @@ void ControllerMessage::addParams(int time, int front, int back)
 
 ControllerSnapshot::ControllerSnapshot(vector<int> eng, vector<int> busy,
                                        vector<int> front, vector<int> back, vector<int> self,
-                                       int time)
+                                       int time, const SeqCtrl* seqCtrl)
 :_ss_engaged(eng), _ss_busy(busy), _ss_time(time),
  _ss_back(back), _ss_front(front), _ss_self(self)
 {
@@ -292,13 +309,15 @@ ControllerSnapshot::ControllerSnapshot(vector<int> eng, vector<int> busy,
     }
     sumEng +=  _ss_time ;
     _hash_use  = (sumEng << 2) + (int)_ss_engaged.size() ;
+    
+    _ss_seqCtrl = new SeqCtrl(*seqCtrl) ;
 }
 
 ControllerSnapshot::ControllerSnapshot(const ControllerSnapshot& item)
 :_ss_engaged(item._ss_engaged), _ss_busy(item._ss_busy), _ss_front(item._ss_front),
  _ss_back(item._ss_back), _ss_self(item._ss_self), _ss_time(item._ss_time)
 {
-    // empty
+    _ss_seqCtrl = new SeqCtrl(*(item._ss_seqCtrl)) ;
 }
 
 int ControllerSnapshot::curStateId() const

@@ -14,8 +14,52 @@ using namespace std;
 #include "./Lock/competitor.h"
 #include "./Lock/channel.h"
 
-int main( int argc, char* argv[] ) 
+int main( int argc, char* argv[] )
 {
+    // class test
+    
+    {
+        SeqCtrl sc(5) ;
+        //cout << sc.isAllow(4) << endl ;
+        cout << sc.engage(4) << endl ;
+        //cout << sc.isAllow(3) << endl ;
+        cout << sc.engage(3) << endl ;
+        cout << sc.disengage(3) << endl ;
+        cout << sc.disengage(3) << endl;
+        cout << sc.isAllow(3) << endl;
+        //cout << sc.engage(2) << endl ;
+        
+        cout << sc.disengage(3) << endl ;
+        cout << sc.isAllow(3) << endl ;
+        cout << sc.disengage(4) << endl;
+        cout << sc.isAllow(3) << endl ;
+        cout << sc.isAllow(4) << endl ;
+        cout << sc.disengage(2) << endl ;
+        cout << sc.isAllow(3) << endl ;
+        cout << sc.isAllow(4) << endl ;
+        cout << sc.engage(3) << endl ;
+        cout << sc.engage(4) << endl ;
+        cout << sc.disengage(4) << endl ;
+        cout << sc.isAllow(2) << endl ;
+        cout << sc.isAllow(4) << endl;
+        cout << sc.engage(2) << endl ;
+        cout << sc.disengage(2) << endl ;
+        //cout << sc.engage(3) << endl ;
+        cout << sc.disengage(4) << endl ;
+        cout << sc.isAllow(2) << endl ;
+        //cout << sc.engage(3) << endl;
+        cout << sc.isAllow(4) << endl ;
+
+        // the queue should be like [3,4,2] while only 3 is engaged at this point
+        
+        cout << sc.disengage(3) << endl ;
+        
+        // the queue should be emptied
+        
+        // Try invalid input
+        cout << sc.engage(5) << endl; 
+         
+    }
     try {
         // Declare the names of component machines so as to register these names as id's in the parser
         Parser* psrPtr = new Parser() ;    
@@ -35,7 +79,7 @@ int main( int argc, char* argv[] )
         int delta = 50; 
         Controller* ctrl = new Controller(psrPtr->getMsgTable(), psrPtr->getMacTable(),
                                           5, delta);
-        vector<bool> active(5,false) ;
+        vector<bool> active(num, false) ;
         active[3] = active[4] = true ;
         vector<vector<pair<int,int> > > nbrs(5);
         nbrs[3].push_back(make_pair(0,1)) ;
@@ -71,7 +115,8 @@ int main( int argc, char* argv[] )
         // controller snapshot
         vector<int> engaged ;
         vector<int> busy(num,-1) ;
-        StateSnapshot* cSnap = new ControllerSnapshot(engaged,busy,busy,busy,busy,0);
+        SeqCtrl sc(num);
+        StateSnapshot* cSnap = new ControllerSnapshot(engaged,busy,busy,busy,busy,0,&sc);
         rs.push_back(cSnap);
         // lock snapshots
         for( int i = 0 ; i < num; ++i ) {

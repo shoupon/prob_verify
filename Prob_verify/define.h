@@ -12,8 +12,9 @@ using namespace std;
 //#define CONTROLLER_TIME
 
 // Debugging flags
-//#define VERBOSE
+#define VERBOSE
 //#define VERBOSE_EVAL
+#define VERBOSE_LIVELOCK
 #ifdef VERBOSE
 #define LOG
 #endif
