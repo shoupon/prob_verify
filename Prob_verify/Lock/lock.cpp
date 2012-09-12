@@ -114,6 +114,8 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                         MessageTuple* response = createResponse("FAILED", "channel",
                                                                 inMsg, _new );
                         outMsgs.push_back(response);
+                        // Assign variables
+                        _new = _t2 = -1;
                         // Change state
                         _current = 1;
                     }
@@ -136,6 +138,8 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                     // Respond
                     MessageTuple* react = createResponse("FAILED", "channel", inMsg, _new) ;
                     outMsgs.push_back(react);
+                    // Assign variables
+                    _new = _t2 = -1;
                     // Change state
                     _current = 1;
                     
@@ -144,12 +148,13 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
             }
             else if( msg == "RELEASE" ) {
                 if( inMsg->getParam(0) == _old ) {
-                    // Assignments
-                    _ts = _t2;
-                    _old = _new ;
                     // Respond
                     MessageTuple* react = createResponse("LOCKED", "channel", inMsg, _new);
                     outMsgs.push_back(react);
+                    // Assignments
+                    _ts = _t2;
+                    _old = _new ;
+                    _new = _t2 = -1;
                     // Change state
                     _current = 1;
                     
@@ -256,6 +261,8 @@ string LockSnapshot::toString()
     else {
         if( _ss_t2 > _ss_ts )
             ss << "ts<t2" ;
+        else if( _ss_t2 == _ss_ts )
+            ss << "ts=t2"; // this should not happen
         else
             ss << "ts>t2" ;
     }
