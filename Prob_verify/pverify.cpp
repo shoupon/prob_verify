@@ -28,7 +28,16 @@ bool ProbVerifier::addToClass(GlobalState* childNode, int toClass)
 
 }
 
-
+void ProbVerifier::addError(ErrorState *es)
+{
+    if( es->getStateVec().size() != _macPtrs.size() ) {
+        cerr << "The size of the ErrorState does not match the number of machines" << endl;
+        return ;
+    }
+    
+    _errors.push_back(es);
+    
+}
 
 // The basic procedure
 void ProbVerifier::start(int maxClass)
@@ -110,7 +119,8 @@ void ProbVerifier::start(int maxClass)
             size_t nChilds = st->size();
 
             // If the explored GlobalState st is in RS, add st to STATETABLE (_arrFinRS), so 
-            // when the later probabilistic search reaches st, the search will stop and explore 
+            // when the later probabilistic search reaches st, the search will stop and
+            // explore
             // some other paths
             if( find(_RS,st) != _RS.end() ) {
                 insert(_arrFinStart, st);   
@@ -121,7 +131,7 @@ void ProbVerifier::start(int maxClass)
             cout << st->toString() << ": "  ;
 #endif
             if( nChilds == 0 ) {
-                // No child found. Report deadlock TODO (Print the sequence, blah blah)
+                // No child found. Report deadlock 
                 cout << "Deadlock found." << endl ;
 
                 vector<GlobalState*> seq;
@@ -134,7 +144,20 @@ void ProbVerifier::start(int maxClass)
                 // Add the computed childs to class array ST[class].
                 for( size_t idx = 0 ; idx < nChilds ; ++idx ) {
 
-                    GlobalState* childNode = st->getChild(idx);                                      
+                    GlobalState* childNode = st->getChild(idx);
+                    
+                    ErrorState* es = isError(childNode);
+                    if( es != 0 ) {
+                        // The child matches the criterion of an ErrorState.
+                        // Print out the path that reaches this error state.
+                        cout << "Error state: " << es->toString() << "reached." << endl ;
+                        
+                        vector<GlobalState*> seq;
+                        childNode->pathRoot(seq);
+                        printSeq(seq);
+                        
+                        return ;
+                    }
 
                     int prob = st->getProb(idx);                   
                     int dist = childNode->getDistance();
@@ -212,6 +235,15 @@ void ProbVerifier::printSeq(const vector<GlobalState*>& seq)
     cout << seq.back()->toString() << endl ;
 }
 
+ErrorState* ProbVerifier::isError(const GlobalState* obj)
+{
+    for( size_t i = 0 ; i < _errors.size() ; ++i ) {
+        if( _errors[i]->match(obj) )
+            return _errors[i];
+    }
+    return 0 ;
+}
+
 void ProbVerifier::clear()
 {
     GSMap::iterator it ;
@@ -224,4 +256,11 @@ void ProbVerifier::clear()
     }
 }
 
-
+vector<StateMachine*> ProbVerifier::getMachinePtrs() const
+{
+    vector<StateMachine*> ret(_macPtrs.size());
+    for( size_t i = 0 ; i < _macPtrs.size() ; ++i ) {
+        ret[i] = _macPtrs[i] ;
+    }
+    return ret;
+}

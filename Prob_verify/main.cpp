@@ -108,7 +108,7 @@ int main( int argc, char* argv[] )
             pvObj.addMachine(arrComp[i]);
         pvObj.addMachine(chan);
 
-        // Specify the global states in the set RS
+        // Specify the global states in the set RS (stopping states)
         // TODO: only all zero RS
         // create snapshots
         vector<StateSnapshot*> rs;
@@ -135,6 +135,17 @@ int main( int argc, char* argv[] )
         rs.push_back(chanSnap);
                                                               
         pvObj.addRS(rs);
+        
+        // Specify the starting state
+        GlobalState startPoint(pvObj.getMachinePtrs());
+
+        // Specify the error states
+        ErrorState locklock(&startPoint) ;
+        CompetitorSnapshot veh4(2,1,2,4); // vehicle 4 in state 4, with front=1, back=2
+        locklock.addCheck(&veh4, 10);
+        CompetitorSnapshot veh3(2,0,1,4); // vehicle 3 in state 4, with front=0, back=1
+        locklock.addCheck(&veh3, 9);
+        pvObj.addError(&locklock) ;
 
         // Start the procedure of probabilistic verification. 
         // Specify the maximum probability depth to be explored
@@ -147,6 +158,9 @@ int main( int argc, char* argv[] )
         for( size_t i = 0 ; i < arrComp.size() ; ++i )
             delete arrComp[i];
         delete chan ;
+        // Deallocate the SnapShots used to initialize RS
+        for( size_t i = 0 ; i < rs.size() ; ++ i )
+            delete rs[i];
         
     } catch( runtime_error& re ) {
         cerr << "Runtime error:" << endl 

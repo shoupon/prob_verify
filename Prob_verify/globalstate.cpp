@@ -15,7 +15,7 @@ vector<StateMachine*> GlobalState::_machines;
 GSHash GlobalState::_uniqueTable = GSHash(15) ;
 GlobalState* GlobalState::_root = 0;
 
-GlobalState::GlobalState(GlobalState* gs): _countVisit(1), 
+GlobalState::GlobalState(GlobalState* gs): _countVisit(1),
         _dist(gs->_dist+1), _depth(gs->_depth), _white(true)
 { 
     _parents.push_back(gs);
@@ -39,7 +39,7 @@ GlobalState::GlobalState(GlobalState* gs): _countVisit(1),
 #endif
 }
 
-GlobalState::GlobalState(const vector<StateMachine*>& macs)
+GlobalState::GlobalState(vector<StateMachine*> macs)
     :_countVisit(1), _dist(0), _white(true)
 {
     if( _nMacs < 0 ) {
@@ -47,9 +47,18 @@ GlobalState::GlobalState(const vector<StateMachine*>& macs)
         _machines = macs ;      
     }
     else 
-        assert( _nMacs != macs.size() );    
+        assert( _nMacs == macs.size() );
 
     init();
+}
+
+GlobalState::GlobalState(vector<StateSnapshot*>& stateVec)
+: _countVisit(1),_dist(0), _white(true)
+{
+    assert(stateVec.size() == _machines.size());
+    for( size_t i = 0 ; i < stateVec.size() ; ++i ) {
+        _gStates[i] = stateVec[i]->clone() ;
+    }
 }
 
 GlobalState::~GlobalState()
@@ -57,6 +66,12 @@ GlobalState::~GlobalState()
     // Release the StateSnapshot's stored in _gStates
     for( size_t i = 0 ; i < _gStates.size() ; ++i ) {
         delete _gStates[i];
+    }
+    
+    while( !_fifo.empty() ) {
+        MessageTuple* task = _fifo.front() ;
+        delete task ;
+        _fifo.pop();
     }
 }
 
@@ -418,6 +433,7 @@ void GlobalState::trim()
         }
     }
 }
+
 void GlobalState::addParents(const vector<GlobalState*>& arr)
 {
     for( size_t ii = 0 ; ii < arr.size(); ++ii ) {

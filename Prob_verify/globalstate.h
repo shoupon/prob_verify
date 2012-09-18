@@ -22,6 +22,7 @@ typedef Hash<GSVecHashKey, vector<string> > GSVecHash;
 // An integer represents the probability class of global state transition
 typedef pair<vector<int>,int> GSProb;
 
+/*
 class Matching
 {
 public:
@@ -30,20 +31,23 @@ public:
     int _transId;
 
     Matching(OutLabel lbl, int s, int transId):_outLabel(lbl), _source(s),_transId(transId) {}
-};
+};*/
 
 class GlobalState
 {
-private:
+protected:
     // Number of machines
     static int _nMacs ;
     // array of ptr to machines
-    static vector<StateMachine*> _machines;    
+    static vector<StateMachine*> _machines;
+    
+    vector<StateSnapshot*> _gStates;
+private:
     // The ID's of states in a global state
-    // A table stores all of the reachable global states
+    // A table stores all of the reachable globalState. Each reachable globalState is
+    // unique. The _uniqueTable stores the pointers to each unique GlobalState
     static GSHash _uniqueTable ;
     static GlobalState* _root;
-    vector<StateSnapshot*> _gStates;
     
     vector<GlobalState*> _childs;
     vector<GlobalState*> _parents;
@@ -61,7 +65,6 @@ private:
     
     void trim();      
     void addParents(const vector<GlobalState*>& arr);
-    void createNodes();
     //void execute(int macId, int transId, Transition* transPtr);
     vector<GlobalState*> evaluate();
     // Invoke explore when an unexplored transition is push onto the queue
@@ -82,18 +85,18 @@ private:
     
 
 public:
-    // Default constructor creates a global state with all its Fsm's set to initial state 0.
+    // Default constructor creates a global state with all its machine set to initial
+    // state 0.
     GlobalState():_countVisit(1),_dist(0), _white(true) { init(); }
     // This copy constructor is used to create childs, 
     // it will automatically increase the distance of childs
     GlobalState(GlobalState* gs);
     // This constructor is used to create a new GlobalState by specifying 
     // the state of its individual machines
-    GlobalState(vector<StateSnapshot*> stateVec)
-        :_gStates(stateVec), _countVisit(1),_dist(0), _white(true) {}
-    // This constructor should be called first. It will set the static member of GlobalState,
-    // such as number of state machines, the pointers to machines, etc.
-    GlobalState(const vector<StateMachine*>& macs);
+    GlobalState(vector<StateSnapshot*>& stateVec) ;
+    // *** This constructor should be called first. It will set the static member of
+    // GlobalState, such as number of state machines, the pointers to machines, etc.
+    GlobalState(vector<StateMachine*> macs);
     ~GlobalState();
     
     GlobalState* getChild (size_t i) { return _childs[i]; }
