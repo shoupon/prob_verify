@@ -99,7 +99,7 @@ void ProbVerifier::start(int maxClass)
             GSMapConstIter it = _arrClass[_curClass].begin();            
             GlobalState* st = it->first ;              
 
-            if( st->getDistance() > _max*2 ) {
+            if( st->getDistance() > _max ) {
                 cout << "Livelock found. " << endl ;
                 cout << "Total GlobalStates in unique table: " << st->numAll() << endl ;
 
@@ -116,7 +116,7 @@ void ProbVerifier::start(int maxClass)
 #ifdef VERBOSE
                 cout << "====  Finding successors of " << st->toString() << endl;
 #endif 
-                st->findSucc();                
+                st->findSucc();
                 // Increase the threshold of livelock detection
                 _max += st->size();
             }
@@ -176,6 +176,7 @@ void ProbVerifier::start(int maxClass)
                     }
                     else {
                         // Do something else, such as print out the probability
+                        childNode->removeParents() ;
                         cout << "Stopping state reached" << endl ;
                     }
                 }   

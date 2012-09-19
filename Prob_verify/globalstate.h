@@ -115,7 +115,8 @@ public:
     int increaseVisit(int inc) { return _countVisit += inc ; }        
     // For each child global states, update their distance from initial state
     // increase the step length from the initial global state for livelock detection
-    void updateTrip();   
+    void updateTrip();
+    void removeParents() { _parents.clear() ; }
 
     // Take the states of machines as stored in _gStates
     void restore();
@@ -133,26 +134,25 @@ public:
     void pathCycle(vector<GlobalState*>& arr);
     void BFS(vector<GlobalState*>& arr, bool (*stop)(GlobalState*));
 
-    string toString() ;
+    string toString() const ;
 
     void setRoot() { _root = this; }
     static bool init(GlobalState*) ;    
     static void clearAll() ;
+    static size_t numAll() { return _uniqueTable.size() ; }
 };
 
 class GlobalStateHashKey
 {
 public:
     GlobalStateHashKey(const GlobalState* gs)
-        : _depth(gs->getProb())
+        : _depth(gs->getProb()), _stateStr( gs->toString() )
     {
         vector<StateSnapshot*> mirror = gs->getStateVec() ;
-        //_gState.resize( mirror.size() );
         
         _arrInt.resize(mirror.size());
         _sum = 0 ;
         for( size_t m = 0 ; m < _arrInt.size() ; ++m ) {
-            //_gState[m] = mirror[m]->clone() ;
             _arrInt[m] = mirror[m]->toInt() ;
             _sum += _arrInt[m];
         }
@@ -169,10 +169,14 @@ public:
     size_t operator() () const { return (_sum); }
     bool operator == (const GlobalStateHashKey& k) 
     {
+        /*
         assert(_arrInt.size() == k._arrInt.size() );
         for( size_t ii = 0 ; ii < _arrInt.size() ; ++ii ) 
             if( _arrInt[ii] != k._arrInt[ii] )
                 return false ;
+         */
+        if( _stateStr != k._stateStr )
+            return false ;
 
         if( _depth != k._depth )
             return false;
@@ -184,6 +188,7 @@ private:
     int _depth;
     
     int _sum;
+    string _stateStr;
 };
 
 class GSVecHashKey

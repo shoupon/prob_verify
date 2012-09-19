@@ -399,7 +399,7 @@ bool GlobalState::init(GlobalState* s)
 }
 
 
-string GlobalState::toString() 
+string GlobalState::toString() const
 {
     stringstream ss ;
     ss << "[" ;
@@ -554,7 +554,8 @@ void GlobalState::pathCycle(vector<GlobalState*>& arr)
         unexplored.pop();
         gs->_white = false; // Paint the node black
 
-        if( gs == this ) {
+        //if( gs == this ) {
+        if( gs->toString() == this->toString() ) {
             // this: the globalstate where the BFS is started from
             // gs == this: the search return to the starting point, a cycle must be found
             // Trace back
@@ -567,13 +568,14 @@ void GlobalState::pathCycle(vector<GlobalState*>& arr)
         else {
             for( size_t ii = 0 ; ii < gs->_parents.size() ; ++ii ) {
                 GlobalState* par = gs->_parents[ii];
-                if( par->_depth != _depth )
+                if( par->_depth != gs->_depth )
                     continue;
                 if( par->_white ) {
                     par->markPath(gs);
                     unexplored.push(par);
                 }
             }
+            
         } // if
     }
 }
