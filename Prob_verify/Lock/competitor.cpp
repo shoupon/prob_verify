@@ -47,6 +47,21 @@ int Competitor::transit(MessageTuple *inMsg, vector<MessageTuple *> &outMsgs,
                 
                 return 3;
             }
+            else if( msg == "LOCKED" || msg == "FAILED") {
+                // Do nothing
+                return 3;
+            }
+            else if( msg == "INQUIRE" ) {
+                // Respond
+                int lock = inMsg->getParam(0) ;
+                int relId = messageToInt("RELEASE");
+                MessageTuple* kRel =
+                    new CompetitorMessage(0, machineToInt("channel"),
+                                          0, relId, _machineId, _id, lock);
+                outMsgs.push_back(kRel);
+                
+                return 3;
+            }
             break;
             
         case 1:
