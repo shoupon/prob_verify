@@ -42,6 +42,10 @@ void ProbVerifier::addError(ErrorState *es)
 // The basic procedure
 void ProbVerifier::start(int maxClass)
 {
+    cout << "Stopping states:" << endl ;
+    printRS() ;
+    cout << endl; 
+    
     _maxClass = maxClass ;
     _arrClass.resize(maxClass, GSMap());
     for( size_t ii = 0 ; ii < _macPtrs.size() ; ++ii ) 
@@ -242,6 +246,19 @@ ErrorState* ProbVerifier::isError(const GlobalState* obj)
             return _errors[i];
     }
     return 0 ;
+}
+
+void ProbVerifier::printRS()
+{
+    GSVecMap::iterator it ;
+    for( it = _RS.begin() ; it != _RS.end() ; ++it ) {
+        cout << "[" ;
+        for( size_t i = 0 ; i < it->first.size()-1 ; ++i ) {
+            cout << it->first.at(i) << "," ;
+        }
+        cout << it->first.back() << "]" ;
+    }
+    cout << endl ;
 }
 
 void ProbVerifier::clear()

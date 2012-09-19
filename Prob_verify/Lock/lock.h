@@ -53,8 +53,9 @@ public:
     // Constructor: src, dest, srcMsg, destMsg, subject all retain the same implication as
     // is ancestor, MessageTuple;
     // k: the ID of the source lock
-    // lock: the ID of the destination competitor. Exception: -1 when the destination is
-    // the controller
+    // lock: the ID of the destination competitor. (exception: when the message is
+    // "complete", which is to notify the controller that the lock is released, the field
+    // is used to tell the controller which competitor this lock was associated to
     LockMessage(int src, int dest, int srcMsg, int destMsg, int subject, int k, int comp)
     :MessageTuple(src, dest, srcMsg, destMsg, subject), _k(k), _comp(comp) {}
     
@@ -77,8 +78,7 @@ public:
     LockMessage* clone() const ;
 private:
     const int _k ;
-    const int _comp ;
-        
+    const int _comp ; 
 };
 
 class LockSnapshot : public StateSnapshot

@@ -42,6 +42,8 @@ private:
     void printSeq(const vector<GlobalState*>& seq) ;
     
     ErrorState* isError(const GlobalState* obj);
+    
+    void printRS() ;
 
 public:
     ProbVerifier():_curClass(0), _max(0) {}

@@ -71,7 +71,7 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                     // Response
                     MessageTuple* ctrlRes = new LockMessage(0, machineToInt("controller"),
                                                             0, messageToInt("complete"),
-                                                            _machineId, _id, -1);
+                                                            _machineId, _id, _old);
                     outMsgs.push_back(ctrlRes);
                     // Change state
                     _current = 0;
@@ -125,10 +125,16 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
             }
             else if( msg == "timeout" ) {
                 assert( inMsg->subjectId() == machineToInt("controller") ) ;
-                // Change state
-                _current = 0;
-                reset();
-                
+                int master = inMsg->getParam(0);
+                if( master == _old ) {
+                    // Change state
+                    _current = 0;
+                    reset();
+                }
+                else {
+                    // Ignore the timeout message, since this lock is no longer locked
+                    // by another master
+                }
                 return 3;
             }
             
@@ -174,9 +180,24 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
             }
             else if( msg == "timeout" ) {
                 assert( inMsg->subjectId() == machineToInt("time") ) ;
-                // Change state
-                _current = 0;
-                reset();
+                int master = inMsg->getParam(0);
+                if( master == _old ) {
+                    // Same reaction as that of receiving RELEASE from old competitor
+                    // Respond
+                    MessageTuple* react = createResponse("LOCKED", "channel", inMsg, _new);
+                    outMsgs.push_back(react);
+                    // Assignments
+                    _ts = _t2;
+                    _old = _new ;
+                    _new = _t2 = -1;
+                    // Change state
+                    _current = 1;
+                }
+                else {
+                    // Ignore the timeout message, since this lock is no longer locked
+                    // by another master
+                }
+                
                 
                 return 3;
             }
@@ -219,6 +240,7 @@ void Lock::reset()
     _t2 = -1 ;
     _old = -1 ;
     _new = -1 ;
+    _current = 0 ;
 }
 
 MessageTuple* Lock::createResponse(string msg, string dst, MessageTuple* inMsg, int toComp)

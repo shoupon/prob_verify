@@ -17,7 +17,7 @@ using namespace std;
 int main( int argc, char* argv[] )
 {
     // class test
-    
+    /*
     {
         SeqCtrl sc(5) ;
         //cout << sc.isAllow(4) << endl ;
@@ -59,7 +59,7 @@ int main( int argc, char* argv[] )
         // Try invalid input
         cout << sc.engage(5) << endl; 
          
-    }
+    }*/
     try {
         // Declare the names of component machines so as to register these names as id's in the parser
         Parser* psrPtr = new Parser() ;    
@@ -109,8 +109,7 @@ int main( int argc, char* argv[] )
         pvObj.addMachine(chan);
 
         // Specify the global states in the set RS (stopping states)
-        // TODO: only all zero RS
-        // create snapshots
+        // initial state: FF
         vector<StateSnapshot*> rs;
         // controller snapshot
         vector<int> engaged ;
@@ -121,20 +120,52 @@ int main( int argc, char* argv[] )
         // lock snapshots
         for( int i = 0 ; i < num; ++i ) {
             // LockSnapshot(int ts, int t2, int oldCom, int newCom, int state)
-            StateSnapshot* lSnap = new LockSnapshot(0,0,-1,-1,0);
+            StateSnapshot* lSnap = new LockSnapshot(-1,-1,-1,-1,0);
             rs.push_back(lSnap);
         }
         // competitor snapshots
         for( int i = 0 ; i < num ; ++i ) {
             //CompetitorSnapshot(int t, int front, int back,int state)
-            StateSnapshot* compSnap = new CompetitorSnapshot(0,-1,-1,0);
+            StateSnapshot* compSnap = new CompetitorSnapshot(-1,-1,-1,0);
             rs.push_back(compSnap);
         }
         // channel snapshots
         StateSnapshot* chanSnap = new ChannelSnapshot();
-        rs.push_back(chanSnap);
-                                                              
+        rs.push_back(chanSnap);                                                              
         pvObj.addRS(rs);
+        
+        // state LF
+        vector<StateSnapshot*> rsLF = rs ;
+        engaged.push_back(3);
+        vector<int> front = busy ;
+        vector<int> back = busy ;
+        vector<int> self = busy ;
+        busy[3] = 1;
+        front[0] = 1;
+        back[1] = 1;
+        self[3] = 1;
+        // 35 arbitrarily picked. (Only engaged matters)
+        cSnap = new ControllerSnapshot(engaged,busy,front,back,self,35,&sc);
+        rsLF[0] = cSnap ; // controller
+        rsLF[1] = new LockSnapshot(1,-1,3,-1,1); // lock 0
+        rsLF[2] = new LockSnapshot(1,-1,3,-1,1); // lock 1
+        rsLF[4] = new LockSnapshot(1,-1,3,-1,1); // lock 3
+        rsLF[9] = new CompetitorSnapshot(1,0,1,4); // competitor 3
+        pvObj.addRS(rsLF);
+        
+        // state FL
+        vector<StateSnapshot*> rsFL = rs ;
+        engaged.clear() ;
+        engaged.push_back(4);
+        // 35 arbitrarily picked. (Only engaged matters)
+        cSnap = new ControllerSnapshot(engaged,busy,front,back,self,35,&sc);
+        rsFL[0] = cSnap ; // controller
+        rsFL[2] = new LockSnapshot(1,-1,4,-1,1); // lock 1
+        rsFL[3] = new LockSnapshot(1,-1,4,-1,1); // lock 2
+        rsFL[5] = new LockSnapshot(1,-1,4,-1,1); // lock 4
+        rsFL[10] = new CompetitorSnapshot(1,1,2,4); // competitor 4
+        pvObj.addRS(rsFL);
+        
         
         // Specify the starting state
         GlobalState startPoint(pvObj.getMachinePtrs());

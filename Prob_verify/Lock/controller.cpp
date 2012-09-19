@@ -36,37 +36,27 @@ int Controller::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
             return 3 ;
         }
         else if( typeid(*inMsg) == typeid(LockMessage) ) {
-            for( int i = 0 ; i < _fronts.size() ; ++i ) {
-                if( _fronts[i] == veh ) {
-                    _fronts[i] = -1;
-                    removeEngaged(i) ;
-                    _time++;
-                    return 3;
-                }
+            int master = inMsg->getParam(1);
+            if( _fronts[master] == veh ) {
+                _fronts[master] = -1;
             }
-            for( int i = 0 ; i < _backs.size() ; ++i ) {
-                if( _backs[i] == veh) {
-                    _backs[i] = -1;
-                    removeEngaged(i);
-                    _time++;
-                    return 3;
-                }
+            else if( _backs[master] == veh ) {
+                _backs[master] = -1;
+                
             }
-            for( int i = 0 ; i < _selves.size() ; ++i ) {
-                if( _selves[i] == veh) {
-                    _selves[i] = -1;
-                    removeEngaged(i);
-                    _time++;
-                    return 3;
-                }
+            else if( _selves[master] == veh ) {
+                _selves[master] = -1;
             }
-            
-            // This shouldn't happen:
-            // The lock send complete message to the controller, but the controller
-            // thought the lock is being released
-            assert(false);
+            else {
+                // This shouldn't happen:
+                // The lock send complete message to the controller, but the controller
+                // thought the lock is being released
+                assert(false); 
+            }
+            removeEngaged(master);
+            _time++;
+            return 3;
         }
-
     }
     
     return -1;
@@ -83,9 +73,10 @@ int Controller::nullInputTrans(vector<MessageTuple*>& outMsgs,
     if( startIdx == 0 ) {
         if( !_engaged.empty() ) {
             // timeout event
-            int veh = _engaged.front() ;            
-            int f = _nbrs[veh].front().first ;
-            int b = _nbrs[veh].front().second ;
+            int veh = _engaged.front() ;
+            int f = _fronts[veh];
+            int b = _backs[veh];
+            
             // create response
             int vId = machineToInt(Lock_Utils::getCompetitorName(veh));
             int fId = machineToInt(Lock_Utils::getLockName(f));
@@ -94,10 +85,14 @@ int Controller::nullInputTrans(vector<MessageTuple*>& outMsgs,
             int dstMsgId = messageToInt("timeout");
             // send message to the competitor or the lock that has not been reset
             // i.e. the some messages are loss during the course 
-            ControllerMessage* vMsg = new ControllerMessage(0,vId,0,dstMsgId,_machineId);
-            ControllerMessage* fMsg = new ControllerMessage(0,fId,0,dstMsgId,_machineId);
-            ControllerMessage* bMsg = new ControllerMessage(0,bId,0,dstMsgId,_machineId);
-            ControllerMessage* sMsg = new ControllerMessage(0,sId,0,dstMsgId,_machineId);
+            ControllerMessage* vMsg =
+                new ControllerMessage(0,vId,0,dstMsgId,_machineId,veh);
+            ControllerMessage* fMsg =
+                new ControllerMessage(0,fId,0,dstMsgId,_machineId,veh);
+            ControllerMessage* bMsg =
+                new ControllerMessage(0,bId,0,dstMsgId,_machineId,veh);
+            ControllerMessage* sMsg =
+                new ControllerMessage(0,sId,0,dstMsgId,_machineId,veh);
             if( _busy[veh] != -1 )
                 outMsgs.push_back(vMsg);
             if( _fronts[veh] != -1 )
@@ -208,6 +203,12 @@ void Controller::reset()
 {
     _actives = _actSetting ;
     _seqReg->reset() ;
+    
+    _busy.clear() ;
+    _fronts.clear() ;
+    _backs.clear() ;
+    _selves.clear();
+    
     _busy.resize(_numVehs, -1);
     _fronts.resize(_numVehs, -1);
     _backs.resize(_numVehs, -1);
@@ -249,21 +250,18 @@ bool Controller::removeEngaged(int i)
 {
     if( _busy[i] != -1 )
         return false ;
+    if( _selves[i] != -1 )
+        return false ;
     if( _fronts[i] != -1 )
         return false ;
     if( _backs[i] != -1 )
         return false ;
-    if( _selves[i] != -1 )
-        return false ;    
     
     vector<int>::iterator it ;
     for( it = _engaged.begin() ; it != _engaged.end() ; ++it ) {
         if( *it == i ) {
             _engaged.erase(it);
             _seqReg->disengage(i);
-#ifdef VERBOSE
-            int kk = _seqReg->getFront();
-#endif
             return true ;
         }
     }

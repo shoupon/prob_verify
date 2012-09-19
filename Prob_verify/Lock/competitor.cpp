@@ -185,6 +185,7 @@ int Competitor::nullInputTrans(vector<MessageTuple *> &outMsgs, bool &high_prob,
             outMsgs.push_back(bRel);
             // Change State
             _current = 0;
+            reset();
             
             return 3;
             

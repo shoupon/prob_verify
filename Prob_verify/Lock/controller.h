@@ -181,9 +181,18 @@ private:
     // Indicates whether the competitor with the vector subscript is busy
     // negative value means idle. positive values record the starting timestamp of the lock
     vector<int> _busy;
-    // Indicate which locks are associated with a specific competitor. Along with _busy, are
-    // used to keep track of which locks are not being released, and which locks to send
-    // the timeout message
+    // Store the competitor that is associated with this lock. The indices of the arrays
+    // are the identifier of the lock. For example, consider competitor 3 wants to merge
+    // between lock 0 and lock 1. _fronts[0]=3, _back[1]=3, _selves[3]=3.
+    // --> This doesn't work. Two competitors competing for the same lock attempt to write
+    //     to the same memory. (Similar to the behavior in Fischer's, but this time
+    //     without protection) For instance, comp3 and comp4 write to lock1. This will lead
+    //     to undefined behavior, leading to assertion failure
+    // Indices associated with the competitor instead. Use to take records of the locks
+    // a competitor is collaborating with. ex: comp3 merging between lock0 and lock1. Then
+    // _fronts[3]=0, _backs[3]=1, _selves[3]=3
+    // Along with _busy, are used to keep track of which locks are not being released, and
+    // which locks to send the timeout message
     vector<int> _fronts;
     vector<int> _backs;
     vector<int> _selves;
@@ -206,6 +215,9 @@ class ControllerMessage: public MessageTuple
 public:
     ControllerMessage(int src, int dest, int srcMsg, int destMsg, int subject)
     :MessageTuple(src,dest,srcMsg,destMsg,subject) {};
+    
+    ControllerMessage(int src, int dest, int srcMsg, int destMsg, int subject, int master)
+    :MessageTuple(src,dest,srcMsg,destMsg,subject), _timestamp(master) {};
 
     ControllerMessage(const ControllerMessage& item)
     :MessageTuple(item)
