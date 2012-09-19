@@ -99,8 +99,9 @@ void ProbVerifier::start(int maxClass)
             GSMapConstIter it = _arrClass[_curClass].begin();            
             GlobalState* st = it->first ;              
 
-            if( st->getDistance() > _max ) {
+            if( st->getDistance() > _max*2 ) {
                 cout << "Livelock found. " << endl ;
+                cout << "Total GlobalStates in unique table: " << st->numAll() << endl ;
 
                 vector<GlobalState*> seq;
                 st->pathCycle(seq);
@@ -124,8 +125,7 @@ void ProbVerifier::start(int maxClass)
 
             // If the explored GlobalState st is in RS, add st to STATETABLE (_arrFinRS), so 
             // when the later probabilistic search reaches st, the search will stop and
-            // explore
-            // some other paths
+            // explore some other paths
             if( find(_RS,st) != _RS.end() ) {
                 insert(_arrFinStart, st);   
                 insert(_arrFinRS, st);
@@ -168,9 +168,16 @@ void ProbVerifier::start(int maxClass)
 #ifdef LOG
                     cout << childNode->toString() << " Prob = " << prob 
                                                   << " Dist = " << dist << endl;
-#endif                                            
-                    addToClass(childNode, prob);
-                    
+#endif                   
+                    // Add the childnode to _arrClass[_curClass] provided that it is not
+                    // already a member of _arrFinStart (STATETABLE as in paper)
+                    if( find(_arrFinStart,childNode) == _arrFinStart.end() ) {
+                        addToClass(childNode, prob);
+                    }
+                    else {
+                        // Do something else, such as print out the probability
+                        cout << "Stopping state reached" << endl ;
+                    }
                 }   
 #ifdef LOG
                 cout << endl   ;
