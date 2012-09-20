@@ -48,10 +48,11 @@ int Controller::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                 _selves[master] = -1;
             }
             else {
+                /*
                 // This shouldn't happen:
                 // The lock send complete message to the controller, but the controller
                 // thought the lock is being released
-                assert(false); 
+                assert(false); */
             }
             removeEngaged(master);
             _time++;
@@ -266,7 +267,8 @@ bool Controller::removeEngaged(int i)
         }
     }
     
-    assert(false);
+    //assert(false);
+    return false;
 }
  
 int ControllerMessage::getParam(size_t arg) 

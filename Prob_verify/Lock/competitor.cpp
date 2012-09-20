@@ -47,7 +47,7 @@ int Competitor::transit(MessageTuple *inMsg, vector<MessageTuple *> &outMsgs,
                 
                 return 3;
             }
-            else if( msg == "LOCKED" || msg == "FAILED") {
+            else if( msg == "LOCKED" || msg == "FAILED" || msg == "timeout" ) {
                 // Do nothing
                 return 3;
             }

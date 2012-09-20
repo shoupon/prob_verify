@@ -63,6 +63,10 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                     return 3;
                 }
             }
+            else if( msg == "RELEASE" || msg == "timeout" ) {
+                // Do nothing but return 3
+                return 3;
+            }
             break;
         
         case 1:
