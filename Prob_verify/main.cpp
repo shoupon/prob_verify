@@ -133,6 +133,44 @@ int main( int argc, char* argv[] )
         stopFL.addAllow(new LockSnapshot(1,-1,4,-1,1), 5) ;  // lock 4
         stopFL.addAllow(new CompetitorSnapshot(1,1,2,4), 10); // competitor 4
         pvObj.addRS(&stopFL);
+        
+        // Stopping states after message loss
+        // state 3F
+        StoppingState loss3F(&startPoint);
+        loss3F.addAllow(new LockSnapshot(1,-1,3,-1,1), 1) ;  // lock 0
+        loss3F.addAllow(new LockSnapshot(1,-1,3,-1,1), 2) ;  // lock 1
+        loss3F.addAllow(new LockSnapshot(1,-1,3,-1,1), 4) ;  // lock 3
+        loss3F.addAllow(new CompetitorSnapshot(1,0,1,3), 9); // competitor 3
+        loss3F.addAllow(new ChannelSnapshot(), 11); // channel
+        pvObj.addRS(&loss3F);
+        
+        // state 3'F
+        StoppingState loss13F(&startPoint);
+        //loss13F.addAllow(new LockSnapshot(1,-1,3,-1,1), 1) ;  // lock 0
+        loss13F.addAllow(new LockSnapshot(1,-1,3,-1,1), 2) ;  // lock 1
+        loss13F.addAllow(new LockSnapshot(1,-1,3,-1,1), 4) ;  // lock 3
+        loss13F.addAllow(new CompetitorSnapshot(1,0,1,13), 9); // competitor 3
+        loss13F.addAllow(new ChannelSnapshot(), 11); // channel
+        pvObj.addRS(&loss13F);
+        
+        // state F3
+        StoppingState lossF3(&startPoint);
+        lossF3.addAllow(new LockSnapshot(1,-1,4,-1,1), 2) ;  // lock 1
+        //lossF3.addAllow(new LockSnapshot(1,-1,4,-1,1), 3) ;  // lock 2
+        lossF3.addAllow(new LockSnapshot(1,-1,4,-1,1), 5) ;  // lock 4
+        lossF3.addAllow(new CompetitorSnapshot(1,1,2,3), 10); // competitor 4
+        lossF3.addAllow(new ChannelSnapshot(), 11); // channel
+        pvObj.addRS(&lossF3);
+        
+        // state F3'
+        StoppingState lossF13(&startPoint);
+        lossF13.addAllow(new LockSnapshot(1,-1,4,-1,1), 2) ;  // lock 1
+        lossF13.addAllow(new LockSnapshot(1,-1,4,-1,1), 3) ;  // lock 2
+        lossF13.addAllow(new LockSnapshot(1,-1,4,-1,1), 5) ;  // lock 4
+        lossF13.addAllow(new CompetitorSnapshot(1,1,2,13), 10); // competitor 4
+        lossF13.addAllow(new ChannelSnapshot(), 11); // channel
+        pvObj.addRS(&lossF13);
+
 
         // Specify the error states
         ErrorState locklock(&startPoint) ;
