@@ -106,69 +106,33 @@ int main( int argc, char* argv[] )
             pvObj.addMachine(arrLock[i]);
         for( size_t i = 0 ; i < arrComp.size() ; ++i )
             pvObj.addMachine(arrComp[i]);
-        pvObj.addMachine(chan);
-
-        // Specify the global states in the set RS (stopping states)
-        // initial state: FF
-        vector<StateSnapshot*> rs;
-        // controller snapshot
-        vector<int> engaged ;
-        vector<int> busy(num,-1) ;
-        SeqCtrl sc(num);
-        StateSnapshot* cSnap = new ControllerSnapshot(engaged,busy,busy,busy,busy,0,&sc);
-        rs.push_back(cSnap);
-        // lock snapshots
-        for( int i = 0 ; i < num; ++i ) {
-            // LockSnapshot(int ts, int t2, int oldCom, int newCom, int state)
-            StateSnapshot* lSnap = new LockSnapshot(-1,-1,-1,-1,0);
-            rs.push_back(lSnap);
-        }
-        // competitor snapshots
-        for( int i = 0 ; i < num ; ++i ) {
-            //CompetitorSnapshot(int t, int front, int back,int state)
-            StateSnapshot* compSnap = new CompetitorSnapshot(-1,-1,-1,0);
-            rs.push_back(compSnap);
-        }
-        // channel snapshots
-        StateSnapshot* chanSnap = new ChannelSnapshot();
-        rs.push_back(chanSnap);                                                              
-        pvObj.addRS(rs);
-        
-        // state LF
-        vector<StateSnapshot*> rsLF = rs ;
-        engaged.push_back(3);
-        vector<int> front = busy ;
-        vector<int> back = busy ;
-        vector<int> self = busy ;
-        busy[3] = 1;
-        front[0] = 1;
-        back[1] = 1;
-        self[3] = 1;
-        // 35 arbitrarily picked. (Only engaged matters)
-        cSnap = new ControllerSnapshot(engaged,busy,front,back,self,35,&sc);
-        rsLF[0] = cSnap ; // controller
-        rsLF[1] = new LockSnapshot(1,-1,3,-1,1); // lock 0
-        rsLF[2] = new LockSnapshot(1,-1,3,-1,1); // lock 1
-        rsLF[4] = new LockSnapshot(1,-1,3,-1,1); // lock 3
-        rsLF[9] = new CompetitorSnapshot(1,0,1,4); // competitor 3
-        pvObj.addRS(rsLF);
-        
-        // state FL
-        vector<StateSnapshot*> rsFL = rs ;
-        engaged.clear() ;
-        engaged.push_back(4);
-        // 35 arbitrarily picked. (Only engaged matters)
-        cSnap = new ControllerSnapshot(engaged,busy,front,back,self,35,&sc);
-        rsFL[0] = cSnap ; // controller
-        rsFL[2] = new LockSnapshot(1,-1,4,-1,1); // lock 1
-        rsFL[3] = new LockSnapshot(1,-1,4,-1,1); // lock 2
-        rsFL[5] = new LockSnapshot(1,-1,4,-1,1); // lock 4
-        rsFL[10] = new CompetitorSnapshot(1,1,2,4); // competitor 4
-        pvObj.addRS(rsFL);
-        
+        pvObj.addMachine(chan);              
         
         // Specify the starting state
         GlobalState startPoint(pvObj.getMachinePtrs());
+
+        // Specify the global states in the set RS (stopping states)
+        // initial state: FF
+        StoppingState stopZero(&startPoint);
+        stopZero.addAllow(new CompetitorSnapshot(-1,-1,-1,0), 9); // competitor 3
+        stopZero.addAllow(new CompetitorSnapshot(-1,-1,-1,0), 10); // competitor 4
+        pvObj.addRS(&stopZero);
+        
+        // state LF
+        StoppingState stopLF(&startPoint);
+        stopLF.addAllow(new LockSnapshot(1,-1,3,-1,1), 1) ;  // lock 0
+        stopLF.addAllow(new LockSnapshot(1,-1,3,-1,1), 2) ;  // lock 1
+        stopLF.addAllow(new LockSnapshot(1,-1,3,-1,1), 4) ;  // lock 3
+        stopLF.addAllow(new CompetitorSnapshot(1,0,1,4), 9); // competitor 3
+        pvObj.addRS(&stopLF);
+        
+        // state FL
+        StoppingState stopFL(&startPoint);
+        stopFL.addAllow(new LockSnapshot(1,-1,4,-1,1), 2) ;  // lock 1
+        stopFL.addAllow(new LockSnapshot(1,-1,4,-1,1), 3) ;  // lock 2
+        stopFL.addAllow(new LockSnapshot(1,-1,4,-1,1), 5) ;  // lock 4
+        stopFL.addAllow(new CompetitorSnapshot(1,1,2,4), 10); // competitor 4
+        pvObj.addRS(&stopFL);
 
         // Specify the error states
         ErrorState locklock(&startPoint) ;
@@ -188,10 +152,7 @@ int main( int argc, char* argv[] )
             delete arrLock[i];
         for( size_t i = 0 ; i < arrComp.size() ; ++i )
             delete arrComp[i];
-        delete chan ;
-        // Deallocate the SnapShots used to initialize RS
-        for( size_t i = 0 ; i < rs.size() ; ++ i )
-            delete rs[i];
+        delete chan ;                
         
     } catch( runtime_error& re ) {
         cerr << "Runtime error:" << endl 

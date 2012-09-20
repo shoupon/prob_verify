@@ -10,6 +10,7 @@
 #include "statemachine.h"
 #include "globalstate.h"
 #include "errorstate.h"
+#include "stoppingstate.h"
 
 typedef map<GlobalState*, int>                   GSMap;
 typedef pair<GlobalState*, int>                  GSMapPair;
@@ -25,10 +26,11 @@ private:
     vector<StateMachine*> _macPtrs;
     vector<GSMap> _arrClass;
     vector<ErrorState*> _errors;
-    // TODO
+
+    GSVecMap _arrRS;
     GSVecMap _arrFinRS;
     GSVecMap _arrFinStart;
-    GSVecMap _RS;
+    vector<StoppingState*> _RS;
     GlobalState* _root ;
     int _maxClass;
     int _curClass;   
@@ -42,15 +44,16 @@ private:
     void printSeq(const vector<GlobalState*>& seq) ;
     
     ErrorState* isError(const GlobalState* obj);
+    bool isStopping(const GlobalState* obj);
     
-    void printRS() ;
+    //void printRS() ;
 
 public:
     ProbVerifier():_curClass(0), _max(0) {}
 
     void addMachine(StateMachine* machine) { _macPtrs.push_back(machine); }
     //void setRS(vector<GlobalState*> rs); 
-    void addRS(vector<StateSnapshot*> rs);
+    void addRS(StoppingState* rs);
     // Add errorState into the list of errorStates
     void addError(ErrorState* es);
     // The basic procedure, start when all machines are in its initial state

@@ -43,7 +43,7 @@ void ProbVerifier::addError(ErrorState *es)
 void ProbVerifier::start(int maxClass)
 {
     cout << "Stopping states:" << endl ;
-    printRS() ;
+    //printRS() ;
     cout << endl; 
     
     _maxClass = maxClass ;
@@ -73,7 +73,7 @@ void ProbVerifier::start(int maxClass)
         while( it != _arrClass[_curClass].end() ) {
             GlobalState* st = it->first ;
             if( _curClass == 0 ) { 
-                if( find(_RS, st ) != _RS.end() ) {
+                if( isStopping(st) ) {
                     // If *ptr is a member of RS, add it to STATETABLE (_arrFinRS) 
                     // and to STATET (_arrFinStart)
                     insert(_arrFinRS, st );
@@ -126,9 +126,14 @@ void ProbVerifier::start(int maxClass)
             // If the explored GlobalState st is in RS, add st to STATETABLE (_arrFinRS), so 
             // when the later probabilistic search reaches st, the search will stop and
             // explore some other paths
-            if( find(_RS,st) != _RS.end() ) {
-                insert(_arrFinStart, st);   
-                insert(_arrFinRS, st);
+            if( isStopping(st) ) {
+                if( find( _arrRS, st) != _arrRS.end() ) {
+                    insert(_arrFinStart, st);
+                    insert(_arrFinRS, st);
+                }
+                else {
+                    insert(_arrRS, st) ;
+                }
             }
       
 #ifdef LOG
@@ -176,7 +181,7 @@ void ProbVerifier::start(int maxClass)
                     }
                     else {
                         // Do something else, such as print out the probability
-                        childNode->removeParents() ;
+                        //childNode->removeParents() ;
                         cout << "Stopping state reached" << endl ;
                     }
                 }   
@@ -204,20 +209,9 @@ void ProbVerifier::setRS(vector<GlobalState*> rs)
     }
 } // setRS()*/
 
-void ProbVerifier::addRS(vector<StateSnapshot*> rs)
+void ProbVerifier::addRS(StoppingState* rs)
 {
-    if( rs.size() != _macPtrs.size()) {
-        throw runtime_error("The number of machines in the specification of addRS() function does not match the number in ProbVerifier object");
-    }
-    vector<string> vec(_macPtrs.size());
-    for( size_t m = 0 ; m < this->_macPtrs.size() ; ++m ) {
-        _macPtrs[m]->restore(rs[m]);
-        StateSnapshot* snap = _macPtrs[m]->curState();
-        vec[m] = snap->toString();
-    }
-    _RS.insert( GSVecMapPair(vec,0) );
-    // This should be also added to GlobalState::_uniqueTable
-
+    _RS.push_back(rs);
 }
 
 GSVecMap::iterator ProbVerifier::find(GSVecMap& collection, GlobalState* gs)
@@ -256,6 +250,16 @@ ErrorState* ProbVerifier::isError(const GlobalState* obj)
     return 0 ;
 }
 
+bool ProbVerifier::isStopping(const GlobalState* obj)
+{
+    for( size_t i = 0 ; i < _RS.size() ; ++i ) {
+        if( _RS[i]->valid(obj) )
+            return true ;
+    }
+    return false;
+}
+
+/*
 void ProbVerifier::printRS()
 {
     GSVecMap::iterator it ;
@@ -267,7 +271,7 @@ void ProbVerifier::printRS()
         cout << it->first.back() << "]" ;
     }
     cout << endl ;
-}
+}*/
 
 void ProbVerifier::clear()
 {

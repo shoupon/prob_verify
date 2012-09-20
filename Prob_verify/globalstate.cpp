@@ -493,7 +493,7 @@ void GlobalState::pathRoot(vector<GlobalState*>& arr)
         unexplored.pop();
         gs->_white = false; // Paint the node black
 
-        if( gs == _root ) {
+        if( gs->toString() == _root->toString() ) {
             // root found
             // Trace back
 #ifdef VERBOSE
@@ -514,6 +514,8 @@ void GlobalState::pathRoot(vector<GlobalState*>& arr)
                     unexplored.push(par);
                 }
             }
+            if( gs->_parents.size() == 0 )
+                cout << "No parents." << endl ;
         } // if
     }
     //BFS(arr, &rootStop);
