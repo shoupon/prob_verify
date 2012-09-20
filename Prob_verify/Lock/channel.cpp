@@ -199,8 +199,16 @@ string ChannelSnapshot::toString()
 
 int ChannelSnapshot::toInt()
 { 
-    if( !_ss_mem.empty() )
-        return _ss_mem.front()->srcMsgId() + _ss_mem.front()->destMsgId();
+    if( !_ss_mem.empty() ) {
+        int ret = 0 ;
+        for( size_t i = 0 ; i < _ss_mem.size() ; ++i ) {
+            ret += _ss_mem[i]->destMsgId() ;
+            ret = ret << 4 ;
+            ret += _ss_mem[i]->destId() ;
+            ret = ret << 4 ;
+        }
+        return ret ;
+    }
     else
         return 0 ;
 }

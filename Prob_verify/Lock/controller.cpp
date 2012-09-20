@@ -296,7 +296,8 @@ void ControllerMessage::addParams(int time, int front, int back)
 }
 
 ControllerSnapshot::ControllerSnapshot(vector<int> eng, vector<int> busy,
-                                       vector<int> front, vector<int> back, vector<int> self,
+                                       vector<int> front, vector<int> back,
+                                       vector<int> self,
                                        int time, const SeqCtrl* seqCtrl)
 :_ss_engaged(eng), _ss_busy(busy), _ss_time(time),
  _ss_back(back), _ss_front(front), _ss_self(self)
@@ -304,9 +305,9 @@ ControllerSnapshot::ControllerSnapshot(vector<int> eng, vector<int> busy,
     int sumEng = 0 ;
     for( size_t i = 0 ; i < _ss_engaged.size() ; ++i ) {
         sumEng += _ss_engaged[i];
+        sumEng = sumEng << 4;
     }
-    sumEng +=  _ss_time ;
-    _hash_use  = (sumEng << 2) + (int)_ss_engaged.size() ;
+    _hash_use  = (sumEng << 4) + (int)_ss_engaged.size() ;
     
     _ss_seqCtrl = new SeqCtrl(*seqCtrl) ;
 }

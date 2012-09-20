@@ -114,6 +114,11 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                         MessageTuple* response = createResponse("FAILED", "channel",
                                                                 inMsg, _new );
                         outMsgs.push_back(response);
+                        MessageTuple* ctrlAbt =
+                            new LockMessage(0, machineToInt("controller"),
+                                            0, messageToInt("abort"),
+                                            _machineId, _id, _new);
+                        outMsgs.push_back(ctrlAbt);
                         // Assign variables
                         _new = _t2 = -1;
                         // Change state
@@ -144,6 +149,11 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                     // Respond
                     MessageTuple* react = createResponse("FAILED", "channel", inMsg, _new) ;
                     outMsgs.push_back(react);
+                    MessageTuple* ctrlAbt =
+                        new LockMessage(0, machineToInt("controller"),
+                                        0, messageToInt("abort"),
+                                        _machineId, _id, _new);
+                    outMsgs.push_back(ctrlAbt);
                     // Assign variables
                     _new = _t2 = -1;
                     // Change state
@@ -157,6 +167,11 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                     // Respond
                     MessageTuple* react = createResponse("LOCKED", "channel", inMsg, _new);
                     outMsgs.push_back(react);
+                    MessageTuple* ctrlAbt =
+                        new LockMessage(0, machineToInt("controller"),
+                                        0, messageToInt("abort"),
+                                        _machineId, _id, _old);
+                    outMsgs.push_back(ctrlAbt);
                     // Assignments
                     _ts = _t2;
                     _old = _new ;
