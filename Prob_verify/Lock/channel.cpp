@@ -63,17 +63,27 @@ int Channel::nullInputTrans(vector<MessageTuple*>& outMsgs, bool& high_prob, int
     if( !_mem.empty() ) {
         if( startIdx == 0 ) {
             // Create message
-            MessageTuple* msg = createDelivery() ;
+            MessageTuple* msg = createDelivery(0) ;
             outMsgs.push_back(msg);
 
             // Change state
             delete _mem.front();
             _mem.erase(_mem.begin()) ;
             
-            return 3;
+            high_prob = true ;
+            return 1;
         }
-        else if( startIdx > 0 ) {
-            return -1;
+        else if( startIdx > 0 && startIdx < _mem.size() ) {
+            // Create message
+            MessageTuple* msg = createDelivery(startIdx) ;
+            outMsgs.push_back(msg);
+            
+            // Change state
+            delete _mem[startIdx];
+            _mem.erase(_mem.begin()+startIdx) ;
+            
+            high_prob = false ;
+            return startIdx+1;
         }
         else {
             return -1;
@@ -125,12 +135,12 @@ void Channel::clearMem(vector<MessageTuple*>& fifo)
     fifo.clear() ;
 }
 
-MessageTuple* Channel::createDelivery()
+MessageTuple* Channel::createDelivery(int idx)
 {
     if( _mem.empty() )
         return 0;
     
-    MessageTuple* msg = _mem.front() ;
+    MessageTuple* msg = _mem[idx] ;
     
     int outMsgId = msg->destMsgId();
     

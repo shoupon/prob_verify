@@ -106,8 +106,13 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                 int j = inMsg->getParam(0) ;
                 if( j == _old ) {
                     int newTs = inMsg->getParam(2) ;
-                    if( newTs < _ts )
-                        throw logic_error("Newly arrival REQUEST has smaller timestamp");
+                    if( newTs < _ts ) {
+                        // this is not always satisfied when the messages are not delivered
+                        // in the order of their transmission 
+                        // throw logic_error("Newly arrival REQUEST has smaller timestamp");
+                        // ignore the message instead
+                        return 3;
+                    }
                     
                     // Assignments
                     // update ts
@@ -225,7 +230,7 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                 }
             }
             else if( msg == "timeout" ) {
-                assert( inMsg->subjectId() == machineToInt("time") ) ;
+                assert( inMsg->subjectId() == machineToInt("controller") ) ;
                 int time = inMsg->getParam(0);
                 if( time == _ts ) {
                     // Same reaction as that of receiving RELEASE from old competitor

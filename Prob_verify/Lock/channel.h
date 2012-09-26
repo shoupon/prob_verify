@@ -45,7 +45,7 @@ protected:
     
     vector<MessageTuple*> _mem;
     
-    MessageTuple* createDelivery() ;
+    MessageTuple* createDelivery(int idx) ;
 };
 
 // Used for restore the state of a state machine back to a certain point. Should contain
