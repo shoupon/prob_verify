@@ -71,7 +71,7 @@ void ProbVerifier::start(int maxClass)
         cout << _root->toString() << endl ;
     #endif
         
-        for( _curClass = 0 ; _curClass < _maxClass ; ++_curClass ) {
+        for( _curClass = 0 ; _curClass <= _maxClass ; ++_curClass ) {
             cout << "-------- Exploring GlobalStates of class[" << _curClass
             << "] --------" << endl ;
             // Check if the members in class[k] are already contained in STATET (_arrFinStart).
@@ -108,8 +108,9 @@ void ProbVerifier::start(int maxClass)
                 GlobalState* st = it->first ;
                 
                 if( st->getDistance() > _max ) {
+                    cout << _max << "composite states explored." << endl ;
                     cout << "Livelock found after " << st->getProb()
-                    << " low probability transitions" << endl ;
+                         << " low probability transitions" << endl ;
                     cout << "Total GlobalStates in unique table: " << st->numAll() << endl ;
                     
                     vector<GlobalState*> seq;
@@ -150,6 +151,7 @@ void ProbVerifier::start(int maxClass)
     #endif
                 if( nChilds == 0 ) {
                     // No child found. Report deadlock
+                    cout << _max << "composite states explored." << endl ;
                     cout << "Deadlock found." << endl ;
                     
                     vector<GlobalState*> seq;
@@ -161,12 +163,13 @@ void ProbVerifier::start(int maxClass)
                 else if( isError(st) ) {
                     // The child matches the criterion of an ErrorState.
                     // Print out the path that reaches this error state.
+                    cout << _max << "composite states explored." << endl ;
                     cout << endl << "Error state found: " << endl ;
                     cout << st->toString() << endl;
                     
                     vector<GlobalState*> seq;
                     st->pathRoot(seq);
-                    printSeq(seq);
+                    printSeq(seq);                    
                     
                     return ;
                 }
@@ -207,6 +210,9 @@ void ProbVerifier::start(int maxClass)
         } // for (explore all the class until class[0] through class[_maxClass-1] are fully explored
         
         // Conclude success
+        cout << _max << "composite states explored." << endl ;
+        cout << "Total GlobalStates in unique table: " << _root->numAll() << endl ;
+        cout << "Up to " << maxClass << " low probability transitions considered." << endl ;
         cout << "No deadlock or livelock found." << endl;
         
     } // try
