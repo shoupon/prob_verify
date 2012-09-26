@@ -11,6 +11,7 @@
 
 #include <iostream>
 #include <vector>
+#include <string>
 using namespace std;
 
 #include "globalstate.h"
@@ -28,7 +29,9 @@ public:
     
     void addAllow(StateSnapshot* criterion, int mac);
     void addProhibit(StateSnapshot* criterion, int mac);
-    bool valid(const GlobalState* gs);
+    bool match(const GlobalState* gs);
+    
+    string toString() ;
 };
 
 

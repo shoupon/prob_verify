@@ -25,12 +25,13 @@ class ProbVerifier
 private:
     vector<StateMachine*> _macPtrs;
     vector<GSMap> _arrClass;
-    vector<ErrorState*> _errors;
+    
+    vector<StoppingState*> _errors;
+    vector<StoppingState*> _RS;
 
     GSVecMap _arrRS;
     GSVecMap _arrFinRS;
     GSVecMap _arrFinStart;
-    vector<StoppingState*> _RS;
     GlobalState* _root ;
     int _maxClass;
     int _curClass;   
@@ -43,10 +44,10 @@ private:
     { collection.insert( GSVecMapPair(gs->getStringVec(), gs->getProb()) ); }
     void printSeq(const vector<GlobalState*>& seq) ;
     
-    ErrorState* isError(const GlobalState* obj);
+    bool isError(const GlobalState* obj);
     bool isStopping(const GlobalState* obj);
-    
-    //void printRS() ;
+    bool findMatch(const GlobalState* obj, const vector<StoppingState*>& container) ;
+
 
 public:
     ProbVerifier():_curClass(0), _max(0) {}
@@ -55,7 +56,7 @@ public:
     //void setRS(vector<GlobalState*> rs); 
     void addRS(StoppingState* rs);
     // Add errorState into the list of errorStates
-    void addError(ErrorState* es);
+    void addError(StoppingState* es);
     // The basic procedure, start when all machines are in its initial state
     void start(int maxClass);
     // void start(vector<GlobalState*> initStates);
@@ -63,7 +64,6 @@ public:
     
     size_t getNumMachines() { return _macPtrs.size(); }
     vector<StateMachine*> getMachinePtrs() const ;
-    
 };
 
 

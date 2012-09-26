@@ -173,11 +173,29 @@ int main( int argc, char* argv[] )
 
 
         // Specify the error states
-        ErrorState locklock(&startPoint) ;
-        CompetitorSnapshot veh4(2,1,2,4); // vehicle 4 in state 4, with front=1, back=2
-        locklock.addCheck(&veh4, 10);
-        CompetitorSnapshot veh3(2,0,1,4); // vehicle 3 in state 4, with front=0, back=1
-        locklock.addCheck(&veh3, 9);
+        StoppingState lock3FFree(&startPoint) ;
+        lock3FFree.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 1); // lock 0 in state 0
+        lock3FFree.addAllow(new CompetitorSnapshot(2,0,1,4), 9); // competitor 3 in s4
+        pvObj.addError(&lock3FFree);
+        
+        StoppingState lock3BFree(&startPoint) ;
+        lock3BFree.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 2); // lock 1 in state 0
+        lock3BFree.addAllow(new CompetitorSnapshot(2,0,1,4), 9); // competitor 3 in s4
+        pvObj.addError(&lock3BFree);
+        
+        StoppingState lock4FFree(&startPoint) ;
+        lock4FFree.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 2); // lock 1 in state 0
+        lock4FFree.addAllow(new CompetitorSnapshot(2,1,2,4), 10); // competitor 4 in s4
+        pvObj.addError(&lock4FFree);
+        
+        StoppingState lock4BFree(&startPoint) ;
+        lock4BFree.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 3); // lock 2 in state 0
+        lock4BFree.addAllow(new CompetitorSnapshot(2,1,2,4), 10); // competitor 4 in s4
+        pvObj.addError(&lock4BFree);
+
+        StoppingState locklock(&startPoint) ;
+        locklock.addAllow(new CompetitorSnapshot(2,0,1,4), 9); // competitor 3 in LOCK
+        locklock.addAllow(new CompetitorSnapshot(2,1,2,4), 10) ; // competitor 4 in LOCK
         pvObj.addError(&locklock) ;
 
         // Start the procedure of probabilistic verification. 

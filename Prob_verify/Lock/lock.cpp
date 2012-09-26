@@ -83,6 +83,10 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                     
                     return 3;
                 }
+                else {
+                    // The RELEASE is not intended for 
+                    return 3;
+                }
             }
             else if( msg == "status" ) {
                 assert( typeid(*inMsg) == typeid(CompetitorMessage)) ;

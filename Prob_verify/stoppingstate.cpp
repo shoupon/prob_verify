@@ -35,7 +35,7 @@ void StoppingState::addProhibit(StateSnapshot* criterion, int mac)
     _prohibits.push_back(mac);
 }
 
-bool StoppingState::valid(const GlobalState* gs)
+bool StoppingState::match(const GlobalState* gs)
 {
     // For each machine that needs to be checked. All the checked machine should be in the
     // error state specified in ErrorState object
@@ -56,4 +56,19 @@ bool StoppingState::valid(const GlobalState* gs)
     }
     // All the machines that need to be checked are in the error state
     return true;
+}
+
+string StoppingState::toString()
+{
+    stringstream ss ;
+    ss << "StoppingState: " << this << endl ;
+    ss << "allows:" << endl ;
+    for( size_t i = 0 ; i < _allows.size() ; ++i ) {
+        ss << "Machine " << _allows[i] << ": " << _aSets[i]->toString() << endl ;
+    }
+    ss << "prohibits: " << endl ;
+    for( size_t i = 0 ; i < _prohibits.size() ; ++i ) {
+        ss << "Machine " << _prohibits[i] << ": " << _pSets[i]->toString() << endl ;
+    }
+    return ss.str() ;
 }

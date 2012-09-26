@@ -28,7 +28,7 @@ bool ProbVerifier::addToClass(GlobalState* childNode, int toClass)
 
 }
 
-void ProbVerifier::addError(ErrorState *es)
+void ProbVerifier::addError(StoppingState *es)
 {
     if( es->getStateVec().size() != _macPtrs.size() ) {
         cerr << "The size of the ErrorState does not match the number of machines" << endl;
@@ -43,7 +43,14 @@ void ProbVerifier::addError(ErrorState *es)
 void ProbVerifier::start(int maxClass)
 {
     cout << "Stopping states:" << endl ;
-    //printRS() ;
+    for( size_t i = 0 ; i < _RS.size() ; ++i ) {
+        cout << _RS[i]->toString() ;
+    }
+    cout << endl;
+    cout << "Error states:" << endl;
+    for( size_t i = 0 ; i < _errors.size() ; ++i ) {
+        cout << _errors[i]->toString() ;
+    }
     cout << endl; 
     
     _maxClass = maxClass ;
@@ -100,7 +107,8 @@ void ProbVerifier::start(int maxClass)
             GlobalState* st = it->first ;              
 
             if( st->getDistance() > _max ) {
-                cout << "Livelock found. " << endl ;
+                cout << "Livelock found after " << st->getProb()
+                     << " low probability transitions" << endl ;
                 cout << "Total GlobalStates in unique table: " << st->numAll() << endl ;
 
                 vector<GlobalState*> seq;
@@ -149,24 +157,23 @@ void ProbVerifier::start(int maxClass)
 
                 return ;
             }
-            else {                   
+            else if( isError(st) ) {
+                // The child matches the criterion of an ErrorState.
+                // Print out the path that reaches this error state.
+                cout << endl << "Error state found: " << endl ;
+                cout << st->toString() << endl;
+                
+                vector<GlobalState*> seq;
+                st->pathRoot(seq);
+                printSeq(seq);
+                
+                return ;
+            }
+            else {
                 // Add the computed childs to class array ST[class].
                 for( size_t idx = 0 ; idx < nChilds ; ++idx ) {
 
-                    GlobalState* childNode = st->getChild(idx);
-                    
-                    ErrorState* es = isError(childNode);
-                    if( es != 0 ) {
-                        // The child matches the criterion of an ErrorState.
-                        // Print out the path that reaches this error state.
-                        cout << "Error state: " << es->toString() << "reached." << endl ;
-                        
-                        vector<GlobalState*> seq;
-                        childNode->pathRoot(seq);
-                        printSeq(seq);
-                        
-                        return ;
-                    }
+                    GlobalState* childNode = st->getChild(idx);                        
 
                     int prob = st->getProb(idx);                   
                     int dist = childNode->getDistance();
@@ -237,23 +244,31 @@ void ProbVerifier::printSeq(const vector<GlobalState*>& seq)
             cout << seq[ii]->toString() << " -p-> ";
         else
             cout << seq[ii]->toString() << " -> ";
+#ifdef DEBUG
+        if( isError(seq[ii]) ) {
+            cout << endl ;
+            cout << "Error state found in sequence: " << seq[ii]->toString() << endl ;
+        }
+#endif
     }
     cout << seq.back()->toString() << endl ;
 }
 
-ErrorState* ProbVerifier::isError(const GlobalState* obj)
+bool ProbVerifier::isError(const GlobalState* obj)
 {
-    for( size_t i = 0 ; i < _errors.size() ; ++i ) {
-        if( _errors[i]->match(obj) )
-            return _errors[i];
-    }
-    return 0 ;
+    return findMatch(obj, _errors) ;
 }
 
 bool ProbVerifier::isStopping(const GlobalState* obj)
 {
-    for( size_t i = 0 ; i < _RS.size() ; ++i ) {
-        if( _RS[i]->valid(obj) )
+    return findMatch(obj, _RS) ;
+}
+
+bool ProbVerifier::findMatch(const GlobalState* obj,
+                             const vector<StoppingState*>& container)
+{
+    for( size_t i = 0 ; i < container.size() ; ++i ) {
+        if( container[i]->match(obj) )
             return true ;
     }
     return false;
