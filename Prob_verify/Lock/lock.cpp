@@ -104,7 +104,24 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
             }
             else if( msg == "REQUEST" ) {
                 int j = inMsg->getParam(0) ;
-                if( j != _old ) {
+                if( j == _old ) {
+                    int newTs = inMsg->getParam(2) ;
+                    if( newTs < _ts )
+                        throw logic_error("Newly arrival REQUEST has smaller timestamp");
+                    
+                    // Assignments
+                    // update ts
+                    _ts = newTs ;
+                    
+                    // Response
+                    if( _old != _id ) {
+                        MessageTuple* response = createResponse("LOCKED", "channel",
+                                                                inMsg, _old, _ts);
+                        outMsgs.push_back(response);
+                    }                            
+                    return 3 ;
+                }
+                else {
                     // Assignments
                     _t2 = inMsg->getParam(2);
                     _new = j ;
