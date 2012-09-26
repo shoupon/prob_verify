@@ -9,12 +9,14 @@ using namespace std;
 #define UN_NUM_ACK
 
 //#define ALLOW_UNMATCHED
+#define TRACE_UNMATCHED
 //#define CONTROLLER_TIME
 
 // Debugging flags
 //#define VERBOSE
 //#define VERBOSE_EVAL
 //#define VERBOSE_LIVELOCK
+#define VERBOSE_ACTIONS
 #ifdef VERBOSE
 #define LOG
 #endif

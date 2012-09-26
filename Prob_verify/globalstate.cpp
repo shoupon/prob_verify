@@ -192,6 +192,10 @@ void GlobalState::findSucc()
                      << this->toString() << endl ;
                 cerr << str << endl ;
                 cIdx--;
+                
+#ifdef TRACE_UNMATCHED
+                throw this;
+#endif
             }
 
         }

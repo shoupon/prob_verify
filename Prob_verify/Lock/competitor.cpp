@@ -9,6 +9,9 @@
 #include "competitor.h"
 #include "lock_utils.h"
 
+#include <iostream>
+using namespace std;
+
 Competitor::Competitor(int k, int delta, int num, Lookup* msg, Lookup* mac)
 :_id(k), _delta(delta), _range(num), StateMachine(msg,mac)
 {
@@ -57,7 +60,8 @@ int Competitor::transit(MessageTuple *inMsg, vector<MessageTuple *> &outMsgs,
                 int relId = messageToInt("RELEASE");
                 MessageTuple* kRel =
                     new CompetitorMessage(0, machineToInt("channel"),
-                                          0, relId, _machineId, _id, lock);
+                                          0, relId, _machineId, _id, lock,
+                                          inMsg->getParam(2));
                 outMsgs.push_back(kRel);
                 
                 return 3;
@@ -95,16 +99,27 @@ int Competitor::transit(MessageTuple *inMsg, vector<MessageTuple *> &outMsgs,
 
         case 2:
             if( msg == "LOCKED" ) {
-                if( inMsg->getParam(0) == _front) {
-                    // Change state
-                    _current = 3;
-                    
-                    return 3;
+                if( inMsg->getParam(2) == _t ){
+                    if( inMsg->getParam(0) == _front) {
+                        // Change state
+                        _current = 3;
+                        
+                        return 3;
+                    }
+                    else if( inMsg->getParam(0) == _back ) {
+                        // Change state
+                        _current = 13;
+                        
+                        return 3;
+                    }
                 }
-                else if( inMsg->getParam(0) == _back ) {
-                    // Change state
-                    _current = 13;
-                    
+                else {
+#ifdef VERBOSE_ACTIONS
+                    cout << "Received LOCKED from earlier transaction (t="
+                         << inMsg->getParam(2)
+                         << "), current transaction t=" << _t << endl;
+#endif
+                    // Ignore the outdated LOCKED message
                     return 3;
                 }
             }
@@ -118,7 +133,7 @@ int Competitor::transit(MessageTuple *inMsg, vector<MessageTuple *> &outMsgs,
             break;
             
         case 3: // State s_3
-            if( msg == "LOCKED" ) {
+            if( msg == "LOCKED" && inMsg->getParam(2) == _t) {
                 if( inMsg->getParam(0) == _back) {
                     // Change state
                     _current = 4;
@@ -136,7 +151,7 @@ int Competitor::transit(MessageTuple *inMsg, vector<MessageTuple *> &outMsgs,
             break;
             
         case 13: // State s_3'
-            if( msg == "LOCKED" ) {
+            if( msg == "LOCKED" && inMsg->getParam(2) == _t) {
                 if( inMsg->getParam(0) == _front) {
                     // Change state
                     _current = 4;
@@ -182,17 +197,17 @@ int Competitor::nullInputTrans(vector<MessageTuple *> &outMsgs, bool &high_prob,
         if( _current == 4 ) {
             MessageTuple* ctrlRes = new CompetitorMessage(0, machineToInt("controller"),
                                                           0, messageToInt("complete"),
-                                                          _machineId, _id, -1);
+                                                          _machineId, _id, -1, 0);
             MessageTuple* ownRel =
                 new CompetitorMessage(0, machineToInt(Lock_Utils::getLockName(_id)),
-                                      0, relId, _machineId, _id, _id);
+                                      0, relId, _machineId, _id, _id, _t);
             MessageTuple* fRel =
                 new CompetitorMessage(0, machineToInt("channel"),
-                                      0, relId, _machineId, _id, _front);
+                                      0, relId, _machineId, _id, _front, _t);
             
             MessageTuple* bRel =
                 new CompetitorMessage(0, machineToInt("channel"),
-                                      0, relId, _machineId, _id, _back);
+                                      0, relId, _machineId, _id, _back, _t);
             
             outMsgs.push_back(ctrlRes);
             outMsgs.push_back(ownRel);
@@ -243,7 +258,7 @@ MessageTuple* Competitor::createResponse(string msg, string dst, MessageTuple* i
     
     MessageTuple* ret = new CompetitorMessage(inMsg->subjectId(), dstId,
                                               inMsg->destMsgId(), outMsgId,
-                                              _machineId, _id, toLock);
+                                              _machineId, _id, toLock, _t);
     return ret;
 }
 
@@ -252,8 +267,8 @@ MessageTuple* Competitor::createReq(string dst, MessageTuple* inMsg, int toLock)
     // Create a typical message with source identifier
     MessageTuple* ret = createResponse("REQUEST", dst, inMsg, toLock);
     // Add timestamp onto the message
-    CompetitorMessage* compMsg = dynamic_cast<CompetitorMessage*>(ret) ;
-    compMsg->createReq(_t) ;
+    //CompetitorMessage* compMsg = dynamic_cast<CompetitorMessage*>(ret) ;
+    //compMsg->createReq(_t) ;
     return ret ;
 }
 
@@ -263,7 +278,7 @@ bool Competitor::toRelease(MessageTuple *inMsg, vector<MessageTuple *> &outMsgs)
     assert( outMsgs.size() == 0 );
     
     int from = inMsg->getParam(0);
-    if( msg == "INQUIRE" && (from == _front || from == _back) ) {
+    if( msg == "INQUIRE" && (from==_front || from==_back) && inMsg->getParam(2)==_t ) {
         // Response
         MessageTuple* rFront = createResponse("RELEASE", "channel", inMsg, _front);
         MessageTuple* rBack = createResponse("RELEASE", "channel", inMsg, _back);
@@ -274,7 +289,7 @@ bool Competitor::toRelease(MessageTuple *inMsg, vector<MessageTuple *> &outMsgs)
         outMsgs.push_back(rOwn);
         outMsgs.push_back(abortMsg());
     }
-    else if( msg == "FAILED") {
+    else if( msg == "FAILED" && inMsg->getParam(2)==_t) {
         if( from == _front ) {
             MessageTuple* rBack = createResponse("RELEASE", "channel", inMsg, _back);
             MessageTuple* rOwn = createResponse("RELEASE", Lock_Utils::getLockName(_id),
@@ -321,15 +336,16 @@ CompetitorMessage* Competitor::abortMsg()
 {
     return new CompetitorMessage(0, machineToInt("controller"),
                                  0, messageToInt("abort"),
-                                 _machineId, _id, -1);
+                                 _machineId, _id, -1, _t);
 }
 
+/*
 CompetitorMessage* CompetitorMessage::createReq(int timeGen)
 {
     _nParams = 3;
     _t = timeGen ;
     return this;
-}
+}*/
 
 string CompetitorMessage::toString()
 {

@@ -39,12 +39,13 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                 assert( typeid(*inMsg) == typeid(CompetitorMessage) );
                 // Assignments
                 int i = inMsg->getParam(0) ;
-                int t = inMsg->getParam(1) ;
+                int t = inMsg->getParam(2) ;
                 _ts = t ;
                 _old = i;
                 // Response
                 if( _old != _id ) {
-                    MessageTuple* response = createResponse("LOCKED", "channel", inMsg, _old);
+                    MessageTuple* response = createResponse("LOCKED", "channel",
+                                                            inMsg, _old, _ts);
                     outMsgs.push_back(response);
                 }
                 // Change State
@@ -57,7 +58,8 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                 // Response
                 if(  inMsg->getParam(0) == _id ) {
                     string ownComp = Lock_Utils::getCompetitorName(_id) ;
-                    MessageTuple* response = createResponse("free", ownComp, inMsg, _id);
+                    MessageTuple* response = createResponse("free", ownComp,
+                                                            inMsg, _id, -1);
                     outMsgs.push_back(response);
                     
                     return 3;
@@ -71,11 +73,11 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
         
         case 1:
             if( msg == "RELEASE" ) {
-                if( inMsg->getParam(0) == _old ) {
+                if( inMsg->getParam(0) == _old && inMsg->getParam(2) == _ts) {
                     // Response
                     MessageTuple* ctrlRes = new LockMessage(0, machineToInt("controller"),
                                                             0, messageToInt("complete"),
-                                                            _machineId, _id, _old);
+                                                            _machineId, _id, _old, -1);
                     outMsgs.push_back(ctrlRes);
                     // Change state
                     _current = 0;
@@ -93,7 +95,8 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                 // Response
                 if(  inMsg->getParam(0) == _id ) {
                     string ownComp = Lock_Utils::getCompetitorName(_id) ;
-                    MessageTuple* response = createResponse("secured", ownComp, inMsg, _id);
+                    MessageTuple* response = createResponse("secured", ownComp,
+                                                            inMsg, _id, -1);
                     outMsgs.push_back(response);
                     
                     return 3;
@@ -103,14 +106,14 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                 int j = inMsg->getParam(0) ;
                 if( j != _old ) {
                     // Assignments
-                    _t2 = inMsg->getParam(1);
+                    _t2 = inMsg->getParam(2);
                     _new = j ;
                     
                     if( _t2 < _ts ) {
                         // True
                         // Response
                         MessageTuple* react = createResponse("INQUIRE", "channel",
-                                                             inMsg, _old );
+                                                             inMsg, _old, _ts );
                         outMsgs.push_back(react);
                         
                         // Change state
@@ -120,12 +123,12 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                         // False
                         // Response
                         MessageTuple* response = createResponse("FAILED", "channel",
-                                                                inMsg, _new );
+                                                                inMsg, _new, _t2 );
                         outMsgs.push_back(response);
                         MessageTuple* ctrlAbt =
                             new LockMessage(0, machineToInt("controller"),
                                             0, messageToInt("abort"),
-                                            _machineId, _id, _new);
+                                            _machineId, _id, _new, -1);
                         outMsgs.push_back(ctrlAbt);
                         // Assign variables
                         _new = _t2 = -1;
@@ -153,14 +156,15 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
             
         case 2:
             if( msg == "ENGAGED" ) {
-                if( inMsg->getParam(0) == _old) {
+                if( inMsg->getParam(0) == _old && inMsg->getParam(2) == _ts) {
                     // Respond
-                    MessageTuple* react = createResponse("FAILED", "channel", inMsg, _new) ;
+                    MessageTuple* react = createResponse("FAILED", "channel",
+                                                         inMsg, _new, _t2) ;
                     outMsgs.push_back(react);
                     MessageTuple* ctrlAbt =
                         new LockMessage(0, machineToInt("controller"),
                                         0, messageToInt("abort"),
-                                        _machineId, _id, _new);
+                                        _machineId, _id, _new, -1);
                     outMsgs.push_back(ctrlAbt);
                     // Assign variables
                     _new = _t2 = -1;
@@ -171,14 +175,15 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                 }
             }
             else if( msg == "RELEASE" ) {
-                if( inMsg->getParam(0) == _old ) {
+                if( inMsg->getParam(0) == _old && inMsg->getParam(2) == _ts) {
                     // Respond
-                    MessageTuple* react = createResponse("LOCKED", "channel", inMsg, _new);
+                    MessageTuple* react = createResponse("LOCKED", "channel",
+                                                         inMsg, _new, _t2);
                     outMsgs.push_back(react);
                     MessageTuple* ctrlAbt =
                         new LockMessage(0, machineToInt("controller"),
                                         0, messageToInt("abort"),
-                                        _machineId, _id, _old);
+                                        _machineId, _id, _old, -1);
                     outMsgs.push_back(ctrlAbt);
                     // Assignments
                     _ts = _t2;
@@ -195,7 +200,8 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                 // Response
                 if(  inMsg->getParam(0) == _id ) {
                     string ownComp = Lock_Utils::getCompetitorName(_id) ;
-                    MessageTuple* response = createResponse("secured", ownComp, inMsg, _id);
+                    MessageTuple* response = createResponse("secured", ownComp,
+                                                            inMsg, _id, -1);
                     outMsgs.push_back(response);
                     
                     return 3;
@@ -207,7 +213,8 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                 if( master == _old ) {
                     // Same reaction as that of receiving RELEASE from old competitor
                     // Respond
-                    MessageTuple* react = createResponse("LOCKED", "channel", inMsg, _new);
+                    MessageTuple* react = createResponse("LOCKED", "channel",
+                                                         inMsg, _new, _t2);
                     outMsgs.push_back(react);
                     // Assignments
                     _ts = _t2;
@@ -266,7 +273,8 @@ void Lock::reset()
     _current = 0 ;
 }
 
-MessageTuple* Lock::createResponse(string msg, string dst, MessageTuple* inMsg, int toComp)
+MessageTuple* Lock::createResponse(string msg, string dst, MessageTuple* inMsg,
+                                   int toComp, int time)
 {
     int outMsgId = messageToInt(msg);
     int dstId = machineToInt(dst);
@@ -276,7 +284,7 @@ MessageTuple* Lock::createResponse(string msg, string dst, MessageTuple* inMsg, 
     
     MessageTuple* ret = new LockMessage(inMsg->subjectId(), dstId,
                                         inMsg->destMsgId(), outMsgId,
-                                        _machineId, _id, toComp);
+                                        _machineId, _id, toComp, time);
     return ret;
 }
 

@@ -44,7 +44,8 @@ private:
     
     const int _range;
     
-    MessageTuple* createResponse(string msg, string dst, MessageTuple* inMsg, int toComp);
+    MessageTuple* createResponse(string msg, string dst, MessageTuple* inMsg,
+                                 int toComp, int time);
 };
 
 class LockMessage : public MessageTuple
@@ -56,29 +57,31 @@ public:
     // lock: the ID of the destination competitor. (exception: when the message is
     // "complete", which is to notify the controller that the lock is released, the field
     // is used to tell the controller which competitor this lock was associated to
-    LockMessage(int src, int dest, int srcMsg, int destMsg, int subject, int k, int comp)
-    :MessageTuple(src, dest, srcMsg, destMsg, subject), _k(k), _comp(comp) {}
+    LockMessage(int src, int dest, int srcMsg, int destMsg, int subject, int k,
+                int comp, int t)
+    :MessageTuple(src, dest, srcMsg, destMsg, subject), _k(k), _comp(comp), _t(t) {}
     
     LockMessage( const LockMessage& msg )
     :MessageTuple(msg._src, msg._dest, msg._srcMsg, msg._destMsg, msg._subject)
-    , _k(msg._k), _comp(msg._comp) {}
+    , _k(msg._k), _comp(msg._comp), _t(msg._t) {}
     
     LockMessage(int src, int dest, int srcMsg, int destMsg, int subject,
                       const LockMessage& msg)
     :MessageTuple(src, dest, srcMsg, destMsg, subject)
-    , _k(msg._k), _comp(msg._comp) {}
+    , _k(msg._k), _comp(msg._comp), _t(msg._t) {}
     
     ~LockMessage() {}
     
-    size_t numParams() {return 2; }
-    int getParam(size_t arg) { return (arg==1)?_comp:_k; }
+    size_t numParams() {return 3; }
+    int getParam(size_t arg) { return (arg==2)?_t:((arg==1)?_comp:_k); }
     
     string toString() ;
     
     LockMessage* clone() const ;
 private:
     const int _k ;
-    const int _comp ; 
+    const int _comp ;
+    const int _t;
 };
 
 class LockSnapshot : public StateSnapshot

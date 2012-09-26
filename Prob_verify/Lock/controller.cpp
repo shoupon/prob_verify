@@ -48,11 +48,11 @@ int Controller::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                 _selves[master] = -1;
             }
             else {
-                /*
+                
                 // This shouldn't happen:
                 // The lock send complete message to the controller, but the controller
                 // thought the lock is being released
-                assert(false); */
+                //throw string("Release tracking error");
             }
             removeEngaged(master);
             _time++;
@@ -102,6 +102,9 @@ int Controller::nullInputTrans(vector<MessageTuple*>& outMsgs,
                 outMsgs.push_back(bMsg);
             if( _selves[veh] != -1 )
                 outMsgs.push_back(sMsg);
+            
+            if( _fronts[veh] >= 0 && _backs[veh] < 0 )
+                cout << "Problem here?" << endl ;
             
             // Change state
             if( _busy[veh] >= _time )

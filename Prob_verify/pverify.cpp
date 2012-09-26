@@ -42,171 +42,183 @@ void ProbVerifier::addError(StoppingState *es)
 // The basic procedure
 void ProbVerifier::start(int maxClass)
 {
-    cout << "Stopping states:" << endl ;
-    for( size_t i = 0 ; i < _RS.size() ; ++i ) {
-        cout << _RS[i]->toString() ;
-    }
-    cout << endl;
-    cout << "Error states:" << endl;
-    for( size_t i = 0 ; i < _errors.size() ; ++i ) {
-        cout << _errors[i]->toString() ;
-    }
-    cout << endl; 
-    
-    _maxClass = maxClass ;
-    _arrClass.resize(maxClass, GSMap());
-    for( size_t ii = 0 ; ii < _macPtrs.size() ; ++ii ) 
-        _macPtrs[ii]->reset();
-
-    _root = new GlobalState(_macPtrs) ; 
-    GlobalState::init(_root);
-    _root->setRoot();
-
-    // Initialize _arrClass[0] to contain the initial global state. 
-    // the other maps are initialized null.    
-    _arrClass.push_back( GSMap() );   
-    _arrClass[0].insert( GSMapPair(_root,0) );
-#ifdef VERBOSE
-    cout << _root->toString() << endl ;
-#endif
-   
-    for( _curClass = 0 ; _curClass < _maxClass ; ++_curClass ) {
-        cout << "-------- Exploring GlobalStates of class[" << _curClass
-             << "] --------" << endl ;
-        // Check if the members in class[k] are already contained in STATET (_arrFinStart).
-        // If yes, remove the member from class[k];
-        // otherwise, add that member to STATET
-        GSMap::iterator it = _arrClass[_curClass].begin();
-        while( it != _arrClass[_curClass].end() ) {
-            GlobalState* st = it->first ;
-            if( _curClass == 0 ) { 
-                if( isStopping(st) ) {
-                    // If *ptr is a member of RS, add it to STATETABLE (_arrFinRS) 
-                    // and to STATET (_arrFinStart)
-                    insert(_arrFinRS, st );
-                    insert(_arrFinStart, st);                    
-                }
-            }
-            else {
-                if( find(_arrFinStart,st) != _arrFinStart.end() ) {
-                    // st is already contained in STATET (_arrFinStart)
-                    // which means st is already explored
-                    _arrClass[_curClass].erase(it++);
-                    continue ;
+    try {
+        cout << "Stopping states:" << endl ;
+        for( size_t i = 0 ; i < _RS.size() ; ++i ) {
+            cout << _RS[i]->toString() ;
+        }
+        cout << endl;
+        cout << "Error states:" << endl;
+        for( size_t i = 0 ; i < _errors.size() ; ++i ) {
+            cout << _errors[i]->toString() ;
+        }
+        cout << endl;
+        
+        _maxClass = maxClass ;
+        _arrClass.resize(maxClass, GSMap());
+        for( size_t ii = 0 ; ii < _macPtrs.size() ; ++ii )
+            _macPtrs[ii]->reset();
+        
+        _root = new GlobalState(_macPtrs) ;
+        GlobalState::init(_root);
+        _root->setRoot();
+        
+        // Initialize _arrClass[0] to contain the initial global state.
+        // the other maps are initialized null.
+        _arrClass.push_back( GSMap() );
+        _arrClass[0].insert( GSMapPair(_root,0) );
+    #ifdef VERBOSE
+        cout << _root->toString() << endl ;
+    #endif
+        
+        for( _curClass = 0 ; _curClass < _maxClass ; ++_curClass ) {
+            cout << "-------- Exploring GlobalStates of class[" << _curClass
+            << "] --------" << endl ;
+            // Check if the members in class[k] are already contained in STATET (_arrFinStart).
+            // If yes, remove the member from class[k];
+            // otherwise, add that member to STATET
+            GSMap::iterator it = _arrClass[_curClass].begin();
+            while( it != _arrClass[_curClass].end() ) {
+                GlobalState* st = it->first ;
+                if( _curClass == 0 ) {
+                    if( isStopping(st) ) {
+                        // If *ptr is a member of RS, add it to STATETABLE (_arrFinRS)
+                        // and to STATET (_arrFinStart)
+                        insert(_arrFinRS, st );
+                        insert(_arrFinStart, st);
+                    }
                 }
                 else {
-                    insert(_arrFinStart, st);                    
-                }
-            }
-            it++;
-        } // while
-
-        while( !_arrClass[_curClass].empty() ) {
-            // Pop a globalstate pointer ptr from class[k] (_arrClass[_curClass])
-            GSMapConstIter it = _arrClass[_curClass].begin();            
-            GlobalState* st = it->first ;              
-
-            if( st->getDistance() > _max ) {
-                cout << "Livelock found after " << st->getProb()
-                     << " low probability transitions" << endl ;
-                cout << "Total GlobalStates in unique table: " << st->numAll() << endl ;
-
-                vector<GlobalState*> seq;
-                st->pathCycle(seq);
-                printSeq(seq);
-                
-                return ;
-            }   
-
-
-            if( !st->hasChild() ) {
-                // Compute all the globalstate's childs
-#ifdef VERBOSE
-                cout << "====  Finding successors of " << st->toString() << endl;
-#endif 
-                st->findSucc();
-                // Increase the threshold of livelock detection
-                _max += st->size();
-            }
-            st->updateTrip();  
-            size_t nChilds = st->size();
-
-            // If the explored GlobalState st is in RS, add st to STATETABLE (_arrFinRS), so 
-            // when the later probabilistic search reaches st, the search will stop and
-            // explore some other paths
-            if( isStopping(st) ) {
-                if( find( _arrRS, st) != _arrRS.end() ) {
-                    insert(_arrFinStart, st);
-                    insert(_arrFinRS, st);
-                }
-                else {
-                    insert(_arrRS, st) ;
-                }
-            }
-      
-#ifdef LOG
-            cout << st->toString() << ": "  ;
-#endif
-            if( nChilds == 0 ) {
-                // No child found. Report deadlock 
-                cout << "Deadlock found." << endl ;
-
-                vector<GlobalState*> seq;
-                st->pathRoot(seq);
-                printSeq(seq);
-
-                return ;
-            }
-            else if( isError(st) ) {
-                // The child matches the criterion of an ErrorState.
-                // Print out the path that reaches this error state.
-                cout << endl << "Error state found: " << endl ;
-                cout << st->toString() << endl;
-                
-                vector<GlobalState*> seq;
-                st->pathRoot(seq);
-                printSeq(seq);
-                
-                return ;
-            }
-            else {
-                // Add the computed childs to class array ST[class].
-                for( size_t idx = 0 ; idx < nChilds ; ++idx ) {
-
-                    GlobalState* childNode = st->getChild(idx);                        
-
-                    int prob = st->getProb(idx);                   
-                    int dist = childNode->getDistance();
-#ifdef LOG
-                    cout << childNode->toString() << " Prob = " << prob 
-                                                  << " Dist = " << dist << endl;
-#endif                   
-                    // Add the childnode to _arrClass[_curClass] provided that it is not
-                    // already a member of _arrFinStart (STATETABLE as in paper)
-                    if( find(_arrFinStart,childNode) == _arrFinStart.end() ) {
-                        addToClass(childNode, prob);
+                    if( find(_arrFinStart,st) != _arrFinStart.end() ) {
+                        // st is already contained in STATET (_arrFinStart)
+                        // which means st is already explored
+                        _arrClass[_curClass].erase(it++);
+                        continue ;
                     }
                     else {
-                        // Do something else, such as print out the probability
-                        //childNode->removeParents() ;
-                        cout << "Stopping state reached" << endl ;
+                        insert(_arrFinStart, st);
                     }
-                }   
-#ifdef LOG
-                cout << endl   ;
-#endif
-            }            
-
-            // Finish exploring st. Remove st from class[k] (_arrClass[_curClass])
-            _arrClass[_curClass].erase(it);            
+                }
+                it++;
+            } // while
             
-        } // while (explore the global state in class[_curClass] until all the global states in the class
-          // are explored       
+            while( !_arrClass[_curClass].empty() ) {
+                // Pop a globalstate pointer ptr from class[k] (_arrClass[_curClass])
+                GSMapConstIter it = _arrClass[_curClass].begin();
+                GlobalState* st = it->first ;
+                
+                if( st->getDistance() > _max ) {
+                    cout << "Livelock found after " << st->getProb()
+                    << " low probability transitions" << endl ;
+                    cout << "Total GlobalStates in unique table: " << st->numAll() << endl ;
+                    
+                    vector<GlobalState*> seq;
+                    st->pathCycle(seq);
+                    printSeq(seq);
+                    
+                    return ;
+                }
+                
+                
+                if( !st->hasChild() ) {
+                    // Compute all the globalstate's childs
+    #ifdef VERBOSE
+                    cout << "====  Finding successors of " << st->toString() << endl;
+    #endif
+                    st->findSucc();
+                    // Increase the threshold of livelock detection
+                    _max += st->size();
+                }
+                st->updateTrip();
+                size_t nChilds = st->size();
+                
+                // If the explored GlobalState st is in RS, add st to STATETABLE (_arrFinRS), so
+                // when the later probabilistic search reaches st, the search will stop and
+                // explore some other paths
+                if( isStopping(st) ) {
+                    if( find( _arrRS, st) != _arrRS.end() ) {
+                        insert(_arrFinStart, st);
+                        insert(_arrFinRS, st);
+                    }
+                    else {
+                        insert(_arrRS, st) ;
+                    }
+                }
+                
+    #ifdef LOG
+                cout << st->toString() << ": "  ;
+    #endif
+                if( nChilds == 0 ) {
+                    // No child found. Report deadlock
+                    cout << "Deadlock found." << endl ;
+                    
+                    vector<GlobalState*> seq;
+                    st->pathRoot(seq);
+                    printSeq(seq);
+                    
+                    return ;
+                }
+                else if( isError(st) ) {
+                    // The child matches the criterion of an ErrorState.
+                    // Print out the path that reaches this error state.
+                    cout << endl << "Error state found: " << endl ;
+                    cout << st->toString() << endl;
+                    
+                    vector<GlobalState*> seq;
+                    st->pathRoot(seq);
+                    printSeq(seq);
+                    
+                    return ;
+                }
+                else {
+                    // Add the computed childs to class array ST[class].
+                    for( size_t idx = 0 ; idx < nChilds ; ++idx ) {
+                        
+                        GlobalState* childNode = st->getChild(idx);
+                        
+                        int prob = st->getProb(idx);
+                        int dist = childNode->getDistance();
+    #ifdef LOG
+                        cout << childNode->toString() << " Prob = " << prob
+                        << " Dist = " << dist << endl;
+    #endif
+                        // Add the childnode to _arrClass[_curClass] provided that it is not
+                        // already a member of _arrFinStart (STATETABLE as in paper)
+                        if( find(_arrFinStart,childNode) == _arrFinStart.end() ) {
+                            addToClass(childNode, prob);
+                        }
+                        else {
+                            // Do something else, such as print out the probability
+                            //childNode->removeParents() ;
+                            cout << "Stopping state reached" << endl ;
+                        }
+                    }
+    #ifdef LOG
+                    cout << endl   ;
+    #endif
+                }
+                
+                // Finish exploring st. Remove st from class[k] (_arrClass[_curClass])
+                _arrClass[_curClass].erase(it);
+                
+            } // while (explore the global state in class[_curClass] until all the global states in the class
+            // are explored
+            
+        } // for (explore all the class until class[0] through class[_maxClass-1] are fully explored
+        
+        // Conclude success
+        cout << "No deadlock or livelock found." << endl;
+        
+    } // try
+    catch ( GlobalState* st ) {
+#ifdef TRACE_UNMATCHED
+        vector<GlobalState*> seq;
+        st->pathRoot(seq);
+        printSeq(seq);
+#endif
+        
+    } // catch
 
-    } // for (explore all the class until class[0] through class[_maxClass-1] are fully explored
-    
-    // Conclude success
-    cout << "No deadlock or livelock found." << endl;
 }
 /*
 void ProbVerifier::setRS(vector<GlobalState*> rs) 

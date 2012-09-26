@@ -64,8 +64,9 @@ public:
     // lock: the ID of the destination lock. Exception: -1 when the destination is the
     // controller
     CompetitorMessage(int src, int dest, int srcMsg, int destMsg, int subject
-                      , int k, int lock)
-    :MessageTuple(src, dest, srcMsg, destMsg, subject), _k(k),_lock(lock) { _nParams = 2;}
+                      , int k, int lock, int t)
+    :MessageTuple(src, dest, srcMsg, destMsg, subject), _k(k),_lock(lock), _t(t)
+    { _nParams = 3;}
     
     CompetitorMessage( const CompetitorMessage& msg )
     :MessageTuple(msg._src, msg._dest, msg._srcMsg, msg._destMsg, msg._subject)
@@ -80,7 +81,7 @@ public:
     
 
     
-    CompetitorMessage* createReq(int timeGen);
+    //CompetitorMessage* createReq(int timeGen);
     
     size_t numParams() { return _nParams; }
     int getParam(size_t arg) { return (arg==2)?_t:((arg==1)?_lock:_k) ; }
@@ -94,7 +95,7 @@ private:
     const int _k;
     // The ID of the lock to which this message is destined
     const int _lock;
-    int _t;
+    const int _t;
     int _nParams;
 };
 
