@@ -141,8 +141,8 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
             }
             else if( msg == "timeout" ) {
                 assert( inMsg->subjectId() == machineToInt("controller") ) ;
-                int master = inMsg->getParam(0);
-                if( master == _old ) {
+                int time = inMsg->getParam(0);
+                if( time == _ts ) {
                     // Change state
                     _current = 0;
                     reset();
@@ -209,8 +209,8 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
             }
             else if( msg == "timeout" ) {
                 assert( inMsg->subjectId() == machineToInt("time") ) ;
-                int master = inMsg->getParam(0);
-                if( master == _old ) {
+                int time = inMsg->getParam(0);
+                if( time == _ts ) {
                     // Same reaction as that of receiving RELEASE from old competitor
                     // Respond
                     MessageTuple* react = createResponse("LOCKED", "channel",

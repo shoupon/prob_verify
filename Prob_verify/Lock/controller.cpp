@@ -75,8 +75,8 @@ int Controller::nullInputTrans(vector<MessageTuple*>& outMsgs,
         if( !_engaged.empty() ) {
             // timeout event
             int veh = _engaged.front() ;
-            int f = _fronts[veh];
-            int b = _backs[veh];
+            int f = _nbrs[veh].front().first ;
+            int b = _nbrs[veh].front().second ;
             
             // create response
             int vId = machineToInt(Lock_Utils::getCompetitorName(veh));
@@ -87,24 +87,17 @@ int Controller::nullInputTrans(vector<MessageTuple*>& outMsgs,
             // send message to the competitor or the lock that has not been reset
             // i.e. the some messages are loss during the course 
             ControllerMessage* vMsg =
-                new ControllerMessage(0,vId,0,dstMsgId,_machineId,veh);
+                new ControllerMessage(0,vId,0,dstMsgId,_machineId,_busy[veh]);
             ControllerMessage* fMsg =
-                new ControllerMessage(0,fId,0,dstMsgId,_machineId,veh);
+                new ControllerMessage(0,fId,0,dstMsgId,_machineId,_busy[veh]);
             ControllerMessage* bMsg =
-                new ControllerMessage(0,bId,0,dstMsgId,_machineId,veh);
+                new ControllerMessage(0,bId,0,dstMsgId,_machineId,_busy[veh]);
             ControllerMessage* sMsg =
-                new ControllerMessage(0,sId,0,dstMsgId,_machineId,veh);
-            if( _busy[veh] != -1 )
-                outMsgs.push_back(vMsg);
-            if( _fronts[veh] != -1 )
-                outMsgs.push_back(fMsg);
-            if( _backs[veh] != -1 )
-                outMsgs.push_back(bMsg);
-            if( _selves[veh] != -1 )
-                outMsgs.push_back(sMsg);
-            
-            if( _fronts[veh] >= 0 && _backs[veh] < 0 )
-                cout << "Problem here?" << endl ;
+                new ControllerMessage(0,sId,0,dstMsgId,_machineId,_busy[veh]);
+            outMsgs.push_back(vMsg);
+            outMsgs.push_back(fMsg);
+            outMsgs.push_back(bMsg);
+            outMsgs.push_back(sMsg);
             
             // Change state
             if( _busy[veh] >= _time )

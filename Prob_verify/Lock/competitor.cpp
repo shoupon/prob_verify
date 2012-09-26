@@ -323,7 +323,7 @@ bool Competitor::toTimeout(MessageTuple *inMsg, vector<MessageTuple *> &outMsgs)
     string msg = IntToMessage(inMsg->destMsgId() ) ;
     assert( outMsgs.size() == 0 );
     
-    if( msg == "timeout") {
+    if( msg == "timeout" && inMsg->getParam(0) == _t ) {
         // Response
         _current = 0;
         reset();
