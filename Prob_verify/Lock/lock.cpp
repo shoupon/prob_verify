@@ -175,6 +175,11 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                 }
                 return 3;
             }
+            else if( msg == "ENGAGED" ) {
+                // The ENGAGED is no longer needed. The lock must be released by
+                // the original master
+                return 3;
+            }
             
         case 2:
             if( msg == "ENGAGED" ) {

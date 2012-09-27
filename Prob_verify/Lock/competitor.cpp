@@ -192,7 +192,7 @@ int Competitor::transit(MessageTuple *inMsg, vector<MessageTuple *> &outMsgs,
                 if( inMsg->getParam(2) == _t ) {
                     // response
                     MessageTuple* eng = createResponse("ENGAGED", "channel", inMsg,
-                                                       inMsg->getParam(2) );
+                                                       inMsg->getParam(0) );
                     outMsgs.push_back(eng);
                     // variables and state remain the same
                     return 3;
