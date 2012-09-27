@@ -110,6 +110,7 @@ int main( int argc, char* argv[] )
         
         // Specify the starting state
         GlobalState startPoint(pvObj.getMachinePtrs());
+        startPoint.setParser(psrPtr);
 
         // Specify the global states in the set RS (stopping states)
         // initial state: FF
