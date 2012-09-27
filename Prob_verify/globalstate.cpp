@@ -246,8 +246,8 @@ vector<GlobalState*> GlobalState::evaluate()
                 // Another null input transition should be evaluate first
                 stringstream ss ;
                 ss << "No matching transition for outlabel: " 
-                   << "Destination Machine ID = " << tuple->destId()
-                   << " Message ID = " << tuple->destMsgId() << endl
+                   << "Destination Machine = " << _psrPtr->IntToMachine(tuple->destId())
+                   << " Message = " << _psrPtr->IntToMessage(tuple->destMsgId()) << endl
                    << "GlobalState = " << this->toString() << endl ;   
 
                 // Print all the task in _fifo

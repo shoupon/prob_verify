@@ -10,6 +10,7 @@
 #include "state.h"
 #include "statemachine.h"
 #include "myHash.h"
+#include "parser.h"
 
 class GlobalStateHashKey;
 class GSVecHashKey;
@@ -48,6 +49,7 @@ private:
     // unique. The _uniqueTable stores the pointers to each unique GlobalState
     static GSHash _uniqueTable ;
     static GlobalState* _root;
+    static Parser* _psrPtr;
     
     vector<GlobalState*> _childs;
     vector<GlobalState*> _parents;
@@ -140,6 +142,8 @@ public:
     static bool init(GlobalState*) ;    
     static void clearAll() ;
     static size_t numAll() { return _uniqueTable.size() ; }
+    
+    static void setParser(Parser* ptr) { _psrPtr = ptr ;}
 };
 
 class GlobalStateHashKey
