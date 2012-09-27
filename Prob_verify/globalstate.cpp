@@ -14,6 +14,7 @@ int GlobalState::_nMacs = -1;
 vector<StateMachine*> GlobalState::_machines;
 GSHash GlobalState::_uniqueTable = GSHash(15) ;
 GlobalState* GlobalState::_root = 0;
+Parser* GlobalState::_psrPtr = 0 ;
 
 GlobalState::GlobalState(GlobalState* gs): _countVisit(1),
         _dist(gs->_dist+1), _depth(gs->_depth), _white(true)

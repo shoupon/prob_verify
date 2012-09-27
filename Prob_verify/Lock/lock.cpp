@@ -196,6 +196,10 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                     return 3;
                 }
             }
+            else if( msg == "REQUEST" ) {
+                // Ignore the message
+                return 3;
+            }
             else if( msg == "RELEASE" ) {
                 if( inMsg->getParam(0) == _old && inMsg->getParam(2) == _ts) {
                     // Respond
@@ -214,6 +218,10 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                     // Change state
                     _current = 1;
                     
+                    return 3;
+                }
+                else {
+                    // The RELEASE is not intended for
                     return 3;
                 }
             }
