@@ -36,14 +36,6 @@ public:
 
 class GlobalState
 {
-protected:
-    // Number of machines
-    static int _nMacs ;
-    // array of ptr to machines
-    static vector<StateMachine*> _machines;
-    
-    vector<StateSnapshot*> _gStates;
-private:
     // The ID's of states in a global state
     // A table stores all of the reachable globalState. Each reachable globalState is
     // unique. The _uniqueTable stores the pointers to each unique GlobalState
@@ -60,11 +52,21 @@ private:
     int _countVisit;
     int _dist ;
     int _depth;
-
+    
     // Used in breadth-first search
     bool _white;
     size_t _trace;
     
+    // Used when determine transitions between stopping states
+    vector<GlobalState*> _origin;
+protected:
+    // Number of machines
+    static int _nMacs ;
+    // array of ptr to machines
+    static vector<StateMachine*> _machines;
+    
+    vector<StateSnapshot*> _gStates;
+private:
     void trim();      
     void addParents(const vector<GlobalState*>& arr);
     //void execute(int macId, int transId, Transition* transPtr);
@@ -135,6 +137,9 @@ public:
     // element in the vector<GlobalState*> is the same.
     void pathCycle(vector<GlobalState*>& arr);
     void BFS(vector<GlobalState*>& arr, bool (*stop)(GlobalState*));
+    
+    void addOrigin(GlobalState* rootStop);
+    void printOrigins();
 
     string toString() const ;
 

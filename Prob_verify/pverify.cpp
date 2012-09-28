@@ -135,9 +135,9 @@ void ProbVerifier::start(int maxClass)
                 st->updateTrip();
                 size_t nChilds = st->size();
                 
-                // If the explored GlobalState st is in RS, add st to STATETABLE (_arrFinRS), so
-                // when the later probabilistic search reaches st, the search will stop and
-                // explore some other paths
+                // If the explored GlobalState st is in RS, add st to STATETABLE
+                // (_arrFinRS), so when the later probabilistic search reaches st, the
+                // search will stop and explore some other paths
                 if( isStopping(st) ) {
                     if( find( _arrRS, st) != _arrRS.end() ) {
                         insert(_arrFinStart, st);
@@ -145,6 +145,14 @@ void ProbVerifier::start(int maxClass)
                     }
                     else {
                         insert(_arrRS, st) ;
+                    }
+                    
+                    // for each child of this stopping state, add this stopping state
+                    // in to the list of origin stopping states of the child (_origin)
+                    // Allow one to trace back to the stopping state that leads to this
+                    // state
+                    for( size_t ci = 0 ; ci < st->size() ; ++ci ) {
+                        st->getChild(ci)->addOrigin(st);
                     }
                 }
                 
@@ -196,6 +204,7 @@ void ProbVerifier::start(int maxClass)
                             // Do something else, such as print out the probability
                             //childNode->removeParents() ;
                             cout << "Stopping state reached" << endl ;
+                            childNode->printOrigins();
                         }
                     }
     #ifdef LOG

@@ -14,10 +14,10 @@ int GlobalState::_nMacs = -1;
 vector<StateMachine*> GlobalState::_machines;
 GSHash GlobalState::_uniqueTable = GSHash(15) ;
 GlobalState* GlobalState::_root = 0;
-Parser* GlobalState::_psrPtr = 0 ;
+Parser* GlobalState::_psrPtr = 0;
 
 GlobalState::GlobalState(GlobalState* gs): _countVisit(1),
-        _dist(gs->_dist+1), _depth(gs->_depth), _white(true)
+        _dist(gs->_dist+1), _depth(gs->_depth), _white(true), _origin(gs->_origin)
 { 
     _parents.push_back(gs);
     
@@ -405,6 +405,26 @@ bool GlobalState::init(GlobalState* s)
     return _uniqueTable.insert( GlobalStateHashKey(s), s );
 }
 
+void GlobalState::addOrigin(GlobalState* rootStop)
+{
+    for( size_t i = 0 ; i < _origin.size() ; ++i ) {
+        if( _origin[i]->toString() == rootStop->toString() ) {
+            if( _origin[i]->_depth == rootStop->_depth )
+                return ;
+        }
+    }
+    _origin.push_back(rootStop);
+}
+
+void GlobalState::printOrigins()
+{
+    cout << "Print the origin stopping states" << endl ;
+    for( size_t i = 0 ; i < _origin.size() ; ++i ) {
+        int diffDepth = this->_depth - _origin[i]->_depth ;
+        cout << _origin[i]->toString() << " =" << diffDepth << "=>"
+             << this->toString() << endl ;
+    }
+}
 
 string GlobalState::toString() const
 {
