@@ -419,8 +419,16 @@ void GlobalState::printOrigins()
     cout << "Print the origin stopping states" << endl ;
     for( size_t i = 0 ; i < _origin.size() ; ++i ) {
         int diffDepth = this->_depth - _origin[i]->_depth ;
-        cout << _origin[i]->toString() << " =" << diffDepth << "=>"
-             << this->toString() << endl ;
+        if( diffDepth <= 0 ) {
+            if( diffDepth == 0 ) {
+                cout << _origin[i]->toString() << " =" << diffDepth << "=>"
+                     << this->toString() << endl ;
+            }
+            else {
+                cout << "Tracing back to a stopping state with lower probability. ERROR"
+                     << endl ;
+            }
+        }
     }
 }
 
