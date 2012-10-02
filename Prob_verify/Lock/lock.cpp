@@ -131,32 +131,20 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                     _t2 = inMsg->getParam(2);
                     _new = j ;
                     
-                    if( _t2 < _ts ) {
-                        // True
-                        // Response
-                        MessageTuple* react = createResponse("INQUIRE", "channel",
-                                                             inMsg, _old, _ts );
-                        outMsgs.push_back(react);
-                        
-                        // Change state
-                        _current = 2;
-                    }
-                    else {
-                        // False
-                        // Response
-                        MessageTuple* response = createResponse("FAILED", "channel",
-                                                                inMsg, _new, _t2 );
-                        outMsgs.push_back(response);
-                        MessageTuple* ctrlAbt =
-                            new LockMessage(0, machineToInt("controller"),
-                                            0, messageToInt("abort"),
-                                            _machineId, _id, _new, -1);
-                        outMsgs.push_back(ctrlAbt);
-                        // Assign variables
-                        _new = _t2 = -1;
-                        // Change state
-                        _current = 1;
-                    }
+                    // False
+                    // Response
+                    MessageTuple* response = createResponse("FAILED", "channel",
+                                                            inMsg, _new, _t2 );
+                    outMsgs.push_back(response);
+                    MessageTuple* ctrlAbt =
+                        new LockMessage(0, machineToInt("controller"),
+                                        0, messageToInt("abort"),
+                                        _machineId, _id, _new, -1);
+                    outMsgs.push_back(ctrlAbt);
+                    // Assign variables
+                    _new = _t2 = -1;
+                    // Change state
+                    _current = 1;
                     
                     return 3;
                 }
@@ -173,97 +161,6 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                     // Ignore the timeout message, since this lock is no longer locked
                     // by another master
                 }
-                return 3;
-            }
-            else if( msg == "ENGAGED" ) {
-                // The ENGAGED is no longer needed. The lock must be released by
-                // the original master
-                return 3;
-            }
-            
-        case 2:
-            if( msg == "ENGAGED" ) {
-                if( inMsg->getParam(0) == _old && inMsg->getParam(2) == _ts) {
-                    // Respond
-                    MessageTuple* react = createResponse("FAILED", "channel",
-                                                         inMsg, _new, _t2) ;
-                    outMsgs.push_back(react);
-                    MessageTuple* ctrlAbt =
-                        new LockMessage(0, machineToInt("controller"),
-                                        0, messageToInt("abort"),
-                                        _machineId, _id, _new, -1);
-                    outMsgs.push_back(ctrlAbt);
-                    // Assign variables
-                    _new = _t2 = -1;
-                    // Change state
-                    _current = 1;
-                    
-                    return 3;
-                }
-            }
-            else if( msg == "REQUEST" ) {
-                // Ignore the message
-                return 3;
-            }
-            else if( msg == "RELEASE" ) {
-                if( inMsg->getParam(0) == _old && inMsg->getParam(2) == _ts) {
-                    // Respond
-                    MessageTuple* react = createResponse("LOCKED", "channel",
-                                                         inMsg, _new, _t2);
-                    outMsgs.push_back(react);
-                    MessageTuple* ctrlAbt =
-                        new LockMessage(0, machineToInt("controller"),
-                                        0, messageToInt("abort"),
-                                        _machineId, _id, _old, -1);
-                    outMsgs.push_back(ctrlAbt);
-                    // Assignments
-                    _ts = _t2;
-                    _old = _new ;
-                    _new = _t2 = -1;
-                    // Change state
-                    _current = 1;
-                    
-                    return 3;
-                }
-                else {
-                    // The RELEASE is not intended for
-                    return 3;
-                }
-            }
-            else if( msg == "status" ) {
-                assert( typeid(*inMsg) == typeid(CompetitorMessage)) ;
-                // Response
-                if(  inMsg->getParam(0) == _id ) {
-                    string ownComp = Lock_Utils::getCompetitorName(_id) ;
-                    MessageTuple* response = createResponse("secured", ownComp,
-                                                            inMsg, _id, -1);
-                    outMsgs.push_back(response);
-                    
-                    return 3;
-                }
-            }
-            else if( msg == "timeout" ) {
-                assert( inMsg->subjectId() == machineToInt("controller") ) ;
-                int time = inMsg->getParam(0);
-                if( time == _ts ) {
-                    // Same reaction as that of receiving RELEASE from old competitor
-                    // Respond
-                    MessageTuple* react = createResponse("LOCKED", "channel",
-                                                         inMsg, _new, _t2);
-                    outMsgs.push_back(react);
-                    // Assignments
-                    _ts = _t2;
-                    _old = _new ;
-                    _new = _t2 = -1;
-                    // Change state
-                    _current = 1;
-                }
-                else {
-                    // Ignore the timeout message, since this lock is no longer locked
-                    // by another master
-                }
-                
-                
                 return 3;
             }
         default:
