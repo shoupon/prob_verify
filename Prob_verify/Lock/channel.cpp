@@ -141,34 +141,14 @@ MessageTuple* Channel::createDelivery(int idx)
         return 0;
     
     MessageTuple* msg = _mem[idx] ;
-    
     int outMsgId = msg->destMsgId();
-    
-    // The message stored in _mem should be either of type CompetitorMessage or of type
-    // LockMessage
     int toward = msg->getParam(1);
     
     MessageTuple* ret ;
-    if( typeid(*msg) == typeid(CompetitorMessage) ) {
-        // This message destined for a lock
-        string lockName = Lock_Utils::getLockName(toward) ;
-        int dstId = machineToInt(lockName);
-        
-        CompetitorMessage* compMsgPtr = dynamic_cast<CompetitorMessage*>(msg) ;
-        ret = new CompetitorMessage(0,dstId,0,outMsgId,_machineId, *compMsgPtr);
-    }
-    else if( typeid(*msg) == typeid(LockMessage) ) {
-        // This message destined for a competitor
-        string compName = Lock_Utils::getCompetitorName(toward);
-        int dstId = machineToInt(compName) ;
-        
-        LockMessage* lockMsgPtr = dynamic_cast<LockMessage*>(msg);
-        ret = new LockMessage(0,dstId,0,outMsgId,_machineId, *lockMsgPtr);
-    }
-    else {
-        throw runtime_error("The message stored in channel belongs to unxpected type") ;
-    }
-    
+    string lockName = Lock_Utils::getLockName(toward);
+    int dstId = machineToInt(lockName) ;
+    LockMessage* lockMsgPtr = dynamic_cast<LockMessage*>(msg);
+    ret = new LockMessage(0,dstId,0,outMsgId,_machineId, *lockMsgPtr);
     return ret;
 }
 

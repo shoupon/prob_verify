@@ -11,7 +11,6 @@ using namespace std;
 #include "./Lock/lock_utils.h"
 #include "./Lock/controller.h"
 #include "./Lock/lock.h"
-#include "./Lock/competitor.h"
 #include "./Lock/channel.h"
 
 int main( int argc, char* argv[] )
