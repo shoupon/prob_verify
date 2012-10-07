@@ -54,18 +54,6 @@ int Competitor::transit(MessageTuple *inMsg, vector<MessageTuple *> &outMsgs,
                 // Do nothing
                 return 3;
             }
-            else if( msg == "INQUIRE" ) {
-                // Respond
-                int lock = inMsg->getParam(0) ;
-                int relId = messageToInt("RELEASE");
-                MessageTuple* kRel =
-                    new CompetitorMessage(0, machineToInt("channel"),
-                                          0, relId, _machineId, _id, lock,
-                                          inMsg->getParam(2));
-                outMsgs.push_back(kRel);
-                
-                return 3;
-            }
             break;
             
         case 1:
@@ -133,11 +121,17 @@ int Competitor::transit(MessageTuple *inMsg, vector<MessageTuple *> &outMsgs,
             break;
             
         case 3: // State s_3
-            if( msg == "LOCKED" && inMsg->getParam(2) == _t) {
-                if( inMsg->getParam(0) == _back) {
-                    // Change state
-                    _current = 4;
-                    
+            if( msg == "LOCKED" ) {
+                if( inMsg->getParam(2) == _t ) {
+                    if( inMsg->getParam(0) == _back) {
+                        // Change state
+                        _current = 4;
+                        
+                        return 3;
+                    }
+                }
+                else {
+                    // outdated LOCKED, ignore
                     return 3;
                 }
             }
@@ -151,11 +145,17 @@ int Competitor::transit(MessageTuple *inMsg, vector<MessageTuple *> &outMsgs,
             break;
             
         case 13: // State s_3'
-            if( msg == "LOCKED" && inMsg->getParam(2) == _t) {
-                if( inMsg->getParam(0) == _front) {
-                    // Change state
-                    _current = 4;
-                    
+            if( msg == "LOCKED" ) {
+                if( inMsg->getParam(2) == _t ) {
+                    if( inMsg->getParam(0) == _front) {
+                        // Change state
+                        _current = 4;
+                        
+                        return 3;
+                    }
+                }
+                else {
+                    // outdated LOCKED, ignore
                     return 3;
                 }
             }
@@ -169,12 +169,13 @@ int Competitor::transit(MessageTuple *inMsg, vector<MessageTuple *> &outMsgs,
             break;
             
         case 4:
-            if( toRelease(inMsg, outMsgs) ) {
+            if( toTimeout(inMsg, outMsgs) ) {
                 return 3;
             }
-            else if( toTimeout(inMsg, outMsgs) ) {
+            else if( msg == "LOCKED" ) {
+                // Simply ignore this message
                 return 3;
-            }            
+            }
             break;
                                 
         default:
@@ -278,33 +279,28 @@ bool Competitor::toRelease(MessageTuple *inMsg, vector<MessageTuple *> &outMsgs)
     assert( outMsgs.size() == 0 );
     
     int from = inMsg->getParam(0);
-    if( msg == "INQUIRE" && (from==_front || from==_back) && inMsg->getParam(2)==_t ) {
-        // Response
-        MessageTuple* rFront = createResponse("RELEASE", "channel", inMsg, _front);
-        MessageTuple* rBack = createResponse("RELEASE", "channel", inMsg, _back);
-        MessageTuple* rOwn = createResponse("RELEASE", Lock_Utils::getLockName(_id),
-                                            inMsg, _id );
-        outMsgs.push_back(rFront);
-        outMsgs.push_back(rBack);
-        outMsgs.push_back(rOwn);
-        outMsgs.push_back(abortMsg());
-    }
-    else if( msg == "FAILED" && inMsg->getParam(2)==_t) {
-        if( from == _front ) {
-            MessageTuple* rBack = createResponse("RELEASE", "channel", inMsg, _back);
-            MessageTuple* rOwn = createResponse("RELEASE", Lock_Utils::getLockName(_id),
-                                                inMsg, _id );
-            outMsgs.push_back(rBack);
-            outMsgs.push_back(rOwn);
-            outMsgs.push_back(abortMsg());
+    if( msg == "FAILED" ) {
+        if(inMsg->getParam(2)==_t) {
+            if( from == _front ) {
+                MessageTuple* rBack = createResponse("RELEASE", "channel", inMsg, _back);
+                MessageTuple* rOwn = createResponse("RELEASE", Lock_Utils::getLockName(_id),
+                                                    inMsg, _id );
+                outMsgs.push_back(rBack);
+                outMsgs.push_back(rOwn);
+                outMsgs.push_back(abortMsg());
+            }
+            else if( from == _back ) {
+                MessageTuple* rFront = createResponse("RELEASE", "channel", inMsg, _front);
+                MessageTuple* rOwn = createResponse("RELEASE", Lock_Utils::getLockName(_id),
+                                                    inMsg, _id );
+                outMsgs.push_back(rFront);
+                outMsgs.push_back(rOwn);
+                outMsgs.push_back(abortMsg());
+            }
         }
-        else if( from == _back ) {
-            MessageTuple* rFront = createResponse("RELEASE", "channel", inMsg, _front);
-            MessageTuple* rOwn = createResponse("RELEASE", Lock_Utils::getLockName(_id),
-                                                inMsg, _id );
-            outMsgs.push_back(rFront);
-            outMsgs.push_back(rOwn);
-            outMsgs.push_back(abortMsg());
+        else {
+            // ignore the message with wrong timestamp
+            return true ;
         }
     }
     

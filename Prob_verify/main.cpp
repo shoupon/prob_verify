@@ -11,7 +11,6 @@ using namespace std;
 #include "./Lock/lock_utils.h"
 #include "./Lock/controller.h"
 #include "./Lock/lock.h"
-#include "./Lock/competitor.h"
 #include "./Lock/channel.h"
 
 int main( int argc, char* argv[] )
@@ -201,7 +200,7 @@ int main( int argc, char* argv[] )
 
         // Start the procedure of probabilistic verification. 
         // Specify the maximum probability depth to be explored
-        pvObj.start(3);
+        pvObj.start(7);
 
         // When complete, deallocate all machines
         delete ctrl ;

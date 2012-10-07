@@ -204,6 +204,8 @@ void GlobalState::findSucc()
         recordProb();
         // Trim the list of childs    
         trim() ;
+    } catch ( exception& e ) {
+        cerr << e.what() << endl ;
     } catch (...) {
         cerr << "When finding successors (findSucc) " << this->toString() << endl ;
         throw;

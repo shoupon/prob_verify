@@ -43,6 +43,7 @@ void ProbVerifier::addError(StoppingState *es)
 void ProbVerifier::start(int maxClass)
 {
     try {
+#ifdef LOG
         cout << "Stopping states:" << endl ;
         for( size_t i = 0 ; i < _RS.size() ; ++i ) {
             cout << _RS[i]->toString() ;
@@ -53,6 +54,7 @@ void ProbVerifier::start(int maxClass)
             cout << _errors[i]->toString() ;
         }
         cout << endl;
+#endif
         
         _maxClass = maxClass ;
         _arrClass.resize(maxClass, GSMap());
@@ -67,9 +69,9 @@ void ProbVerifier::start(int maxClass)
         // the other maps are initialized null.
         _arrClass.push_back( GSMap() );
         _arrClass[0].insert( GSMapPair(_root,0) );
-    #ifdef VERBOSE
+#ifdef VERBOSE
         cout << _root->toString() << endl ;
-    #endif
+#endif
         
         for( _curClass = 0 ; _curClass <= _maxClass ; ++_curClass ) {
             cout << "-------- Exploring GlobalStates of class[" << _curClass
@@ -123,9 +125,9 @@ void ProbVerifier::start(int maxClass)
                 
                 if( !st->hasChild() ) {
                     // Compute all the globalstate's childs
-    #ifdef VERBOSE
+#ifdef VERBOSE
                     cout << "====  Finding successors of " << st->toString() << endl;
-    #endif
+#endif
                     st->findSucc();
                     // Increase the threshold of livelock detection
                     _max += st->size();
@@ -154,9 +156,9 @@ void ProbVerifier::start(int maxClass)
                     }
                 }
                 
-    #ifdef LOG
+#ifdef LOG
                 cout << st->toString() << ": "  ;
-    #endif
+#endif
                 if( nChilds == 0 ) {
                     // No child found. Report deadlock
                     cout << _max << "composite states explored." << endl ;
@@ -187,12 +189,12 @@ void ProbVerifier::start(int maxClass)
                         
                         GlobalState* childNode = st->getChild(idx);
                         
-                        int prob = st->getProb(idx);
+                        int prob = st->getProb(idx);                        
+#ifdef LOG
                         int dist = childNode->getDistance();
-    #ifdef LOG
                         cout << childNode->toString() << " Prob = " << prob
                         << " Dist = " << dist << endl;
-    #endif
+#endif
                         // Add the childnode to _arrClass[_curClass] provided that it is not
                         // already a member of _arrFinStart (STATETABLE as in paper)
                         if( find(_arrFinStart,childNode) == _arrFinStart.end() ) {

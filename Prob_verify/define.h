@@ -16,12 +16,12 @@ using namespace std;
 //#define VERBOSE
 //#define VERBOSE_EVAL
 //#define VERBOSE_LIVELOCK
-#define VERBOSE_ACTIONS
+//#define VERBOSE_ACTIONS
 #ifdef VERBOSE
 #define LOG
 #endif
 
-#define LOG
+//#define LOG
 
 typedef map<string,int> Table;
 typedef Table::value_type Entry;
