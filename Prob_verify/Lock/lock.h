@@ -12,6 +12,8 @@
 #include "../statemachine.h"
 #include "lock_utils.h"
 
+class LockMessage;
+
 class Lock : public StateMachine
 {
 public:
@@ -36,16 +38,20 @@ private:
     int _machineId;
     
     int _ts;
-    int _t2;
-    int _old;
-    int _new;
+    int _f;
+    int _b;
+    int _m;
     
     int _current;
     
     const int _range;
     
-    MessageTuple* createResponse(string msg, string dst, MessageTuple* inMsg,
-                                 int toComp, int time);
+    MessageTuple* createResponse(string msg, string dst,
+                                 MessageTuple* inMsg, int toward, int time );
+    bool toRelease(MessageTuple *inMsg, vector<MessageTuple *> &outMsgs) ;
+    bool toTimeout(MessageTuple *inMsg, vector<MessageTuple *> &outMsgs);
+    
+    LockMessage* abortMsg();
 };
 
 class LockMessage : public MessageTuple
@@ -58,29 +64,29 @@ public:
     // "complete", which is to notify the controller that the lock is released, the field
     // is used to tell the controller which competitor this lock was associated to
     LockMessage(int src, int dest, int srcMsg, int destMsg, int subject, int k,
-                int comp, int t)
-    :MessageTuple(src, dest, srcMsg, destMsg, subject), _k(k), _comp(comp), _t(t) {}
+                int to, int t)
+    :MessageTuple(src, dest, srcMsg, destMsg, subject), _k(k), _to(to), _t(t) {}
     
     LockMessage( const LockMessage& msg )
     :MessageTuple(msg._src, msg._dest, msg._srcMsg, msg._destMsg, msg._subject)
-    , _k(msg._k), _comp(msg._comp), _t(msg._t) {}
+    , _k(msg._k), _to(msg._to), _t(msg._t) {}
     
     LockMessage(int src, int dest, int srcMsg, int destMsg, int subject,
                       const LockMessage& msg)
     :MessageTuple(src, dest, srcMsg, destMsg, subject)
-    , _k(msg._k), _comp(msg._comp), _t(msg._t) {}
+    , _k(msg._k), _to(msg._to), _t(msg._t) {}
     
     ~LockMessage() {}
     
     size_t numParams() {return 3; }
-    int getParam(size_t arg) { return (arg==2)?_t:((arg==1)?_comp:_k); }
+    int getParam(size_t arg) { return (arg==2)?_t:((arg==1)?_to:_k); }
     
     string toString() ;
     
     LockMessage* clone() const ;
-private:
+private:    
     const int _k ;
-    const int _comp ;
+    const int _to ;
     const int _t;
 };
 
@@ -89,23 +95,24 @@ class LockSnapshot : public StateSnapshot
 public:
     friend class Lock;
     
-    LockSnapshot(int ts, int t2, int oldCom, int newCom, int state)
-    :_ss_ts(ts), _ss_t2(t2),_ss_old(oldCom), _ss_new(newCom), _stateId(state) {}
+    LockSnapshot(int ts, int front, int back, int master, int state)
+    :_ss_ts(ts), _ss_f(front), _ss_b(back), _ss_m(master), _stateId(state) {}
     
     ~LockSnapshot() {} ;
     int curStateId() const { return _stateId; }
     // Returns the name of current state as specified in the input file
     string toString() ;
     // Cast the Snapshot into a integer. Used in HashTable
-    int toInt() { return (_ss_ts << 16 ) + (_ss_old << 8) + (_ss_new << 4 ) + _stateId ; }
-    LockSnapshot* clone() const { return new LockSnapshot(_ss_ts, _ss_t2,
-                                                          _ss_old, _ss_new, _stateId); }
+    int toInt() { return (_ss_ts << 16 ) + (_ss_f << 12) + (_ss_b << 8) +
+                         (_ss_m << 4 ) + _stateId ; }
+    LockSnapshot* clone() const { return new LockSnapshot(_ss_ts, _ss_f,
+                                                          _ss_b, _ss_m, _stateId); }
     
 private:
     int _ss_ts;
-    int _ss_t2;
-    int _ss_old;
-    int _ss_new;
+    int _ss_f;
+    int _ss_b;
+    int _ss_m;
     
     int _stateId;
 };

@@ -227,7 +227,7 @@ public:
     
     size_t numParams() { return _nParams; }
     int getParam(size_t arg) ;        
-    ControllerMessage* clone() { return new ControllerMessage(*this); }
+    ControllerMessage* clone() const { return new ControllerMessage(*this); }
     
     void addParams(int time, int front, int back);   
 protected:

@@ -29,23 +29,19 @@ int Controller::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
     string msg = IntToMessage( inMsg->destMsgId() ) ;
     if( msg == "complete" || msg == "abort") {
         int veh = inMsg->getParam(0) ;
-        if( typeid(*inMsg) == typeid(CompetitorMessage) ) {
-            _busy[veh] = -1 ;
-            removeEngaged(veh);
-            _time++;
-            return 3 ;
-        }
-        else if( typeid(*inMsg) == typeid(LockMessage) ) {
+        if( typeid(*inMsg) == typeid(LockMessage) ) {
             int master = inMsg->getParam(1);
-            if( _fronts[master] == veh ) {
-                _fronts[master] = -1;
+            if( master != -1 ) {
+                if( _fronts[master] == veh ) {
+                    _fronts[master] = -1;
+                }
+                else if( _backs[master] == veh ) {
+                    _backs[master] = -1;
+                    
+                }
             }
-            else if( _backs[master] == veh ) {
-                _backs[master] = -1;
-                
-            }
-            else if( _selves[master] == veh ) {
-                _selves[master] = -1;
+            else if( _selves[veh] == veh ) {
+                _selves[veh] = -1;
             }
             else {
                 
@@ -79,25 +75,25 @@ int Controller::nullInputTrans(vector<MessageTuple*>& outMsgs,
             int b = _nbrs[veh].front().second ;
             
             // create response
-            int vId = machineToInt(Lock_Utils::getCompetitorName(veh));
             int fId = machineToInt(Lock_Utils::getLockName(f));
             int bId = machineToInt(Lock_Utils::getLockName(b));
             int sId = machineToInt(Lock_Utils::getLockName(veh));
+            int cId = machineToInt("channel") ;
             int dstMsgId = messageToInt("timeout");
             // send message to the competitor or the lock that has not been reset
             // i.e. the some messages are loss during the course 
-            ControllerMessage* vMsg =
-                new ControllerMessage(0,vId,0,dstMsgId,_machineId,_busy[veh]);
             ControllerMessage* fMsg =
                 new ControllerMessage(0,fId,0,dstMsgId,_machineId,_busy[veh]);
             ControllerMessage* bMsg =
                 new ControllerMessage(0,bId,0,dstMsgId,_machineId,_busy[veh]);
             ControllerMessage* sMsg =
                 new ControllerMessage(0,sId,0,dstMsgId,_machineId,_busy[veh]);
-            outMsgs.push_back(vMsg);
+            ControllerMessage* cMsg =
+                new ControllerMessage(0,cId,0,dstMsgId,_machineId,_busy[veh]);
             outMsgs.push_back(fMsg);
             outMsgs.push_back(bMsg);
             outMsgs.push_back(sMsg);
+            outMsgs.push_back(cMsg); // Used to clean up the channel
             
             // Change state
             if( _busy[veh] >= _time )
@@ -145,7 +141,7 @@ int Controller::nullInputTrans(vector<MessageTuple*>& outMsgs,
                     int f = _nbrs[i].front().first ;
                     int b = _nbrs[i].front().second ;
                     // create response
-                    int dstId = machineToInt(Lock_Utils::getCompetitorName((int)i));
+                    int dstId = machineToInt(Lock_Utils::getLockName((int)i));
                     int dstMsgId = messageToInt("init");            
                     ControllerMessage* initMsg = new ControllerMessage(0,dstId,0,dstMsgId,
                                                                        _machineId);

@@ -7,6 +7,7 @@
 //
 
 #include "channel.h"
+#include "controller.h"
 
 Channel::Channel(int num, Lookup* msg, Lookup* mac)
 : StateMachine(msg,mac), _range(num)
@@ -20,14 +21,33 @@ int Channel::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                      bool& high_prob, int startIdx)
 {
     outMsgs.clear();
-    
-    int incomingMsg = inMsg->destMsgId() ;
-    if( incomingMsg == 8 ) {
-        incomingMsg = 3;
-    }
-        
 
-    if( _mem.size() < 10000 ) {
+    
+    string msg = IntToMessage(inMsg->destMsgId() ) ;
+    if( msg == "timeout" ) {
+        if( startIdx == 0 ) {
+            assert( typeid(*inMsg) == typeid(ControllerMessage)) ;
+            int time = inMsg->getParam(0);
+            // Change state
+            // clean up the messages associated with time stamp = time. In reality, the timeout
+            // messages are ignored at machine Lock. It is of convenience to implement ignoring
+            // message at channel
+            for( int i = 0 ; i < _mem.size() ; ++i ) {
+                if( typeid( *(_mem[i])) == typeid(LockMessage)) {
+                    if( _mem[i]->getParam(2) == time ) {
+                        delete _mem[i] ;
+                        _mem.erase(_mem.begin()+i) ;
+                        i--;
+                    }
+                }
+            }
+            return 3 ;
+        }
+        else {
+            return -1;
+        }
+    }
+    else {
         // Channel is empty
         if( startIdx == 0 ) {
             // Transimission succeeds
@@ -49,10 +69,7 @@ int Channel::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
             return -1;
         }
     }
-    else {
-        // Channel is not empty
-        return -1;
-    }
+    return -1;
 }
 
 int Channel::nullInputTrans(vector<MessageTuple*>& outMsgs, bool& high_prob, int startIdx)
@@ -141,34 +158,14 @@ MessageTuple* Channel::createDelivery(int idx)
         return 0;
     
     MessageTuple* msg = _mem[idx] ;
-    
     int outMsgId = msg->destMsgId();
-    
-    // The message stored in _mem should be either of type CompetitorMessage or of type
-    // LockMessage
     int toward = msg->getParam(1);
     
     MessageTuple* ret ;
-    if( typeid(*msg) == typeid(CompetitorMessage) ) {
-        // This message destined for a lock
-        string lockName = Lock_Utils::getLockName(toward) ;
-        int dstId = machineToInt(lockName);
-        
-        CompetitorMessage* compMsgPtr = dynamic_cast<CompetitorMessage*>(msg) ;
-        ret = new CompetitorMessage(0,dstId,0,outMsgId,_machineId, *compMsgPtr);
-    }
-    else if( typeid(*msg) == typeid(LockMessage) ) {
-        // This message destined for a competitor
-        string compName = Lock_Utils::getCompetitorName(toward);
-        int dstId = machineToInt(compName) ;
-        
-        LockMessage* lockMsgPtr = dynamic_cast<LockMessage*>(msg);
-        ret = new LockMessage(0,dstId,0,outMsgId,_machineId, *lockMsgPtr);
-    }
-    else {
-        throw runtime_error("The message stored in channel belongs to unxpected type") ;
-    }
-    
+    string lockName = Lock_Utils::getLockName(toward);
+    int dstId = machineToInt(lockName) ;
+    LockMessage* lockMsgPtr = dynamic_cast<LockMessage*>(msg);
+    ret = new LockMessage(0,dstId,0,outMsgId,_machineId, *lockMsgPtr);
     return ret;
 }
 

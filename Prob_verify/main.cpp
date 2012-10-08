@@ -11,7 +11,6 @@ using namespace std;
 #include "./Lock/lock_utils.h"
 #include "./Lock/controller.h"
 #include "./Lock/lock.h"
-#include "./Lock/competitor.h"
 #include "./Lock/channel.h"
 
 int main( int argc, char* argv[] )
@@ -78,24 +77,20 @@ int main( int argc, char* argv[] )
         int num = 5 ;
         int delta = 50; 
         Controller* ctrl = new Controller(psrPtr->getMsgTable(), psrPtr->getMacTable(),
-                                          5, delta);
+                                          num, delta);
         vector<bool> active(num, false) ;
-        active[3] = active[4] = true ;
-        vector<vector<pair<int,int> > > nbrs(5);
-        nbrs[3].push_back(make_pair(0,1)) ;
-        nbrs[4].push_back(make_pair(1,2)) ;
+        //active[4] = active[5] = true ;
+        active[3] = true ;
+        vector<vector<pair<int,int> > > nbrs(num);
+        nbrs[3].push_back(make_pair(1,2)) ;
+        //nbrs[5].push_back(make_pair(2,3)) ;
         ctrl->setActives(active);
         ctrl->setNbrs(nbrs);
         
         vector<Lock*> arrLock ;
-        vector<Competitor*> arrComp;
         for( size_t i = 0 ; i < num ; ++i )
             arrLock.push_back( new Lock((int)i,delta,num,psrPtr->getMsgTable(),
                                         psrPtr->getMacTable() ) );
-        for( int i = 0 ; i < num ; ++i ) 
-            arrComp.push_back( new Competitor(i,delta,num,psrPtr->getMsgTable(),
-                                              psrPtr->getMacTable() ) );
-
         Channel* chan = new Channel(num, psrPtr->getMsgTable(),
                                     psrPtr->getMacTable() ) ;
 
@@ -104,8 +99,6 @@ int main( int argc, char* argv[] )
         pvObj.addMachine(ctrl);
         for( size_t i = 0 ; i < arrLock.size() ; ++i )
             pvObj.addMachine(arrLock[i]);
-        for( size_t i = 0 ; i < arrComp.size() ; ++i )
-            pvObj.addMachine(arrComp[i]);
         pvObj.addMachine(chan);              
         
         // Specify the starting state
@@ -115,26 +108,31 @@ int main( int argc, char* argv[] )
         // Specify the global states in the set RS (stopping states)
         // initial state: FF
         StoppingState stopZero(&startPoint);
-        stopZero.addAllow(new CompetitorSnapshot(-1,-1,-1,0), 9); // competitor 3
-        stopZero.addAllow(new CompetitorSnapshot(-1,-1,-1,0), 10); // competitor 4
+        stopZero.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 1); // lock 0
+        stopZero.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 2); // lock 1
+        stopZero.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 3); // lock 2
+        stopZero.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 4); // lock 3
+        stopZero.addAllow(new ChannelSnapshot(), 6); // channel
         pvObj.addRS(&stopZero);
         
         // state LF
         StoppingState stopLF(&startPoint);
-        stopLF.addAllow(new LockSnapshot(1,-1,3,-1,1), 1) ;  // lock 0
-        stopLF.addAllow(new LockSnapshot(1,-1,3,-1,1), 2) ;  // lock 1
-        stopLF.addAllow(new LockSnapshot(1,-1,3,-1,1), 4) ;  // lock 3
-        stopLF.addAllow(new CompetitorSnapshot(1,0,1,4), 9); // competitor 3
+        stopLF.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 1); // lock 0
+        stopLF.addAllow(new LockSnapshot(10,-1,-1,3,1), 2); // lock 1
+        stopLF.addAllow(new LockSnapshot(10,-1,-1,3,1), 3); // lock 2
+        stopLF.addAllow(new LockSnapshot(10,1,2,-1,4), 4); // lock 3
+        stopLF.addAllow(new ChannelSnapshot(), 6); // channel
         pvObj.addRS(&stopLF);
         
+        /*
         // state FL
         StoppingState stopFL(&startPoint);
         stopFL.addAllow(new LockSnapshot(1,-1,4,-1,1), 2) ;  // lock 1
         stopFL.addAllow(new LockSnapshot(1,-1,4,-1,1), 3) ;  // lock 2
         stopFL.addAllow(new LockSnapshot(1,-1,4,-1,1), 5) ;  // lock 4
         stopFL.addAllow(new CompetitorSnapshot(1,1,2,4), 10); // competitor 4
-        pvObj.addRS(&stopFL);
-        
+        pvObj.addRS(&stopFL);*/
+        /*
         // Stopping states after message loss
         // state 3F
         StoppingState loss3F(&startPoint);
@@ -171,19 +169,22 @@ int main( int argc, char* argv[] )
         lossF13.addAllow(new CompetitorSnapshot(1,1,2,13), 10); // competitor 4
         lossF13.addAllow(new ChannelSnapshot(), 11); // channel
         pvObj.addRS(&lossF13);
-
+         */
 
         // Specify the error states
         StoppingState lock3FFree(&startPoint) ;
-        lock3FFree.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 1); // lock 0 in state 0
-        lock3FFree.addAllow(new CompetitorSnapshot(2,0,1,4), 9); // competitor 3 in s4
+        lock3FFree.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 2); // lock 1 in state 0
+        lock3FFree.addAllow(new LockSnapshot(10,1,2,-1,4), 4); // lock 3 in state 4
+        lock3FFree.addAllow(new ChannelSnapshot(), 6); // channel
         pvObj.addError(&lock3FFree);
         
         StoppingState lock3BFree(&startPoint) ;
-        lock3BFree.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 2); // lock 1 in state 0
-        lock3BFree.addAllow(new CompetitorSnapshot(2,0,1,4), 9); // competitor 3 in s4
+        lock3BFree.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 3); // lock 2 in state 0
+        lock3BFree.addAllow(new LockSnapshot(10,1,2,-1,4), 4); // lock 3 in state 4
+        lock3BFree.addAllow(new ChannelSnapshot(), 6); // channel 
         pvObj.addError(&lock3BFree);
         
+        /*
         StoppingState lock4FFree(&startPoint) ;
         lock4FFree.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 2); // lock 1 in state 0
         lock4FFree.addAllow(new CompetitorSnapshot(2,1,2,4), 10); // competitor 4 in s4
@@ -193,22 +194,21 @@ int main( int argc, char* argv[] )
         lock4BFree.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 3); // lock 2 in state 0
         lock4BFree.addAllow(new CompetitorSnapshot(2,1,2,4), 10); // competitor 4 in s4
         pvObj.addError(&lock4BFree);
-
+         
         StoppingState locklock(&startPoint) ;
         locklock.addAllow(new CompetitorSnapshot(2,0,1,4), 9); // competitor 3 in LOCK
         locklock.addAllow(new CompetitorSnapshot(2,1,2,4), 10) ; // competitor 4 in LOCK
         pvObj.addError(&locklock) ;
+         */
 
         // Start the procedure of probabilistic verification. 
         // Specify the maximum probability depth to be explored
-        pvObj.start(5);
+        pvObj.start(6);
 
         // When complete, deallocate all machines
         delete ctrl ;
         for( size_t i = 0 ; i < arrLock.size() ; ++i ) 
             delete arrLock[i];
-        for( size_t i = 0 ; i < arrComp.size() ; ++i )
-            delete arrComp[i];
         delete chan ;                
         
     } catch( runtime_error& re ) {
