@@ -17,5 +17,6 @@ namespace Lock_Utils {
     string getLockName(int i);
     string getChannelName(int i, int j);
     string getCompetitorName(int i);
+    string getMsgType(const MessageTuple* tuple) ;
 }
 #endif
