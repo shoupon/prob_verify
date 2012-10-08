@@ -78,6 +78,7 @@ int Controller::nullInputTrans(vector<MessageTuple*>& outMsgs,
             int fId = machineToInt(Lock_Utils::getLockName(f));
             int bId = machineToInt(Lock_Utils::getLockName(b));
             int sId = machineToInt(Lock_Utils::getLockName(veh));
+            int cId = machineToInt("channel") ;
             int dstMsgId = messageToInt("timeout");
             // send message to the competitor or the lock that has not been reset
             // i.e. the some messages are loss during the course 
@@ -87,9 +88,12 @@ int Controller::nullInputTrans(vector<MessageTuple*>& outMsgs,
                 new ControllerMessage(0,bId,0,dstMsgId,_machineId,_busy[veh]);
             ControllerMessage* sMsg =
                 new ControllerMessage(0,sId,0,dstMsgId,_machineId,_busy[veh]);
+            ControllerMessage* cMsg =
+                new ControllerMessage(0,cId,0,dstMsgId,_machineId,_busy[veh]);
             outMsgs.push_back(fMsg);
             outMsgs.push_back(bMsg);
             outMsgs.push_back(sMsg);
+            outMsgs.push_back(cMsg); // Used to clean up the channel
             
             // Change state
             if( _busy[veh] >= _time )
