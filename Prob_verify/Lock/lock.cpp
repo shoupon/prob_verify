@@ -50,7 +50,6 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                 return 3;
             }
             else if( msg == "init" ) {
-                //assert( typeid(*inMsg) == typeid(ServiceMessage) );
                 assert( inMsg->numParams() == 3 ) ;
                 // Assignments
                 _ts = inMsg->getParam(0);
@@ -376,11 +375,14 @@ bool Lock::toTimeout(MessageTuple *inMsg, vector<MessageTuple *> &outMsgs)
     string msg = IntToMessage(inMsg->destMsgId() ) ;
     assert( outMsgs.size() == 0 );
     
-    if( msg == "timeout" && inMsg->getParam(0) == _ts ) {
-        // Response
-        _current = 0;
-        reset();
-        return true;
+    if( msg == "timeout" ) {
+        if( inMsg->getParam(0) == _ts ) {
+            // Response
+            _current = 0;
+            reset();
+            return true;
+        }
+        
     }
     
     return false ;
@@ -410,6 +412,6 @@ string LockSnapshot::toString()
     stringstream ss;
     ss << _stateId << "(" ;
     
-    ss << "," << _ss_f << "," << _ss_b << "," << _ss_m << ")" ;
+    ss << _ss_f << "," << _ss_b << "," << _ss_m << ")" ;
     return ss.str() ;
 }
