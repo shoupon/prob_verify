@@ -7,6 +7,7 @@ using namespace std;
 
 #include "globalstate.h"
 #include "define.h"
+#include "Lock/lock_utils.h"
 
 //#define VERBOSE
 
