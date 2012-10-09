@@ -10,6 +10,7 @@ using namespace std;
 
 //#define ALLOW_UNMATCHED
 #define TRACE_UNMATCHED
+#define TRACE_STOPPING
 //#define CONTROLLER_TIME
 
 // Debugging flags

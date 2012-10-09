@@ -425,6 +425,12 @@ void GlobalState::printOrigins()
             if( diffDepth == 0 ) {
                 cout << _origin[i]->toString() << " =" << diffDepth << "=>"
                      << this->toString() << endl ;
+#ifdef TRACE_STOPPING
+                cout << "Print the path between origin and current states:" << endl ;
+                vector<GlobalState*> seq;
+                this->pathRoot(seq, _origin[i]);
+                printSeq(seq);
+#endif
             }
             else {
                 cout << "Tracing back to a stopping state with lower probability. ERROR"
@@ -510,8 +516,12 @@ bool rootStop(GlobalState* gsPtr)
     else 
         return false;
 }
+void GlobalState::pathRoot(vector<GlobalState* > &arr)
+{
+    pathRoot(arr, _root);
+}
 
-void GlobalState::pathRoot(vector<GlobalState*>& arr)
+void GlobalState::pathRoot(vector<GlobalState* >& arr, const GlobalState* end)
 {
     resetColor();
     arr.clear();
@@ -528,7 +538,7 @@ void GlobalState::pathRoot(vector<GlobalState*>& arr)
         unexplored.pop();
         gs->_white = false; // Paint the node black
 
-        if( gs->toString() == _root->toString() ) {
+        if( gs->toString() == end->toString() ) {
             // root found
             // Trace back
 #ifdef VERBOSE
@@ -681,6 +691,17 @@ size_t GlobalState::markPath(GlobalState* ptr)
     size_t ret = 0 ;
     ret--;
     return ret;
+}
+
+void GlobalState::printSeq(const vector<GlobalState*>& seq)
+{
+    for( int ii = 0 ; ii < (int)seq.size()-1 ; ++ii ) {
+        if( seq[ii]->getProb() != seq[ii+1]->getProb() )
+            cout << seq[ii]->toString() << " -p-> ";
+        else
+            cout << seq[ii]->toString() << " -> ";
+    }
+    cout << seq.back()->toString() << endl ;
 }
 
 void GlobalState::restore()

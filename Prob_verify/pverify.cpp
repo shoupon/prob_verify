@@ -205,7 +205,6 @@ void ProbVerifier::start(int maxClass)
                         }
                         else {
                             // Do something else, such as print out the probability
-                            //childNode->removeParents() ;
                             cout << "Stopping state reached" << endl ;
                             childNode->printOrigins();
                         }
