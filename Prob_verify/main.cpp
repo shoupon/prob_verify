@@ -74,15 +74,16 @@ int main( int argc, char* argv[] )
         }*/
 
         // Create StateMachine objects
-        int num = 6 ;
+        int num = 7 ;
         int delta = 50; 
         Controller* ctrl = new Controller(psrPtr->getMsgTable(), psrPtr->getMacTable(),
                                           num, delta);
         vector<bool> active(num, false) ;
-        active[3] = active[5] = true ;
+        active[3] = active[5] = active[6] = true ;
         vector<vector<pair<int,int> > > nbrs(num);
         nbrs[3].push_back(make_pair(1,2)) ;
         nbrs[5].push_back(make_pair(2,4)) ;
+        nbrs[6].push_back(make_pair(1,2)) ;
         ctrl->setActives(active);
         ctrl->setNbrs(nbrs);
         
@@ -113,7 +114,8 @@ int main( int argc, char* argv[] )
         stopZero.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 4); // lock 3
         stopZero.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 5); // lock 4
         stopZero.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 6); // lock 5
-        stopZero.addAllow(new ChannelSnapshot(), 7); // channel
+        stopZero.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 7); // lock 6
+        stopZero.addAllow(new ChannelSnapshot(), 8); // channel
         pvObj.addRS(&stopZero);
         
         // state LF
@@ -122,7 +124,7 @@ int main( int argc, char* argv[] )
         stopLF.addAllow(new LockSnapshot(10,-1,-1,3,1), 2); // lock 1
         stopLF.addAllow(new LockSnapshot(10,-1,-1,3,1), 3); // lock 2
         stopLF.addAllow(new LockSnapshot(10,1,2,-1,4), 4); // lock 3
-        stopLF.addAllow(new ChannelSnapshot(), 7); // channel
+        stopLF.addAllow(new ChannelSnapshot(), 8); // channel
         pvObj.addRS(&stopLF);
         
         
@@ -132,8 +134,18 @@ int main( int argc, char* argv[] )
         stopFL.addAllow(new LockSnapshot(10,-1,-1,5,1), 3); // lock 2
         stopFL.addAllow(new LockSnapshot(10,-1,-1,5,1), 5); // lock 4
         stopFL.addAllow(new LockSnapshot(10,2,4,-1,4), 6); // lock 5
-        stopFL.addAllow(new ChannelSnapshot(), 7); // channel
+        stopFL.addAllow(new ChannelSnapshot(), 8); // channel
         pvObj.addRS(&stopFL);
+        
+        // state FFL
+        StoppingState stopFFL(&startPoint);
+        stopFFL.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 1); // lock 0
+        stopFFL.addAllow(new LockSnapshot(10,-1,-1,6,1), 2); // lock 1
+        stopFFL.addAllow(new LockSnapshot(10,-1,-1,6,1), 3); // lock 2
+        stopFFL.addAllow(new LockSnapshot(10,1,2,-1,4), 7); // lock 6
+        stopFFL.addAllow(new ChannelSnapshot(), 8); // channel
+        pvObj.addRS(&stopFFL);
+        
         /*
         // Stopping states after message loss
         // state 3F
@@ -186,7 +198,6 @@ int main( int argc, char* argv[] )
         lock3BFree.addAllow(new ChannelSnapshot(), 6); // channel 
         pvObj.addError(&lock3BFree);
         
-        
         StoppingState lock5FFree(&startPoint) ;
         lock5FFree.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 3); // lock 2 in state 0
         lock5FFree.addAllow(new LockSnapshot(10,2,4,-1,4), 6); // lock 5 in state 4
@@ -196,16 +207,36 @@ int main( int argc, char* argv[] )
         lock5BFree.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 5); // lock 4 in state 0
         lock5BFree.addAllow(new LockSnapshot(10,2,4,-1,4), 6); // lock 5 in state 4
         pvObj.addError(&lock5BFree);
+        
+        StoppingState lock6FFree(&startPoint) ;
+        lock6FFree.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 2); // lock 1 in state 0
+        lock6FFree.addAllow(new LockSnapshot(10,1,2,-1,4), 7); // lock 6 in state 4
+        pvObj.addError(&lock6FFree);
+        
+        StoppingState lock6BFree(&startPoint) ;
+        lock6BFree.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 3); // lock 2 in state 0
+        lock6BFree.addAllow(new LockSnapshot(10,1,2,-1,4), 7); // lock 6 in state 4
+        pvObj.addError(&lock6BFree);
          
         StoppingState lock35(&startPoint) ;
         lock35.addAllow(new LockSnapshot(10,1,2,-1,4), 4); // lock 3 in state 4
         lock35.addAllow(new LockSnapshot(10,2,4,-1,4), 6); // lock 5 in state 4
         pvObj.addError(&lock35) ;
+        
+        StoppingState lock36(&startPoint) ;
+        lock36.addAllow(new LockSnapshot(10,1,2,-1,4), 4); // lock 3 in state 4
+        lock36.addAllow(new LockSnapshot(10,1,2,-1,4), 7); // lock 6 in state 4
+        pvObj.addError(&lock35) ;
+        
+        StoppingState lock56(&startPoint) ;
+        lock56.addAllow(new LockSnapshot(10,2,4,-1,4), 6); // lock 5 in state 4
+        lock56.addAllow(new LockSnapshot(10,1,2,-1,4), 7); // lock 6 in state 4
+        pvObj.addError(&lock35) ;
          
 
         // Start the procedure of probabilistic verification. 
         // Specify the maximum probability depth to be explored
-        pvObj.start(6);
+        pvObj.start(8);
 
         // When complete, deallocate all machines
         delete ctrl ;

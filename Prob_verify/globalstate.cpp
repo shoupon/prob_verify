@@ -419,7 +419,6 @@ void GlobalState::addOrigin(GlobalState* rootStop)
 
 void GlobalState::printOrigins()
 {
-    cout << "Print the origin stopping states" << endl ;
     for( size_t i = 0 ; i < _origin.size() ; ++i ) {
         int diffDepth = this->_depth - _origin[i]->_depth ;
         if( diffDepth <= 0 ) {

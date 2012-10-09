@@ -142,6 +142,9 @@ void ProbVerifier::start(int maxClass)
                     if( find( _arrRS, st) != _arrRS.end() ) {
                         insert(_arrFinStart, st);
                         insert(_arrFinRS, st);
+                        
+                        cout << "Stopping state reached" << endl ;
+                        st->printOrigins();
                     }
                     else {
                         insert(_arrRS, st) ;
