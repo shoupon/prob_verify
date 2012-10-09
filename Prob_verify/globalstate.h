@@ -87,7 +87,8 @@ private:
     //bool rootStop(GlobalState* gsPtr);
     //bool selfStop(GlobalState* gsPtr);
     
-
+    static void printSeq(const vector<GlobalState*>& seq);
+    
 public:
     // Default constructor creates a global state with all its machine set to initial
     // state 0.
@@ -127,9 +128,11 @@ public:
     // Save the current state of machines to _gStates
     void store();
 
-    // This function will start tracing back until root it found. The path will be saved in arr
-    // This is best used to print out the transitions from the initial state that lead to deadlock
+    // This function will start tracing back until root it found. The path will be saved in
+    // arr. This is best used to print out the transitions from the initial state that lead
+    // to deadlock
     void pathRoot(vector<GlobalState*>& arr);
+    void pathRoot(vector<GlobalState*>& arr, const GlobalState* end);
     // This function will start tracing back until a cycle is found. Only high probability transitions
     // will be checked. 
     // If there is no such cycle that contains no low probability transition, return false;
