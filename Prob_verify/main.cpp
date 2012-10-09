@@ -124,7 +124,7 @@ int main( int argc, char* argv[] )
         stopLF.addAllow(new LockSnapshot(10,-1,-1,3,1), 2); // lock 1
         stopLF.addAllow(new LockSnapshot(10,-1,-1,3,1), 3); // lock 2
         stopLF.addAllow(new LockSnapshot(10,1,2,-1,4), 4); // lock 3
-        stopLF.addAllow(new ChannelSnapshot(), 8); // channel
+        //stopLF.addAllow(new ChannelSnapshot(), 8); // channel
         pvObj.addRS(&stopLF);
         
         
@@ -134,7 +134,7 @@ int main( int argc, char* argv[] )
         stopFL.addAllow(new LockSnapshot(10,-1,-1,5,1), 3); // lock 2
         stopFL.addAllow(new LockSnapshot(10,-1,-1,5,1), 5); // lock 4
         stopFL.addAllow(new LockSnapshot(10,2,4,-1,4), 6); // lock 5
-        stopFL.addAllow(new ChannelSnapshot(), 8); // channel
+        //stopFL.addAllow(new ChannelSnapshot(), 8); // channel
         pvObj.addRS(&stopFL);
         
         // state FFL
@@ -143,7 +143,7 @@ int main( int argc, char* argv[] )
         stopFFL.addAllow(new LockSnapshot(10,-1,-1,6,1), 2); // lock 1
         stopFFL.addAllow(new LockSnapshot(10,-1,-1,6,1), 3); // lock 2
         stopFFL.addAllow(new LockSnapshot(10,1,2,-1,4), 7); // lock 6
-        stopFFL.addAllow(new ChannelSnapshot(), 8); // channel
+        //stopFFL.addAllow(new ChannelSnapshot(), 8); // channel
         pvObj.addRS(&stopFFL);
         
         /*
@@ -189,13 +189,11 @@ int main( int argc, char* argv[] )
         StoppingState lock3FFree(&startPoint) ;
         lock3FFree.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 2); // lock 1 in state 0
         lock3FFree.addAllow(new LockSnapshot(10,1,2,-1,4), 4); // lock 3 in state 4
-        lock3FFree.addAllow(new ChannelSnapshot(), 6); // channel
         pvObj.addError(&lock3FFree);
         
         StoppingState lock3BFree(&startPoint) ;
         lock3BFree.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 3); // lock 2 in state 0
         lock3BFree.addAllow(new LockSnapshot(10,1,2,-1,4), 4); // lock 3 in state 4
-        lock3BFree.addAllow(new ChannelSnapshot(), 6); // channel 
         pvObj.addError(&lock3BFree);
         
         StoppingState lock5FFree(&startPoint) ;
@@ -236,7 +234,7 @@ int main( int argc, char* argv[] )
 
         // Start the procedure of probabilistic verification. 
         // Specify the maximum probability depth to be explored
-        pvObj.start(8);
+        pvObj.start(5);
 
         // When complete, deallocate all machines
         delete ctrl ;
