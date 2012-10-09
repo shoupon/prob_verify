@@ -140,6 +140,9 @@ void ProbVerifier::start(int maxClass)
                     if( find( _arrRS, st) != _arrRS.end() ) {
                         insert(_arrFinStart, st);
                         insert(_arrFinRS, st);
+                        
+                        cout << "Stopping state reached" << endl ;
+                        st->printOrigins();
                     }
                     else {
                         insert(_arrRS, st) ;
@@ -200,7 +203,6 @@ void ProbVerifier::start(int maxClass)
                         }
                         else {
                             // Do something else, such as print out the probability
-                            //childNode->removeParents() ;
                             cout << "Stopping state reached" << endl ;
                             childNode->printOrigins();
                         }
