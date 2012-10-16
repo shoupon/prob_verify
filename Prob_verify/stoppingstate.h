@@ -24,7 +24,7 @@ class StoppingState : public GlobalState
     vector<int> _prohibits;
     vector<StateSnapshot*> _pSets;
 public:
-    StoppingState(GlobalState* gs):GlobalState(gs) {} 
+    StoppingState(GlobalState* gs):GlobalState(gs) {}
     ~StoppingState();
     
     void addAllow(StateSnapshot* criterion, int mac);

@@ -417,20 +417,22 @@ void GlobalState::addOrigin(GlobalState* rootStop)
     _origin.push_back(rootStop);
 }
 
-void GlobalState::printOrigins()
+void GlobalState::printOrigins(bool (*printStop)(GlobalState*, GlobalState*))
 {
     for( size_t i = 0 ; i < _origin.size() ; ++i ) {
         int diffDepth = this->_depth - _origin[i]->_depth ;
         if( diffDepth <= 0 ) {
             if( diffDepth == 0 ) {
-                cout << _origin[i]->toString() << " =" << diffDepth << "=>"
-                     << this->toString() << endl ;
+                if( printStop == 0 || printStop(this,_origin[i]) ) {
+                    cout << _origin[i]->toString() << " =" << diffDepth << "=>"
+                         << this->toString() << endl ;
 #ifdef TRACE_STOPPING
-                cout << "Print the path between origin and current states:" << endl ;
-                vector<GlobalState*> seq;
-                this->pathRoot(seq, _origin[i]);
-                printSeq(seq);
+                    cout << "Print the path between origin and current states:" << endl ;
+                    vector<GlobalState*> seq;
+                    this->pathRoot(seq, _origin[i]);
+                    printSeq(seq);
 #endif
+                }
             }
             else {
                 cout << "Tracing back to a stopping state with lower probability. ERROR"

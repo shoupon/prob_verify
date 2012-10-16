@@ -39,6 +39,11 @@ void ProbVerifier::addError(StoppingState *es)
     
 }
 
+void ProbVerifier::addPrintStop(bool (*printStop)(GlobalState *, GlobalState *))
+{
+    _printStop = printStop ;
+}
+
 // The basic procedure
 void ProbVerifier::start(int maxClass)
 {
@@ -144,7 +149,7 @@ void ProbVerifier::start(int maxClass)
                         insert(_arrFinRS, st);
                         
                         cout << "Stopping state reached" << endl ;
-                        st->printOrigins();
+                        st->printOrigins(_printStop);
                     }
                     else {
                         insert(_arrRS, st) ;
@@ -206,7 +211,7 @@ void ProbVerifier::start(int maxClass)
                         else {
                             // Do something else, such as print out the probability
                             cout << "Stopping state reached" << endl ;
-                            childNode->printOrigins();
+                            childNode->printOrigins(_printStop);
                         }
                     }
     #ifdef LOG

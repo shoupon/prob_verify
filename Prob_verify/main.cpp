@@ -13,6 +13,26 @@ using namespace std;
 #include "./Lock/lock.h"
 #include "./Lock/channel.h"
 
+ProbVerifier pvObj ;
+GlobalState* startPoint;
+
+bool printStop(GlobalState* left, GlobalState* right)
+{
+    StoppingState stopZero(left);
+    stopZero.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 1); // lock 0
+    stopZero.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 2); // lock 1
+    stopZero.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 3); // lock 2
+    stopZero.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 4); // lock 3
+    stopZero.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 5); // lock 4
+    stopZero.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 6); // lock 5
+    stopZero.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 7); // lock 6
+    
+    if( stopZero.match(left) && stopZero.match(right))
+        return true ;
+    else
+        return false;
+}
+
 int main( int argc, char* argv[] )
 {
     // class test
@@ -95,19 +115,18 @@ int main( int argc, char* argv[] )
                                     psrPtr->getMacTable() ) ;
 
         // Add the state machines into ProbVerifier
-        ProbVerifier pvObj ;
         pvObj.addMachine(ctrl);
         for( size_t i = 0 ; i < arrLock.size() ; ++i )
             pvObj.addMachine(arrLock[i]);
         pvObj.addMachine(chan);              
         
         // Specify the starting state
-        GlobalState startPoint(pvObj.getMachinePtrs());
-        startPoint.setParser(psrPtr);
+        GlobalState* startPoint = new GlobalState(pvObj.getMachinePtrs());
+        startPoint->setParser(psrPtr);
 
         // Specify the global states in the set RS (stopping states)
         // initial state: FF
-        StoppingState stopZero(&startPoint);
+        StoppingState stopZero(startPoint);
         stopZero.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 1); // lock 0
         stopZero.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 2); // lock 1
         stopZero.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 3); // lock 2
@@ -119,7 +138,7 @@ int main( int argc, char* argv[] )
         pvObj.addRS(&stopZero);
         
         // state LF
-        StoppingState stopLF(&startPoint);
+        StoppingState stopLF(startPoint);
         stopLF.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 1); // lock 0
         stopLF.addAllow(new LockSnapshot(10,-1,-1,3,1), 2); // lock 1
         stopLF.addAllow(new LockSnapshot(10,-1,-1,3,1), 3); // lock 2
@@ -129,7 +148,7 @@ int main( int argc, char* argv[] )
         
         
         // state FL
-        StoppingState stopFL(&startPoint);
+        StoppingState stopFL(startPoint);
         stopFL.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 1); // lock 0
         stopFL.addAllow(new LockSnapshot(10,-1,-1,5,1), 3); // lock 2
         stopFL.addAllow(new LockSnapshot(10,-1,-1,5,1), 5); // lock 4
@@ -138,7 +157,7 @@ int main( int argc, char* argv[] )
         pvObj.addRS(&stopFL);
         
         // state FFL
-        StoppingState stopFFL(&startPoint);
+        StoppingState stopFFL(startPoint);
         stopFFL.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 1); // lock 0
         stopFFL.addAllow(new LockSnapshot(10,-1,-1,6,1), 2); // lock 1
         stopFFL.addAllow(new LockSnapshot(10,-1,-1,6,1), 3); // lock 2
@@ -186,51 +205,52 @@ int main( int argc, char* argv[] )
          */
 
         // Specify the error states
-        StoppingState lock3FFree(&startPoint) ;
+        StoppingState lock3FFree(startPoint) ;
         lock3FFree.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 2); // lock 1 in state 0
         lock3FFree.addAllow(new LockSnapshot(10,1,2,-1,4), 4); // lock 3 in state 4
         pvObj.addError(&lock3FFree);
         
-        StoppingState lock3BFree(&startPoint) ;
+        StoppingState lock3BFree(startPoint) ;
         lock3BFree.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 3); // lock 2 in state 0
         lock3BFree.addAllow(new LockSnapshot(10,1,2,-1,4), 4); // lock 3 in state 4
         pvObj.addError(&lock3BFree);
         
-        StoppingState lock5FFree(&startPoint) ;
+        StoppingState lock5FFree(startPoint) ;
         lock5FFree.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 3); // lock 2 in state 0
         lock5FFree.addAllow(new LockSnapshot(10,2,4,-1,4), 6); // lock 5 in state 4
         pvObj.addError(&lock5FFree);
         
-        StoppingState lock5BFree(&startPoint) ;
+        StoppingState lock5BFree(startPoint) ;
         lock5BFree.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 5); // lock 4 in state 0
         lock5BFree.addAllow(new LockSnapshot(10,2,4,-1,4), 6); // lock 5 in state 4
         pvObj.addError(&lock5BFree);
         
-        StoppingState lock6FFree(&startPoint) ;
+        StoppingState lock6FFree(startPoint) ;
         lock6FFree.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 2); // lock 1 in state 0
         lock6FFree.addAllow(new LockSnapshot(10,1,2,-1,4), 7); // lock 6 in state 4
         pvObj.addError(&lock6FFree);
         
-        StoppingState lock6BFree(&startPoint) ;
+        StoppingState lock6BFree(startPoint) ;
         lock6BFree.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 3); // lock 2 in state 0
         lock6BFree.addAllow(new LockSnapshot(10,1,2,-1,4), 7); // lock 6 in state 4
         pvObj.addError(&lock6BFree);
          
-        StoppingState lock35(&startPoint) ;
+        StoppingState lock35(startPoint) ;
         lock35.addAllow(new LockSnapshot(10,1,2,-1,4), 4); // lock 3 in state 4
         lock35.addAllow(new LockSnapshot(10,2,4,-1,4), 6); // lock 5 in state 4
         pvObj.addError(&lock35) ;
         
-        StoppingState lock36(&startPoint) ;
+        StoppingState lock36(startPoint) ;
         lock36.addAllow(new LockSnapshot(10,1,2,-1,4), 4); // lock 3 in state 4
         lock36.addAllow(new LockSnapshot(10,1,2,-1,4), 7); // lock 6 in state 4
         pvObj.addError(&lock35) ;
         
-        StoppingState lock56(&startPoint) ;
+        StoppingState lock56(startPoint) ;
         lock56.addAllow(new LockSnapshot(10,2,4,-1,4), 6); // lock 5 in state 4
         lock56.addAllow(new LockSnapshot(10,1,2,-1,4), 7); // lock 6 in state 4
         pvObj.addError(&lock35) ;
-         
+        
+        pvObj.addPrintStop(printStop) ;
 
         // Start the procedure of probabilistic verification. 
         // Specify the maximum probability depth to be explored
@@ -240,7 +260,9 @@ int main( int argc, char* argv[] )
         delete ctrl ;
         for( size_t i = 0 ; i < arrLock.size() ; ++i ) 
             delete arrLock[i];
-        delete chan ;                
+        delete chan ;
+        
+        delete startPoint;
         
     } catch( runtime_error& re ) {
         cerr << "Runtime error:" << endl 

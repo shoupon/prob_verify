@@ -142,7 +142,7 @@ public:
     void BFS(vector<GlobalState*>& arr, bool (*stop)(GlobalState*));
     
     void addOrigin(GlobalState* rootStop);
-    void printOrigins();
+    void printOrigins(bool (*printStop)(GlobalState*, GlobalState*) = 0);
 
     string toString() const ;
 

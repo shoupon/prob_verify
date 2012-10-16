@@ -36,6 +36,8 @@ private:
     int _maxClass;
     int _curClass;   
     int _max ; // Used to check livelock
+    
+    bool (*_printStop)(GlobalState*, GlobalState*);
 
     bool addToClass(GlobalState* childNode, int toClass);
     GSVecMap::iterator find(GSVecMap& collection, GlobalState* gs);
@@ -57,6 +59,9 @@ public:
     void addRS(StoppingState* rs);
     // Add errorState into the list of errorStates
     void addError(StoppingState* es);
+    // Provide the criterion on which the program determines to print out the stopping
+    // state trace
+    void addPrintStop(bool (*printStop)(GlobalState*, GlobalState*));
     // The basic procedure, start when all machines are in its initial state
     void start(int maxClass);
     // void start(vector<GlobalState*> initStates);
