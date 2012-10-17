@@ -148,7 +148,7 @@ void ProbVerifier::start(int maxClass)
                         insert(_arrFinStart, st);
                         insert(_arrFinRS, st);
                         
-                        cout << "Stopping state reached" << endl ;
+                        printStopping(st);
                         st->printOrigins(_printStop);
                     }
                     else {
@@ -164,9 +164,7 @@ void ProbVerifier::start(int maxClass)
                     }
                 }
                 
-#ifdef LOG
-                cout << st->toString() << ": "  ;
-#endif
+                cout << "Exploring " << st->toString() << ":" << endl ;  ;
                 if( nChilds == 0 ) {
                     // No child found. Report deadlock
                     cout << _max << "composite states explored." << endl ;
@@ -210,7 +208,7 @@ void ProbVerifier::start(int maxClass)
                         }
                         else {
                             // Do something else, such as print out the probability
-                            cout << "Stopping state reached" << endl ;
+                            printStopping(childNode);
                             childNode->printOrigins(_printStop);
                         }
                     }
@@ -259,13 +257,11 @@ void ProbVerifier::addRS(StoppingState* rs)
 
 GSVecMap::iterator ProbVerifier::find(GSVecMap& collection, GlobalState* gs)
 {
-    vector<string> vec = gs->getStringVec();
+    string gsStr = gs->toString();
     if( collection.empty() )
         return collection.end();
-    if( collection.begin()->first.size() != vec.size() )
-        return collection.end();
 
-    return collection.find(vec);
+    return collection.find(gsStr);
 }
 
 GSMap::iterator ProbVerifier::find(GSMap& collection, GlobalState* gs)
@@ -308,6 +304,12 @@ bool ProbVerifier::findMatch(const GlobalState* obj,
             return true ;
     }
     return false;
+}
+
+void ProbVerifier::printStopping(const GlobalState *obj)
+{
+    cout << "Stopping state reached: "
+         << obj->toString() << endl;
 }
 
 /*

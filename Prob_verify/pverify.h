@@ -17,8 +17,8 @@ typedef pair<GlobalState*, int>                  GSMapPair;
 typedef map<GlobalState*, int>::iterator         GSMapIter;
 typedef map<GlobalState*, int>::const_iterator   GSMapConstIter;
 
-typedef map<vector<string>, int>          GSVecMap;
-typedef pair<vector<string>, int>         GSVecMapPair;
+typedef map<string, int>          GSVecMap;
+typedef pair<string, int>         GSVecMapPair;
 
 class ProbVerifier
 {
@@ -43,12 +43,14 @@ private:
     GSVecMap::iterator find(GSVecMap& collection, GlobalState* gs);
     GSMap::iterator find(GSMap& collection, GlobalState* gs);
     void insert(GSVecMap& collection, GlobalState* gs) 
-    { collection.insert( GSVecMapPair(gs->getStringVec(), gs->getProb()) ); }
+    { collection.insert( GSVecMapPair(gs->toString(), gs->getProb()) ); }
     void printSeq(const vector<GlobalState*>& seq) ;
     
     bool isError(const GlobalState* obj);
     bool isStopping(const GlobalState* obj);
     bool findMatch(const GlobalState* obj, const vector<StoppingState*>& container) ;
+    
+    void printStopping(const GlobalState* obj) ;
 
 
 public:
