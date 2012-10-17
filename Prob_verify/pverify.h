@@ -61,7 +61,7 @@ public:
     void addError(StoppingState* es);
     // Provide the criterion on which the program determines to print out the stopping
     // state trace
-    void addPrintStop(bool (*printStop)(GlobalState*, GlobalState*));
+    void addPrintStop(bool (*printStop)(GlobalState*, GlobalState*) = 0);
     // The basic procedure, start when all machines are in its initial state
     void start(int maxClass);
     // void start(vector<GlobalState*> initStates);
