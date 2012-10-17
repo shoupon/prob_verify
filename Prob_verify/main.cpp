@@ -28,8 +28,11 @@ bool printStop(GlobalState* left, GlobalState* right)
     stopZero.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 6); // lock 5
     stopZero.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 7); // lock 6
     
-    if( stopZero.match(left) && stopZero.match(right))
+    if( stopZero.match(left) && stopZero.match(right)) {
+        //cout << "0-to-0 stopping transition found" << endl ;
         return true ;
+        //return false;
+    }
     else
         return false;
 }

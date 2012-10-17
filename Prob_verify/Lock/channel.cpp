@@ -99,7 +99,7 @@ int Channel::nullInputTrans(vector<MessageTuple*>& outMsgs, bool& high_prob, int
             delete _mem[startIdx];
             _mem.erase(_mem.begin()+startIdx) ;
             
-            high_prob = true ;
+            high_prob = false ;
             return startIdx+1;
         }
         else {

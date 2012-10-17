@@ -148,7 +148,9 @@ void ProbVerifier::start(int maxClass)
                         insert(_arrFinStart, st);
                         insert(_arrFinRS, st);
                         
+#ifdef LOG_STOP
                         printStopping(st);
+#endif
                         st->printOrigins(_printStop);
                     }
                     else {
@@ -164,7 +166,9 @@ void ProbVerifier::start(int maxClass)
                     }
                 }
                 
+#ifdef LOG
                 cout << "Exploring " << st->toString() << ":" << endl ;  ;
+#endif
                 if( nChilds == 0 ) {
                     // No child found. Report deadlock
                     cout << _max << "composite states explored." << endl ;
@@ -208,13 +212,15 @@ void ProbVerifier::start(int maxClass)
                         }
                         else {
                             // Do something else, such as print out the probability
+#ifdef LOG_STOP
                             printStopping(childNode);
+#endif
                             childNode->printOrigins(_printStop);
                         }
                     }
-    #ifdef LOG
+#ifdef LOG
                     cout << endl   ;
-    #endif
+#endif
                 }
                 
                 // Finish exploring st. Remove st from class[k] (_arrClass[_curClass])

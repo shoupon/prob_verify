@@ -388,8 +388,6 @@ bool Lock::toRelease(MessageTuple *inMsg, vector<MessageTuple *> &outMsgs)
         outMsgs.push_back(rFront);
         outMsgs.push_back(rBack);
         outMsgs.push_back(abortMsg());
-        
-        return true ;
     }
     
     
@@ -410,6 +408,9 @@ bool Lock::toTimeout(MessageTuple *inMsg, vector<MessageTuple *> &outMsgs)
     if( msg == "timeout" ) {
         if( inMsg->getParam(0) == _ts ) {
             // Response
+            MessageTuple* hbStop = createResponse("stop", "heartbeater", inMsg,-1,_ts);
+            outMsgs.push_back(hbStop);
+            
             _current = 0;
             reset();
             return true;
