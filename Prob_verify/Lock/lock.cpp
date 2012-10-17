@@ -58,8 +58,10 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                 // Response
                 MessageTuple* rFront = createResponse("REQUEST", "channel", inMsg, _f,_ts);
                 MessageTuple* rBack = createResponse("REQUEST", "channel", inMsg, _b,_ts);
+                MessageTuple* hb = createResponse("start", "heartbeater", inMsg, -1, _ts);
                 outMsgs.push_back(rFront);
                 outMsgs.push_back(rBack);
+                outMsgs.push_back(hb);
                 // Change state
                 _current = 2;
                 
@@ -70,7 +72,7 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                 return 3;
             }
             else if( msg == "RELEASE" ) {
-                // Do nothing 
+                // Do nothing
                 return 3;
             }
             break;
@@ -246,6 +248,20 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                 // Simply ignore this message
                 return 3;
             }
+            else if( msg == "dead" ) {
+                // Response
+                MessageTuple* rFront = createResponse("RELEASE", "channel",inMsg,_f,_ts);
+                MessageTuple* rBack = createResponse("RELEASE", "channel",inMsg,_b,_ts);
+                outMsgs.push_back(rFront);
+                outMsgs.push_back(rBack);
+                outMsgs.push_back(abortMsg());
+                
+                // Change state
+                _current = 0;
+                reset();
+                
+                return 3 ;
+            }
             break;
             
         default:
@@ -274,10 +290,14 @@ int Lock::nullInputTrans(vector<MessageTuple*>& outMsgs,
             MessageTuple* bRel =
                 new LockMessage(0, machineToInt("channel"),
                                 0, relId, _machineId, _id, _b, _ts);
+            MessageTuple* hbStop = new LockMessage(0, machineToInt("heartbeater"),
+                                                   0, messageToInt("stop"),
+                                                   _machineId, _id, -1, 0);
             
             outMsgs.push_back(ctrlRes);
             outMsgs.push_back(fRel);
             outMsgs.push_back(bRel);
+            outMsgs.push_back(hbStop);
             // Change State
             _current = 0;
             reset();
@@ -344,13 +364,16 @@ bool Lock::toRelease(MessageTuple *inMsg, vector<MessageTuple *> &outMsgs)
         if(inMsg->getParam(2) == _ts ) {
             if( from == _f ) {
                 MessageTuple* rBack = createResponse("RELEASE", "channel",inMsg,_b,_ts);
-
+                MessageTuple* hbStop = createResponse("stop", "heartbeater", inMsg,-1,_ts);
                 outMsgs.push_back(rBack);
+                outMsgs.push_back(hbStop);
                 outMsgs.push_back(abortMsg());
             }
             else if( from == _b ) {
                 MessageTuple* rFront = createResponse("RELEASE", "channel",inMsg,_f,_ts);
+                MessageTuple* hbStop = createResponse("stop", "heartbeater", inMsg,-1,_ts);
                 outMsgs.push_back(rFront);
+                outMsgs.push_back(hbStop);
                 outMsgs.push_back(abortMsg());
             }
         }
@@ -358,6 +381,15 @@ bool Lock::toRelease(MessageTuple *inMsg, vector<MessageTuple *> &outMsgs)
             // ignore the message with wrong timestamp
             return true ;
         }
+    }
+    else if( msg == "dead" ) {
+        MessageTuple* rFront = createResponse("RELEASE", "channel",inMsg,_f,_ts);
+        MessageTuple* rBack = createResponse("RELEASE", "channel",inMsg,_b,_ts);
+        outMsgs.push_back(rFront);
+        outMsgs.push_back(rBack);
+        outMsgs.push_back(abortMsg());
+        
+        return true ;
     }
     
     
