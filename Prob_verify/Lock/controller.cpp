@@ -99,6 +99,7 @@ int Controller::nullInputTrans(vector<MessageTuple*>& outMsgs,
             if( _busy[veh] >= _time )
                 throw logic_error("Relative event order is not maintained");
             _time++ ;
+            //_busy[veh] = _busy[_fronts[veh]] = _busy[_backs[veh]] = -1 ;
             _busy[veh] = -1 ;
             _fronts[veh] = -1 ;
             _backs[veh] = -1;
@@ -148,6 +149,7 @@ int Controller::nullInputTrans(vector<MessageTuple*>& outMsgs,
                     initMsg->addParams(_time, f, b);
                     outMsgs.push_back(initMsg);                    
                     // Change state
+                    //_busy[i] = _busy[f] = _busy[b] = _time ;
                     _busy[i] = _time ;
                     _selves[i] = (int)i ;
                     _fronts[i] = f ;
