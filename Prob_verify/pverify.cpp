@@ -85,6 +85,8 @@ void ProbVerifier::start(int maxClass)
             // If yes, remove the member from class[k];
             // otherwise, add that member to STATET
             GSMap::iterator it = _arrClass[_curClass].begin();
+            cout << "There are " << _arrClass[_curClass].size() << " GlobalStates "
+                 << "in class[" << _curClass << "]" << endl;
             while( it != _arrClass[_curClass].end() ) {
                 GlobalState* st = it->first ;
                 if( _curClass == 0 ) {
@@ -148,7 +150,7 @@ void ProbVerifier::start(int maxClass)
                         insert(_arrFinStart, st);
                         insert(_arrFinRS, st);
                         
-                        cout << "Stopping state reached" << endl ;
+                        cout << "Stopping state reached: " << _max << endl ;
                         st->printOrigins(_printStop);
                     }
                     else {
@@ -210,7 +212,7 @@ void ProbVerifier::start(int maxClass)
                         }
                         else {
                             // Do something else, such as print out the probability
-                            cout << "Stopping state reached" << endl ;
+                            cout << "Stopping state reached: " << _max << endl ;
                             childNode->printOrigins(_printStop);
                         }
                     }
@@ -224,10 +226,13 @@ void ProbVerifier::start(int maxClass)
                 
             } // while (explore the global state in class[_curClass] until all the global states in the class
             // are explored
-            
+            cout << _max << "composite states explored." << endl ;
+            cout << "Total GlobalStates in unique table: " << _root->numAll() << endl ;
         } // for (explore all the class until class[0] through class[_maxClass-1] are fully explored
         
         // Conclude success
+        cout << endl;
+        cout << "Procedure complete" << endl ;
         cout << _max << "composite states explored." << endl ;
         cout << "Total GlobalStates in unique table: " << _root->numAll() << endl ;
         cout << "Up to " << maxClass << " low probability transitions considered." << endl ;
