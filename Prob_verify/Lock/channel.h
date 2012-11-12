@@ -9,6 +9,8 @@
 #ifndef CHANNEL_H
 #define CHANNEL_H
 
+#define MAX_OUT_ORDER 2
+
 #include <vector>
 using namespace std;
 
