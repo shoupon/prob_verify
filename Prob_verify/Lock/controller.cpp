@@ -303,7 +303,7 @@ ControllerSnapshot::ControllerSnapshot(vector<int> eng, vector<int> busy,
         sumEng += _ss_engaged[i];
         sumEng = sumEng << 4;
     }
-    _hash_use  = (sumEng << 4) + (int)_ss_engaged.size() ;
+    _hash_use  = (sumEng << 4)*(int)_ss_engaged.size() ;
     
     _ss_seqCtrl = new SeqCtrl(*seqCtrl) ;
 }

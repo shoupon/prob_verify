@@ -105,8 +105,8 @@ public:
     // Returns the name of current state as specified in the input file
     string toString() ;
     // Cast the Snapshot into a integer. Used in HashTable
-    int toInt() { return (_ss_f << 12) + (_ss_b << 8) +
-                         (_ss_m << 4 ) + _stateId ; }
+    int toInt() { return ( (_ss_f << 12) + (_ss_b << 8) + (_ss_m << 4 ) )*_ss_m
+                         + _stateId ; }
     LockSnapshot* clone() const { return new LockSnapshot(_ss_ts, _ss_f,
                                                           _ss_b, _ss_m, _stateId); }
     

@@ -214,7 +214,7 @@ int ChannelSnapshot::toInt()
             ret += _ss_mem[i]->destId() ;
             ret = ret << 4 ;
         }
-        return ret ;
+        return ret * (int)_ss_mem.size() ;
     }
     else
         return 0 ;
