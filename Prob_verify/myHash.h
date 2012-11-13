@@ -9,6 +9,7 @@
 #ifndef MY_HASH_H
 #define MY_HASH_H
 
+//#define HASH_DEBUG
 #include <vector>
 
 using namespace std;
@@ -154,12 +155,20 @@ public:
    }
 
    // number of valid data
-    size_t size() const 
-    { 
-        size_t s = 0; 
-        for( size_t i = 0 ; i < _numBuckets ; ++i )
+    size_t size() 
+    {
+#ifdef HASH_DEBUG
+        _hist.clear();
+        _hist.reserve(_numBuckets);
+#endif
+        size_t s = 0;
+        for( size_t i = 0 ; i < _numBuckets ; ++i ) {
             s += _buckets[i].size() ;
-        return s; 
+#ifdef HASH_DEBUG
+            _hist.push_back(_buckets[i].size());
+#endif
+        }
+        return s;
     }
 
    vector<HashNode>& operator [] (size_t i) { return _buckets[i]; }
@@ -235,9 +244,12 @@ public:
     }
 
 private:
-    // Do not add any extra data member
     size_t                   _numBuckets;
     vector<HashNode>*        _buckets;
+    
+#ifdef HASH_DEBUG
+    vector<int>              _hist;
+#endif
 
     size_t bucketNum(const HashKey& k) const {
         return (k() % _numBuckets); }

@@ -48,6 +48,7 @@ void ProbVerifier::addPrintStop(bool (*printStop)(GlobalState *, GlobalState *))
 void ProbVerifier::start(int maxClass)
 {
     try {
+        _totalStates = GSHash(10000) ;
 #ifdef LOG
         cout << "Stopping states:" << endl ;
         for( size_t i = 0 ; i < _RS.size() ; ++i ) {
@@ -138,13 +139,13 @@ void ProbVerifier::start(int maxClass)
 #ifdef VERBOSE
                     cout << "====  Finding successors of " << st->toString() << endl;
 #endif
-                    UniqueMap::iterator uit = _totalStates.find(st->toString()) ;
+                    GSHash::iterator uit = _totalStates.find(GlobalStateHashKey(st));
                     if( uit != _totalStates.end() ) {
-                        uit->second->merge(st) ;
+                        (*uit).second->merge(st) ;
                         continue;
                     }
                     else {
-                        _totalStates.insert(UniqueMapPair(st->toString(), st)) ;
+                        _totalStates.insert( GlobalStateHashKey(st), st);
                     }
                     
                     st->findSucc();
@@ -237,14 +238,14 @@ void ProbVerifier::start(int maxClass)
             } // while (explore the global state in class[_curClass] until all the global states in the class
             // are explored
             cout << _max << "composite states explored." << endl ;
-            cout << "Total GlobalStates in unique table: " << _root->numAll() << endl ;
+            cout << "Total GlobalStates in unique table: " << _totalStates.size() << endl ;
         } // for (explore all the class until class[0] through class[_maxClass-1] are fully explored
         
         // Conclude success
         cout << endl;
         cout << "Procedure complete" << endl ;
         cout << _max << "composite states explored." << endl ;
-        cout << "Total GlobalStates in unique table: " << _root->numAll() << endl ;
+        cout << "Total GlobalStates in unique table: " << _totalStates.size() << endl ;
         cout << "Up to " << maxClass << " low probability transitions considered." << endl ;
         cout << "No deadlock or livelock found." << endl;
         

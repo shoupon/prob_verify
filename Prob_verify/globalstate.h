@@ -47,8 +47,7 @@ class GlobalState
     vector<GlobalState*> _parents;
     vector<int> _probs;
     queue<MessageTuple*> _fifo;
-    queue<int> _subjects;
-    vector<int> _class ;
+
     int _countVisit;
     int _dist ;
     int _depth;
@@ -210,13 +209,11 @@ public:
     GSVecHashKey(const vector<StateSnapshot*>& vec)
     {
         _sum = 0 ;
-        _states.resize(vec.size());
         _arrStr.resize(vec.size());
         for( size_t ii = 0 ; ii < vec.size() ; ++ii ) {
-            _states[ii] = vec[ii]->toInt() ;
             _arrStr[ii] = vec[ii]->toString();
-            _sum += _states[ii];
-        }        
+            _sum += vec[ii]->toInt() ;
+        }
     }
     
     size_t operator() () const { return (_sum); }
@@ -232,7 +229,6 @@ public:
     }
     
 private:
-    vector<int> _states;
     vector<string> _arrStr;
     int _sum ;
 };
