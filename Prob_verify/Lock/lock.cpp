@@ -263,6 +263,7 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                 // Simply ignore this message
                 return 3;
             }
+
             break;
             
         default:
@@ -401,7 +402,6 @@ bool Lock::toRelease(MessageTuple *inMsg, vector<MessageTuple *> &outMsgs)
         if(inMsg->getParam(2) == _ts ) {
             if( from == _f ) {
                 MessageTuple* rBack = createResponse("RELEASE", "channel",inMsg,_b,_ts);
-
                 outMsgs.push_back(rBack);
                 outMsgs.push_back(abortMsg());
             }
@@ -416,7 +416,6 @@ bool Lock::toRelease(MessageTuple *inMsg, vector<MessageTuple *> &outMsgs)
             return true ;
         }
     }
-    
     
     if( outMsgs.size() != 0 ) {
         _current = 0;
@@ -434,7 +433,6 @@ bool Lock::toTimeout(MessageTuple *inMsg, vector<MessageTuple *> &outMsgs)
     
     if( msg == "timeout" ) {
         if( inMsg->getParam(0) == _ts ) {
-            // Response
             _current = 0;
             reset();
             return true;

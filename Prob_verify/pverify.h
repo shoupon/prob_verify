@@ -16,9 +16,10 @@ typedef map<GlobalState*, int>                   GSMap;
 typedef pair<GlobalState*, int>                  GSMapPair;
 typedef map<GlobalState*, int>::iterator         GSMapIter;
 typedef map<GlobalState*, int>::const_iterator   GSMapConstIter;
+typedef map<string, GlobalState*>                UniqueMap;
 
-typedef map<vector<string>, int>          GSVecMap;
-typedef pair<vector<string>, int>         GSVecMapPair;
+typedef map<string, int>          GSVecMap;
+typedef pair<string, int>         GSVecMapPair;
 
 class ProbVerifier
 {
@@ -32,6 +33,8 @@ private:
     GSVecMap _arrRS;
     GSVecMap _arrFinRS;
     GSVecMap _arrFinStart;
+    UniqueMap _totalStates;
+    
     GlobalState* _root ;
     int _maxClass;
     int _curClass;   
@@ -43,12 +46,14 @@ private:
     GSVecMap::iterator find(GSVecMap& collection, GlobalState* gs);
     GSMap::iterator find(GSMap& collection, GlobalState* gs);
     void insert(GSVecMap& collection, GlobalState* gs) 
-    { collection.insert( GSVecMapPair(gs->getStringVec(), gs->getProb()) ); }
+    { collection.insert( GSVecMapPair(gs->toString(), gs->getProb()) ); }
     void printSeq(const vector<GlobalState*>& seq) ;
     
     bool isError(const GlobalState* obj);
     bool isStopping(const GlobalState* obj);
     bool findMatch(const GlobalState* obj, const vector<StoppingState*>& container) ;
+    
+    void printStopping(const GlobalState* obj) ;
 
 
 public:
@@ -61,7 +66,7 @@ public:
     void addError(StoppingState* es);
     // Provide the criterion on which the program determines to print out the stopping
     // state trace
-    void addPrintStop(bool (*printStop)(GlobalState*, GlobalState*));
+    void addPrintStop(bool (*printStop)(GlobalState*, GlobalState*) = 0);
     // The basic procedure, start when all machines are in its initial state
     void start(int maxClass);
     // void start(vector<GlobalState*> initStates);

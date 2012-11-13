@@ -30,6 +30,8 @@ bool printStop(GlobalState* left, GlobalState* right)
     /*
     if( stopZero.match(left) && stopZero.match(right))
         return true ;
+        //return false;
+    }
     else
         return false;*/
     return false;
@@ -121,7 +123,7 @@ int main( int argc, char* argv[] )
         pvObj.addMachine(ctrl);
         for( size_t i = 0 ; i < arrLock.size() ; ++i )
             pvObj.addMachine(arrLock[i]);
-        pvObj.addMachine(chan);              
+        pvObj.addMachine(chan);
         
         // Specify the starting state
         GlobalState* startPoint = new GlobalState(pvObj.getMachinePtrs());
@@ -282,6 +284,7 @@ int main( int argc, char* argv[] )
         
         
         pvObj.addPrintStop(printStop) ;
+        //pvObj.addPrintStop();
 
         // Start the procedure of probabilistic verification. 
         // Specify the maximum probability depth to be explored

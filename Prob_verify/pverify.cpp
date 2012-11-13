@@ -115,7 +115,10 @@ void ProbVerifier::start(int maxClass)
                 // Pop a globalstate pointer ptr from class[k] (_arrClass[_curClass])
                 GSMapConstIter it = _arrClass[_curClass].begin();
                 GlobalState* st = it->first ;
-                
+                // Remove st from class[k] (_arrClass[_curClass])
+                _arrClass[_curClass].erase(it);
+
+                                
                 if( st->getDistance() > _max ) {
                     cout << _max << "composite states explored." << endl ;
                     cout << "Livelock found after " << st->getProb()
@@ -135,6 +138,12 @@ void ProbVerifier::start(int maxClass)
 #ifdef VERBOSE
                     cout << "====  Finding successors of " << st->toString() << endl;
 #endif
+                    UniqueMap::iterator uit = _totalStates.find(st->toString()) ;
+                    if( uit != _totalStates.end() ) {
+                        uit->second->merge(st) ;
+                        continue;
+                    }
+                    
                     st->findSucc();
                     // Increase the threshold of livelock detection
                     _max += st->size();
@@ -167,7 +176,7 @@ void ProbVerifier::start(int maxClass)
                 }
                 
 #ifdef LOG
-                cout << st->toString() << ": "  ;
+                cout << "Exploring " << st->toString() << ":" << endl ;  ;
 #endif
                 if( nChilds == 0 ) {
                     // No child found. Report deadlock
@@ -216,14 +225,12 @@ void ProbVerifier::start(int maxClass)
                             childNode->printOrigins(_printStop);
                         }
                     }
-    #ifdef LOG
+#ifdef LOG
                     cout << endl   ;
-    #endif
+#endif
                 }
                 
-                // Finish exploring st. Remove st from class[k] (_arrClass[_curClass])
-                _arrClass[_curClass].erase(it);
-                
+                // Finish exploring st.                 
             } // while (explore the global state in class[_curClass] until all the global states in the class
             // are explored
             cout << _max << "composite states explored." << endl ;
@@ -264,13 +271,11 @@ void ProbVerifier::addRS(StoppingState* rs)
 
 GSVecMap::iterator ProbVerifier::find(GSVecMap& collection, GlobalState* gs)
 {
-    vector<string> vec = gs->getStringVec();
+    string gsStr = gs->toString();
     if( collection.empty() )
         return collection.end();
-    if( collection.begin()->first.size() != vec.size() )
-        return collection.end();
 
-    return collection.find(vec);
+    return collection.find(gsStr);
 }
 
 GSMap::iterator ProbVerifier::find(GSMap& collection, GlobalState* gs)
@@ -313,6 +318,12 @@ bool ProbVerifier::findMatch(const GlobalState* obj,
             return true ;
     }
     return false;
+}
+
+void ProbVerifier::printStopping(const GlobalState *obj)
+{
+    cout << "Stopping state reached: "
+         << obj->toString() << endl;
 }
 
 /*
