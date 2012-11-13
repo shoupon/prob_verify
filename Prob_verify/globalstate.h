@@ -39,7 +39,6 @@ class GlobalState
     // The ID's of states in a global state
     // A table stores all of the reachable globalState. Each reachable globalState is
     // unique. The _uniqueTable stores the pointers to each unique GlobalState
-    static GSHash _uniqueTable ;
     static GlobalState* _root;
     static Parser* _psrPtr;
     
@@ -66,7 +65,7 @@ protected:
     
     vector<StateSnapshot*> _gStates;
 private:
-    void trim();      
+    //void trim();
     void addParents(const vector<GlobalState*>& arr);
     //void execute(int macId, int transId, Transition* transPtr);
     vector<GlobalState*> evaluate();
@@ -149,7 +148,6 @@ public:
     void setRoot() { _root = this; }
     static bool init(GlobalState*) ;    
     static void clearAll() ;
-    static size_t numAll() { return _uniqueTable.size() ; }
     
     static void setParser(Parser* ptr) { _psrPtr = ptr ;}
 };
@@ -158,47 +156,26 @@ class GlobalStateHashKey
 {
 public:
     GlobalStateHashKey(const GlobalState* gs)
-        : _depth(gs->getProb()), _stateStr( gs->toString() )
+        : _stateStr( gs->toString() )
     {
         vector<StateSnapshot*> mirror = gs->getStateVec() ;
         
-        _arrInt.resize(mirror.size());
         _sum = 0 ;
-        for( size_t m = 0 ; m < _arrInt.size() ; ++m ) {
-            _arrInt[m] = mirror[m]->toInt() ;
-            _sum += _arrInt[m];
+        for( size_t m = 0 ; m < mirror.size() ; ++m ) {
+            _sum += mirror[m]->toInt() ;
         }
-    }
-    
-    ~GlobalStateHashKey()
-    {
-        /*
-        for( size_t m = 0 ; m < _gState.size() ; ++m ) {
-            delete _gState[m];
-        }*/
     }
 
     size_t operator() () const { return (_sum); }
     bool operator == (const GlobalStateHashKey& k) 
     {
-        /*
-        assert(_arrInt.size() == k._arrInt.size() );
-        for( size_t ii = 0 ; ii < _arrInt.size() ; ++ii ) 
-            if( _arrInt[ii] != k._arrInt[ii] )
-                return false ;
-         */
         if( _stateStr != k._stateStr )
             return false ;
 
-        if( _depth != k._depth )
-            return false;
         return true;
     }
  
 private:
-    vector<int> _arrInt;
-    int _depth;
-    
     int _sum;
     string _stateStr;
 };

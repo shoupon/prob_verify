@@ -124,7 +124,8 @@ void ProbVerifier::start(int maxClass)
                     cout << _max << "composite states explored." << endl ;
                     cout << "Livelock found after " << st->getProb()
                          << " low probability transitions" << endl ;
-                    cout << "Total GlobalStates in unique table: " << st->numAll() << endl ;
+                    cout << "Total GlobalStates in unique table: " << _totalStates.size()
+                         << endl ;
                     
                     vector<GlobalState*> seq;
                     st->pathCycle(seq);

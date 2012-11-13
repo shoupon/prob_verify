@@ -13,7 +13,6 @@ using namespace std;
 
 int GlobalState::_nMacs = -1;
 vector<StateMachine*> GlobalState::_machines;
-GSHash GlobalState::_uniqueTable = GSHash(15) ;
 GlobalState* GlobalState::_root = 0;
 Parser* GlobalState::_psrPtr = 0;
 
@@ -425,7 +424,7 @@ void GlobalState::merge(GlobalState *gs)
 bool GlobalState::init(GlobalState* s)
 {
     _root = s;
-    return _uniqueTable.insert( GlobalStateHashKey(s), s );
+    return true;
 }
 
 void GlobalState::addOrigin(GlobalState* rootStop)
@@ -474,7 +473,7 @@ string GlobalState::toString() const
 
     return ss.str();
 }
-
+/*
 void GlobalState::trim()
 {
     for( size_t ii = 0 ; ii < _childs.size() ; ++ii ) {
@@ -497,7 +496,7 @@ void GlobalState::trim()
             _uniqueTable.insert( GlobalStateHashKey(_childs[ii]), _childs[ii] ) ;
         }
     }
-}
+}*/
 
 void GlobalState::addParents(const vector<GlobalState*>& arr)
 {
@@ -516,11 +515,13 @@ void GlobalState::addParents(const vector<GlobalState*>& arr)
 
 void GlobalState::clearAll()
 {
+    /*
     GSHash::iterator it = _uniqueTable.begin();
     while( it != _uniqueTable.end() ) {
         delete (*it).second ;
         ++it;
     }
+     */
 }
 
 void GlobalState::recordProb()
@@ -694,8 +695,10 @@ void GlobalState::BFS(vector<GlobalState*>& arr, bool (*stop)(GlobalState*))
 
 void GlobalState::resetColor()
 {
+    /*
     for( GSHash::iterator it = _uniqueTable.begin() ; it != _uniqueTable.end() ; ++it ) 
         (*it).second->_white = true;    
+     */
 }
 
 size_t GlobalState::markPath(GlobalState* ptr)
