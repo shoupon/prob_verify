@@ -12,7 +12,6 @@ using namespace std;
 #include "./Lock/controller.h"
 #include "./Lock/lock.h"
 #include "./Lock/channel.h"
-#include "./Lock/heartbeat.h"
 
 ProbVerifier pvObj ;
 GlobalState* startPoint;
@@ -117,15 +116,12 @@ int main( int argc, char* argv[] )
                                         psrPtr->getMacTable() ) );
         Channel* chan = new Channel(num, psrPtr->getMsgTable(),
                                     psrPtr->getMacTable() ) ;
-        Heartbeater* hb = new Heartbeater(num, psrPtr->getMsgTable(),
-                                          psrPtr->getMacTable());
 
         // Add the state machines into ProbVerifier
         pvObj.addMachine(ctrl);
         for( size_t i = 0 ; i < arrLock.size() ; ++i )
             pvObj.addMachine(arrLock[i]);
         pvObj.addMachine(chan);
-        pvObj.addMachine(hb);
         
         // Specify the starting state
         GlobalState* startPoint = new GlobalState(pvObj.getMachinePtrs());

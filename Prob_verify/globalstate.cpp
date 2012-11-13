@@ -19,7 +19,7 @@ Parser* GlobalState::_psrPtr = 0;
 
 GlobalState::GlobalState(GlobalState* gs): _countVisit(1),
         _dist(gs->_dist+1), _depth(gs->_depth), _white(true), _origin(gs->_origin)
-{ 
+{
     _parents.push_back(gs);
     
     // Clone the pending tasks
@@ -204,7 +204,7 @@ void GlobalState::findSucc()
                
         recordProb();
         // Trim the list of childs    
-        trim() ;
+        //trim() ;
     } catch ( exception& e ) {
         cerr << e.what() << endl ;
     } catch (...) {
@@ -399,8 +399,30 @@ void GlobalState::updateTrip()
             _childs[ii]->_dist = this->_dist + 1 ;
     }
 }
+
+void GlobalState::merge(GlobalState *gs)
+{
+    this->increaseVisit(gs->getVisit()) ;
+    
+    // Take care of the _childs vector of parents of gs
+    for( size_t i = 0 ; i < gs->_parents.size() ; i++ ) {
+        GlobalState* par = gs->_parents[i];
+        vector<GlobalState*>::iterator it = par->_childs.begin() ;
+        for( ; it != par->_childs.end() ; ++it ) {
+            if( (*it) == gs ) {
+                (*it) = this ;
+                break ;
+            }
+        }
+        assert( it != par->_childs.end() );
+    }
+
+    this->addParents(gs->_parents);
+    
+    delete gs;
+}
    
-bool GlobalState::init(GlobalState* s) 
+bool GlobalState::init(GlobalState* s)
 {
     _root = s;
     return _uniqueTable.insert( GlobalStateHashKey(s), s );

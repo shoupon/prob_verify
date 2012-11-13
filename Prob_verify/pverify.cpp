@@ -113,7 +113,10 @@ void ProbVerifier::start(int maxClass)
                 // Pop a globalstate pointer ptr from class[k] (_arrClass[_curClass])
                 GSMapConstIter it = _arrClass[_curClass].begin();
                 GlobalState* st = it->first ;
-                
+                // Remove st from class[k] (_arrClass[_curClass])
+                _arrClass[_curClass].erase(it);
+
+                                
                 if( st->getDistance() > _max ) {
                     cout << _max << "composite states explored." << endl ;
                     cout << "Livelock found after " << st->getProb()
@@ -133,6 +136,12 @@ void ProbVerifier::start(int maxClass)
 #ifdef VERBOSE
                     cout << "====  Finding successors of " << st->toString() << endl;
 #endif
+                    UniqueMap::iterator uit = _totalStates.find(st->toString()) ;
+                    if( uit != _totalStates.end() ) {
+                        uit->second->merge(st) ;
+                        continue;
+                    }
+                    
                     st->findSucc();
                     // Increase the threshold of livelock detection
                     _max += st->size();
@@ -223,9 +232,7 @@ void ProbVerifier::start(int maxClass)
 #endif
                 }
                 
-                // Finish exploring st. Remove st from class[k] (_arrClass[_curClass])
-                _arrClass[_curClass].erase(it);
-                
+                // Finish exploring st.                 
             } // while (explore the global state in class[_curClass] until all the global states in the class
             // are explored
             
