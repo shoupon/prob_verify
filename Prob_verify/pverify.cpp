@@ -143,6 +143,9 @@ void ProbVerifier::start(int maxClass)
                         uit->second->merge(st) ;
                         continue;
                     }
+                    else {
+                        _totalStates.insert(UniqueMapPair(st->toString(), st)) ;
+                    }
                     
                     st->findSucc();
                     // Increase the threshold of livelock detection

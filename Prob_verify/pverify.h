@@ -17,6 +17,7 @@ typedef pair<GlobalState*, int>                  GSMapPair;
 typedef map<GlobalState*, int>::iterator         GSMapIter;
 typedef map<GlobalState*, int>::const_iterator   GSMapConstIter;
 typedef map<string, GlobalState*>                UniqueMap;
+typedef pair<string, GlobalState*>               UniqueMapPair;
 
 typedef map<string, int>          GSVecMap;
 typedef pair<string, int>         GSVecMapPair;
