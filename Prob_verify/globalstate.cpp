@@ -19,8 +19,6 @@ Parser* GlobalState::_psrPtr = 0;
 GlobalState::GlobalState(GlobalState* gs): _countVisit(1),
         _dist(gs->_dist+1), _depth(gs->_depth), _white(true), _origin(gs->_origin)
 {
-    _parents.push_back(gs);
-    
     // Clone the pending tasks
     // Duplicate the container since the original gs->_fifo cannot be popped
     queue<MessageTuple*> cloneTasks = gs->_fifo ;
@@ -279,7 +277,6 @@ vector<GlobalState*> GlobalState::evaluate()
                     delete creation->_gStates[macNum-1];
                     creation->_gStates[macNum-1] = _machines[macNum-1]->curState();
                     creation->addTask(pending);
-                    creation->_parents = this->_parents;
                     if( !high_prob )
                         creation->_depth++;
                     ret.push_back(creation);                                                            
@@ -375,7 +372,7 @@ vector<GlobalState*> GlobalState::evaluate()
 }
 
 void GlobalState::addTask(vector<MessageTuple*> msgs)
-{   
+{
 #ifdef VERBOSE
     cout << "Tasks: " << endl;
 #endif
@@ -397,6 +394,40 @@ void GlobalState::updateTrip()
         if( _childs[ii]->_dist < this->_dist + 1 )
             _childs[ii]->_dist = this->_dist + 1 ;
     }
+}
+
+void GlobalState::updateParents()
+{
+    for( size_t ci = 0 ; ci < _childs.size() ; ++ci ) {
+        assert( _childs[ci]->_parents.size() == 0 );
+        _childs[ci]->_parents.push_back(this);
+    }
+}
+
+bool GlobalState::removeBranch(GlobalState* leaf)
+{
+    assert(leaf->_parents.size() == 1) ;
+    
+    GlobalState* par = leaf->_parents.front() ;
+    vector<GlobalState*>::iterator it = par->_childs.begin() ;
+    bool found = false;
+    for( ; it != par->_childs.end() ; ++it ) {
+        if( (*it) == leaf ) {
+            par->_childs.erase(it);
+            found = true ;
+            break ;
+        }
+    }
+
+    assert(found);
+    
+    bool ret = false;
+    if( par->_childs.size() == 0 ) {
+        removeBranch(par) ;
+        ret = true ;
+    }
+    delete leaf ;
+    return ret;
 }
 
 void GlobalState::merge(GlobalState *gs)

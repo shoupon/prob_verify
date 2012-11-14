@@ -138,7 +138,7 @@ int main( int argc, char* argv[] )
         stopZero.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 4); // lock 3
         stopZero.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 5); // lock 4
         stopZero.addAllow(new LockSnapshot(-1,-1,-1,-1,0), 6); // lock 5
-        stopZero.addAllow(new ChannelSnapshot(), 7); // channel
+        //stopZero.addAllow(new ChannelSnapshot(), 7); // channel
         pvObj.addRS(&stopZero);
         
         // state LF

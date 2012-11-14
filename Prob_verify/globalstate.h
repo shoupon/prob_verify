@@ -120,6 +120,8 @@ public:
     // increase the step length from the initial global state for livelock detection
     void updateTrip();
     void removeParents() { _parents.clear() ; }
+    void updateParents() ;
+    static bool removeBranch(GlobalState* leaf) ;
     void merge(GlobalState* gs);
 
     // Take the states of machines as stored in _gStates

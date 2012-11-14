@@ -48,6 +48,7 @@ void ProbVerifier::addPrintStop(bool (*printStop)(GlobalState *, GlobalState *))
 void ProbVerifier::start(int maxClass)
 {
     try {
+        int hit = 0;
         _totalStates = GSHash(10000) ;
 #ifdef LOG
         cout << "Stopping states:" << endl ;
@@ -140,16 +141,8 @@ void ProbVerifier::start(int maxClass)
 #ifdef VERBOSE
                     cout << "====  Finding successors of " << st->toString() << endl;
 #endif
-                    GSHash::iterator uit = _totalStates.find(GlobalStateHashKey(st));
-                    if( uit != _totalStates.end() ) {
-                        (*uit).second->merge(st) ;
-                        continue;
-                    }
-                    else {
-                        _totalStates.insert( GlobalStateHashKey(st), st);
-                    }
-                    
                     st->findSucc();
+                    st->updateParents();
                     // Increase the threshold of livelock detection
                     _max += st->size();
                 }
@@ -165,7 +158,7 @@ void ProbVerifier::start(int maxClass)
                         insert(_arrFinRS, st);
                         
                         cout << "Stopping state reached: " << _max << endl ;
-                        st->printOrigins(_printStop);
+                        //st->printOrigins(_printStop);
                     }
                     else {
                         insert(_arrRS, st) ;
@@ -209,10 +202,9 @@ void ProbVerifier::start(int maxClass)
                 }
                 else {
                     // Add the computed childs to class array ST[class].
-                    for( size_t idx = 0 ; idx < nChilds ; ++idx ) {
+                    for( size_t idx = 0 ; idx < st->size() ; ++idx ) {
                         
                         GlobalState* childNode = st->getChild(idx);
-                        
                         int prob = st->getProb(idx);                        
 #ifdef LOG
                         int dist = childNode->getDistance();
@@ -227,7 +219,11 @@ void ProbVerifier::start(int maxClass)
                         else {
                             // Do something else, such as print out the probability
                             cout << "Stopping state reached: " << _max << endl ;
-                            childNode->printOrigins(_printStop);
+                            //childNode->printOrigins(_printStop);
+                            if(GlobalState::removeBranch(childNode))
+                                break;
+                            else
+                                idx--;
                         }
                     }
 #ifdef LOG
