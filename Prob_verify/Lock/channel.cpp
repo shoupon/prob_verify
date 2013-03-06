@@ -90,7 +90,7 @@ int Channel::nullInputTrans(vector<MessageTuple*>& outMsgs, bool& high_prob, int
             high_prob = true ;
             return 1;
         }
-        else if( startIdx > 0 && startIdx < _mem.size() ) {
+        else if( startIdx > 0 && startIdx < _mem.size() && startIdx < MAX_OUT_ORDER + 1) {
             // Create message
             MessageTuple* msg = createDelivery(startIdx) ;
             outMsgs.push_back(msg);
@@ -214,7 +214,7 @@ int ChannelSnapshot::toInt()
             ret += _ss_mem[i]->destId() ;
             ret = ret << 4 ;
         }
-        return ret ;
+        return ret * (int)_ss_mem.size() ;
     }
     else
         return 0 ;

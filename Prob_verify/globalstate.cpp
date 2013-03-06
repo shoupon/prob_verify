@@ -13,15 +13,12 @@ using namespace std;
 
 int GlobalState::_nMacs = -1;
 vector<StateMachine*> GlobalState::_machines;
-GSHash GlobalState::_uniqueTable = GSHash(15) ;
 GlobalState* GlobalState::_root = 0;
 Parser* GlobalState::_psrPtr = 0;
 
 GlobalState::GlobalState(GlobalState* gs): _countVisit(1),
         _dist(gs->_dist+1), _depth(gs->_depth), _white(true), _origin(gs->_origin)
-{ 
-    _parents.push_back(gs);
-    
+{
     // Clone the pending tasks
     // Duplicate the container since the original gs->_fifo cannot be popped
     queue<MessageTuple*> cloneTasks = gs->_fifo ;
@@ -204,7 +201,7 @@ void GlobalState::findSucc()
                
         recordProb();
         // Trim the list of childs    
-        trim() ;
+        //trim() ;
     } catch ( exception& e ) {
         cerr << e.what() << endl ;
     } catch (...) {
@@ -280,7 +277,6 @@ vector<GlobalState*> GlobalState::evaluate()
                     delete creation->_gStates[macNum-1];
                     creation->_gStates[macNum-1] = _machines[macNum-1]->curState();
                     creation->addTask(pending);
-                    creation->_parents = this->_parents;
                     if( !high_prob )
                         creation->_depth++;
                     ret.push_back(creation);                                                            
@@ -376,7 +372,7 @@ vector<GlobalState*> GlobalState::evaluate()
 }
 
 void GlobalState::addTask(vector<MessageTuple*> msgs)
-{   
+{
 #ifdef VERBOSE
     cout << "Tasks: " << endl;
 #endif
@@ -399,11 +395,67 @@ void GlobalState::updateTrip()
             _childs[ii]->_dist = this->_dist + 1 ;
     }
 }
+
+void GlobalState::updateParents()
+{
+    for( size_t ci = 0 ; ci < _childs.size() ; ++ci ) {
+        assert( _childs[ci]->_parents.size() == 0 );
+        _childs[ci]->_parents.push_back(this);
+    }
+}
+
+bool GlobalState::removeBranch(GlobalState* leaf)
+{
+    assert(leaf->_parents.size() == 1) ;
+    
+    GlobalState* par = leaf->_parents.front() ;
+    vector<GlobalState*>::iterator it = par->_childs.begin() ;
+    bool found = false;
+    for( ; it != par->_childs.end() ; ++it ) {
+        if( (*it) == leaf ) {
+            par->_childs.erase(it);
+            found = true ;
+            break ;
+        }
+    }
+
+    assert(found);
+    
+    bool ret = false;
+    if( par->_childs.size() == 0 ) {
+        removeBranch(par) ;
+        ret = true ;
+    }
+    delete leaf ;
+    return ret;
+}
+
+void GlobalState::merge(GlobalState *gs)
+{
+    this->increaseVisit(gs->getVisit()) ;
+    
+    // Take care of the _childs vector of parents of gs
+    for( size_t i = 0 ; i < gs->_parents.size() ; i++ ) {
+        GlobalState* par = gs->_parents[i];
+        vector<GlobalState*>::iterator it = par->_childs.begin() ;
+        for( ; it != par->_childs.end() ; ++it ) {
+            if( (*it) == gs ) {
+                (*it) = this ;
+                break ;
+            }
+        }
+        assert( it != par->_childs.end() );
+    }
+
+    this->addParents(gs->_parents);
+    
+    delete gs;
+}
    
-bool GlobalState::init(GlobalState* s) 
+bool GlobalState::init(GlobalState* s)
 {
     _root = s;
-    return _uniqueTable.insert( GlobalStateHashKey(s), s );
+    return true;
 }
 
 void GlobalState::addOrigin(GlobalState* rootStop)
@@ -452,7 +504,7 @@ string GlobalState::toString() const
 
     return ss.str();
 }
-
+/*
 void GlobalState::trim()
 {
     for( size_t ii = 0 ; ii < _childs.size() ; ++ii ) {
@@ -475,7 +527,7 @@ void GlobalState::trim()
             _uniqueTable.insert( GlobalStateHashKey(_childs[ii]), _childs[ii] ) ;
         }
     }
-}
+}*/
 
 void GlobalState::addParents(const vector<GlobalState*>& arr)
 {
@@ -494,11 +546,13 @@ void GlobalState::addParents(const vector<GlobalState*>& arr)
 
 void GlobalState::clearAll()
 {
+    /*
     GSHash::iterator it = _uniqueTable.begin();
     while( it != _uniqueTable.end() ) {
         delete (*it).second ;
         ++it;
     }
+     */
 }
 
 void GlobalState::recordProb()
@@ -672,8 +726,10 @@ void GlobalState::BFS(vector<GlobalState*>& arr, bool (*stop)(GlobalState*))
 
 void GlobalState::resetColor()
 {
+    /*
     for( GSHash::iterator it = _uniqueTable.begin() ; it != _uniqueTable.end() ; ++it ) 
         (*it).second->_white = true;    
+     */
 }
 
 size_t GlobalState::markPath(GlobalState* ptr)

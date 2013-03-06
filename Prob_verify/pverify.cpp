@@ -48,6 +48,8 @@ void ProbVerifier::addPrintStop(bool (*printStop)(GlobalState *, GlobalState *))
 void ProbVerifier::start(int maxClass)
 {
     try {
+        int hit = 0;
+        _totalStates = GSHash(10000) ;
 #ifdef LOG
         cout << "Stopping states:" << endl ;
         for( size_t i = 0 ; i < _RS.size() ; ++i ) {
@@ -85,6 +87,8 @@ void ProbVerifier::start(int maxClass)
             // If yes, remove the member from class[k];
             // otherwise, add that member to STATET
             GSMap::iterator it = _arrClass[_curClass].begin();
+            cout << "There are " << _arrClass[_curClass].size() << " GlobalStates "
+                 << "in class[" << _curClass << "]" << endl;
             while( it != _arrClass[_curClass].end() ) {
                 GlobalState* st = it->first ;
                 if( _curClass == 0 ) {
@@ -113,12 +117,16 @@ void ProbVerifier::start(int maxClass)
                 // Pop a globalstate pointer ptr from class[k] (_arrClass[_curClass])
                 GSMapConstIter it = _arrClass[_curClass].begin();
                 GlobalState* st = it->first ;
-                
+                // Remove st from class[k] (_arrClass[_curClass])
+                _arrClass[_curClass].erase(it);
+
+                                
                 if( st->getDistance() > _max ) {
                     cout << _max << "composite states explored." << endl ;
                     cout << "Livelock found after " << st->getProb()
                          << " low probability transitions" << endl ;
-                    cout << "Total GlobalStates in unique table: " << st->numAll() << endl ;
+                    cout << "Total GlobalStates in unique table: " << _totalStates.size()
+                         << endl ;
                     
                     vector<GlobalState*> seq;
                     st->pathCycle(seq);
@@ -134,6 +142,7 @@ void ProbVerifier::start(int maxClass)
                     cout << "====  Finding successors of " << st->toString() << endl;
 #endif
                     st->findSucc();
+                    st->updateParents();
                     // Increase the threshold of livelock detection
                     _max += st->size();
                 }
@@ -148,10 +157,8 @@ void ProbVerifier::start(int maxClass)
                         insert(_arrFinStart, st);
                         insert(_arrFinRS, st);
                         
-#ifdef LOG_STOP
-                        printStopping(st);
-#endif
-                        st->printOrigins(_printStop);
+                        cout << "Stopping state reached: " << _max << endl ;
+                        //st->printOrigins(_printStop);
                     }
                     else {
                         insert(_arrRS, st) ;
@@ -195,10 +202,9 @@ void ProbVerifier::start(int maxClass)
                 }
                 else {
                     // Add the computed childs to class array ST[class].
-                    for( size_t idx = 0 ; idx < nChilds ; ++idx ) {
+                    for( size_t idx = 0 ; idx < st->size() ; ++idx ) {
                         
                         GlobalState* childNode = st->getChild(idx);
-                        
                         int prob = st->getProb(idx);                        
 #ifdef LOG
                         int dist = childNode->getDistance();
@@ -212,10 +218,12 @@ void ProbVerifier::start(int maxClass)
                         }
                         else {
                             // Do something else, such as print out the probability
-#ifdef LOG_STOP
-                            printStopping(childNode);
-#endif
-                            childNode->printOrigins(_printStop);
+                            cout << "Stopping state reached: " << _max << endl ;
+                            //childNode->printOrigins(_printStop);
+                            if(GlobalState::removeBranch(childNode))
+                                break;
+                            else
+                                idx--;
                         }
                     }
 #ifdef LOG
@@ -223,17 +231,18 @@ void ProbVerifier::start(int maxClass)
 #endif
                 }
                 
-                // Finish exploring st. Remove st from class[k] (_arrClass[_curClass])
-                _arrClass[_curClass].erase(it);
-                
+                // Finish exploring st.                 
             } // while (explore the global state in class[_curClass] until all the global states in the class
             // are explored
-            
+            cout << _max << "composite states explored." << endl ;
+            cout << "Total GlobalStates in unique table: " << _totalStates.size() << endl ;
         } // for (explore all the class until class[0] through class[_maxClass-1] are fully explored
         
         // Conclude success
+        cout << endl;
+        cout << "Procedure complete" << endl ;
         cout << _max << "composite states explored." << endl ;
-        cout << "Total GlobalStates in unique table: " << _root->numAll() << endl ;
+        cout << "Total GlobalStates in unique table: " << _totalStates.size() << endl ;
         cout << "Up to " << maxClass << " low probability transitions considered." << endl ;
         cout << "No deadlock or livelock found." << endl;
         

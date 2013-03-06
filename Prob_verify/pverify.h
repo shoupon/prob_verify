@@ -16,6 +16,9 @@ typedef map<GlobalState*, int>                   GSMap;
 typedef pair<GlobalState*, int>                  GSMapPair;
 typedef map<GlobalState*, int>::iterator         GSMapIter;
 typedef map<GlobalState*, int>::const_iterator   GSMapConstIter;
+typedef map<string, GlobalState*>                UniqueMap;
+typedef pair<string, GlobalState*>               UniqueMapPair;
+
 
 typedef map<string, int>          GSVecMap;
 typedef pair<string, int>         GSVecMapPair;
@@ -32,6 +35,8 @@ private:
     GSVecMap _arrRS;
     GSVecMap _arrFinRS;
     GSVecMap _arrFinStart;
+    GSHash   _totalStates;
+    
     GlobalState* _root ;
     int _maxClass;
     int _curClass;   

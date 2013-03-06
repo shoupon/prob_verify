@@ -58,10 +58,8 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                 // Response
                 MessageTuple* rFront = createResponse("REQUEST", "channel", inMsg, _f,_ts);
                 MessageTuple* rBack = createResponse("REQUEST", "channel", inMsg, _b,_ts);
-                MessageTuple* hb = createResponse("start", "heartbeater", inMsg, -1, _ts);
                 outMsgs.push_back(rFront);
                 outMsgs.push_back(rBack);
-                outMsgs.push_back(hb);
                 // Change state
                 _current = 2;
                 
@@ -71,8 +69,8 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                 // Do nothing
                 return 3;
             }
-            else if( msg == "RELEASE" ) {
-                // Do nothing
+            else if( toIgnore(inMsg,outMsgs) ) {
+                // Do nothing 
                 return 3;
             }
             break;
@@ -95,6 +93,9 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                     // The RELEASE is not intended for 
                     return 3;
                 }
+            }
+            else if( msg == "init" ) {
+                return 3 ;
             }
             else if( msg == "REQUEST" ) {
                 int j = inMsg->getParam(0) ;
@@ -123,21 +124,7 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                     return 3 ;
                 }
                 else {
-                    // Assignments
-                    int newt = inMsg->getParam(2);
-                    
-                    // False
-                    // Response
-                    MessageTuple* response = createResponse("FAILED", "channel",
-                                                            inMsg, j, newt );
-                    outMsgs.push_back(response);
-                    MessageTuple* ctrlAbt =
-                        new LockMessage(0, machineToInt("controller"),
-                                        0, messageToInt("abort"),
-                                        _machineId, _id, j, -1);
-                    outMsgs.push_back(ctrlAbt);
-                    // Change state
-                    // no state change
+                    toDeny(inMsg, outMsgs);
                     
                     return 3;
                 }
@@ -189,6 +176,13 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
             else if( toTimeout(inMsg, outMsgs) ) {
                 return 3;
             }
+            else if( toDeny(inMsg, outMsgs) ) {
+                return 3;
+            }
+            else if( toIgnore(inMsg,outMsgs) ) {
+                // Do nothing
+                return 3;
+            }
             
             break;
             
@@ -211,6 +205,13 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
                 return 3;
             }
             else if( toTimeout(inMsg, outMsgs) ) {
+                return 3;
+            }
+            else if( toDeny(inMsg, outMsgs) ) {
+                return 3;
+            }
+            else if( toIgnore(inMsg,outMsgs) ) {
+                // Do nothing
                 return 3;
             }
             
@@ -237,6 +238,13 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
             else if( toTimeout(inMsg, outMsgs) ) {
                 return 3;
             }
+            else if( toDeny(inMsg, outMsgs) ) {
+                return 3;
+            }
+            else if( toIgnore(inMsg,outMsgs) ) {
+                // Do nothing
+                return 3;
+            }
             
             break;
             
@@ -244,24 +252,18 @@ int Lock::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
             if( toTimeout(inMsg, outMsgs) ) {
                 return 3;
             }
+            else if( toDeny(inMsg, outMsgs) ) {
+                return 3;
+            }
+            else if( toIgnore(inMsg,outMsgs) ) {
+                // Do nothing
+                return 3;
+            }
             else if( msg == "LOCKED" ) {
                 // Simply ignore this message
                 return 3;
             }
-            else if( msg == "dead" ) {
-                // Response
-                MessageTuple* rFront = createResponse("RELEASE", "channel",inMsg,_f,_ts);
-                MessageTuple* rBack = createResponse("RELEASE", "channel",inMsg,_b,_ts);
-                outMsgs.push_back(rFront);
-                outMsgs.push_back(rBack);
-                outMsgs.push_back(abortMsg());
-                
-                // Change state
-                _current = 0;
-                reset();
-                
-                return 3 ;
-            }
+
             break;
             
         default:
@@ -290,14 +292,10 @@ int Lock::nullInputTrans(vector<MessageTuple*>& outMsgs,
             MessageTuple* bRel =
                 new LockMessage(0, machineToInt("channel"),
                                 0, relId, _machineId, _id, _b, _ts);
-            MessageTuple* hbStop = new LockMessage(0, machineToInt("heartbeater"),
-                                                   0, messageToInt("stop"),
-                                                   _machineId, _id, -1, 0);
             
             outMsgs.push_back(ctrlRes);
             outMsgs.push_back(fRel);
             outMsgs.push_back(bRel);
-            outMsgs.push_back(hbStop);
             // Change State
             _current = 0;
             reset();
@@ -354,6 +352,46 @@ MessageTuple* Lock::createResponse(string msg, string dst, MessageTuple* inMsg,
     return ret;
 }
 
+bool Lock::toDeny(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs)
+{
+    string msg = IntToMessage(inMsg->destMsgId() ) ;
+    assert( outMsgs.size() == 0 );
+    
+    if( msg == "REQUEST" ) {
+        // Assignments
+        int newt = inMsg->getParam(2); // extract timestamp
+        int j = inMsg->getParam(0) ; // extract id of the source lock
+        
+        // False
+        // Response
+        MessageTuple* response = createResponse("FAILED", "channel",
+                                                inMsg, j, newt );
+        outMsgs.push_back(response);
+        MessageTuple* ctrlAbt =
+        new LockMessage(0, machineToInt("controller"),
+                        0, messageToInt("abort"),
+                        _machineId, _id, j, -1);
+        outMsgs.push_back(ctrlAbt);
+        // Change state
+        // no state change
+        
+        return true;
+    }
+    return false;
+}
+
+bool Lock::toIgnore(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs)
+{
+    string msg = IntToMessage(inMsg->destMsgId() ) ;
+    assert( outMsgs.size() == 0 );
+    
+    if( msg == "RELEASE" ) {
+        return true;
+    }
+    
+    return false;
+}
+
 bool Lock::toRelease(MessageTuple *inMsg, vector<MessageTuple *> &outMsgs)
 {
     string msg = IntToMessage(inMsg->destMsgId() ) ;
@@ -364,16 +402,12 @@ bool Lock::toRelease(MessageTuple *inMsg, vector<MessageTuple *> &outMsgs)
         if(inMsg->getParam(2) == _ts ) {
             if( from == _f ) {
                 MessageTuple* rBack = createResponse("RELEASE", "channel",inMsg,_b,_ts);
-                MessageTuple* hbStop = createResponse("stop", "heartbeater", inMsg,-1,_ts);
                 outMsgs.push_back(rBack);
-                outMsgs.push_back(hbStop);
                 outMsgs.push_back(abortMsg());
             }
             else if( from == _b ) {
                 MessageTuple* rFront = createResponse("RELEASE", "channel",inMsg,_f,_ts);
-                MessageTuple* hbStop = createResponse("stop", "heartbeater", inMsg,-1,_ts);
                 outMsgs.push_back(rFront);
-                outMsgs.push_back(hbStop);
                 outMsgs.push_back(abortMsg());
             }
         }
@@ -382,14 +416,6 @@ bool Lock::toRelease(MessageTuple *inMsg, vector<MessageTuple *> &outMsgs)
             return true ;
         }
     }
-    else if( msg == "dead" ) {
-        MessageTuple* rFront = createResponse("RELEASE", "channel",inMsg,_f,_ts);
-        MessageTuple* rBack = createResponse("RELEASE", "channel",inMsg,_b,_ts);
-        outMsgs.push_back(rFront);
-        outMsgs.push_back(rBack);
-        outMsgs.push_back(abortMsg());
-    }
-    
     
     if( outMsgs.size() != 0 ) {
         _current = 0;
@@ -407,15 +433,13 @@ bool Lock::toTimeout(MessageTuple *inMsg, vector<MessageTuple *> &outMsgs)
     
     if( msg == "timeout" ) {
         if( inMsg->getParam(0) == _ts ) {
-            // Response
-            MessageTuple* hbStop = createResponse("stop", "heartbeater", inMsg,-1,_ts);
-            outMsgs.push_back(hbStop);
-            
             _current = 0;
             reset();
             return true;
         }
-        
+        else {
+            return true ;
+        }
     }
     
     return false ;
