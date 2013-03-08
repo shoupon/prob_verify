@@ -59,7 +59,7 @@ public:
     // StateMachine, so the StateMachine can convert a string of an input or an output
     // label into id (integer). A pointer to Parser should be provided to the StateMachine.
     // The Parser class contains the necessary look up function that StateMachine needs
-    StateMachine( Lookup* msg, Lookup* mac ): _msgLookup(msg), _macLookup(mac) { }
+    StateMachine( Lookup* msg, Lookup* mac ): _msgLookup(msg), _macLookup(mac) {}
     virtual ~StateMachine() {}
 
     // Simulate message reception
@@ -88,6 +88,9 @@ public:
     virtual StateSnapshot* curState() = 0 ;
     // Reset the machine to initial state
     virtual void reset() = 0;
+    
+    int macId() const { return _machineId; }
+    void setId(int num) { _machineId = num ; }
 
 protected:
     Lookup* _msgLookup;
@@ -97,6 +100,9 @@ protected:
     int machineToInt(string macName) ;
     string IntToMessage(int num) { return _msgLookup->toString(num); }
     string IntToMachine(int num) { return _macLookup->toString(num); }
+    
+private:
+    int _machineId;
 };
 
 // Used for restore the state of a state machine back to a certain point. Should contain

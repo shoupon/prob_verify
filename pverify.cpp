@@ -114,7 +114,7 @@ void ProbVerifier::start(int maxClass)
             
             while( !_arrClass[_curClass].empty() ) {
                 // Pop a globalstate pointer ptr from class[k] (_arrClass[_curClass])
-                GSMapConstIter it = _arrClass[_curClass].begin();
+                GSMap::iterator it = _arrClass[_curClass].begin();
                 GlobalState* st = it->first ;
                 // Remove st from class[k] (_arrClass[_curClass])
                 _arrClass[_curClass].erase(it);

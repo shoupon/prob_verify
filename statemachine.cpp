@@ -1,5 +1,4 @@
 #include <cassert>
-using namespace std ;
 
 #include "statemachine.h"
 

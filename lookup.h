@@ -36,6 +36,9 @@ public:
 
     int toInt(string key)
     {
+        if( _tree.begin() == _tree.end() )
+            return -1;
+        
         map<string,int>::iterator it = _tree.find(key);
         if( it == _tree.end() )
             return -1;
