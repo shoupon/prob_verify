@@ -99,12 +99,7 @@ int Controller::nullInputTrans(vector<MessageTuple*>& outMsgs,
             if( _busy[veh] >= _time )
                 throw logic_error("Relative event order is not maintained");
             _time++ ;
-<<<<<<< HEAD
-            _busy[veh] = _busy[_fronts[veh]] = _busy[_backs[veh]] = -1 ;
-=======
-            //_busy[veh] = _busy[_fronts[veh]] = _busy[_backs[veh]] = -1 ;
             _busy[veh] = -1 ;
->>>>>>> noUT
             _fronts[veh] = -1 ;
             _backs[veh] = -1;
             _selves[veh] = -1 ;

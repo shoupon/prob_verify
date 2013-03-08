@@ -48,7 +48,6 @@ void ProbVerifier::addPrintStop(bool (*printStop)(GlobalState *, GlobalState *))
 void ProbVerifier::start(int maxClass)
 {
     try {
-        int hit = 0;
         _totalStates = GSHash(10000) ;
 #ifdef LOG
         cout << "Stopping states:" << endl ;
