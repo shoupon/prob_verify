@@ -67,7 +67,12 @@ void ProbVerifier::start(int maxClass)
         for( size_t ii = 0 ; ii < _macPtrs.size() ; ++ii )
             _macPtrs[ii]->reset();
         
-        _root = new GlobalState(_macPtrs) ;
+        if( _checker != 0 ) {
+            _root = new GlobalState(_macPtrs, _checker->initState() ) ;
+        }
+        else {
+            _root = new GlobalState(_macPtrs) ;
+        }
         GlobalState::init(_root);
         _root->setRoot();
         
@@ -300,9 +305,13 @@ void ProbVerifier::printSeq(const vector<GlobalState*>& seq)
     cout << seq.back()->toString() << endl ;
 }
 
-bool ProbVerifier::isError(const GlobalState* obj)
+bool ProbVerifier::isError(GlobalState* obj)
 {
-    return findMatch(obj, _errors) ;
+    bool result ;
+    if( _checker != 0 ) {
+        result = _checker->check(obj->chkState(), obj->getStateVec()) ;
+    }
+    return ( !result || findMatch(obj, _errors) );
 }
 
 bool ProbVerifier::isStopping(const GlobalState* obj)

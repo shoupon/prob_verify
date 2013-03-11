@@ -29,16 +29,20 @@ GlobalState::GlobalState(GlobalState* gs): _countVisit(1),
         cloneTasks.pop();
     }
     
+    // Copy Snapshots
     _gStates.resize( gs->_gStates.size() );
     for( size_t m = 0 ; m < _machines.size() ; ++m ) {
         _gStates[m] = gs->_gStates[m]->clone();
     }
+    // Copy CheckerState
+    _checker = gs->_checker->clone() ;
+    
 #ifdef VERBOSE
     cout << "Create new GlobalState from " << this->toString() << endl;
 #endif
 }
 
-GlobalState::GlobalState(vector<StateMachine*> macs)
+GlobalState::GlobalState(vector<StateMachine*> macs, CheckerState* chkState)
     :_countVisit(1), _dist(0), _white(true)
 {
     if( _nMacs < 0 ) {
@@ -49,6 +53,13 @@ GlobalState::GlobalState(vector<StateMachine*> macs)
         assert( _nMacs == macs.size() );
 
     init();
+    
+    if( chkState == 0 ) {
+        _checker = new CheckerState();
+    }
+    else {
+        _checker = chkState->clone() ;
+    }
 }
 
 GlobalState::GlobalState(vector<StateSnapshot*>& stateVec)

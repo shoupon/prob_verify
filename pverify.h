@@ -8,6 +8,7 @@
 #include "fsm.h"
 #include "state.h"
 #include "statemachine.h"
+#include "checker.h"
 #include "globalstate.h"
 #include "errorstate.h"
 #include "stoppingstate.h"
@@ -25,7 +26,6 @@ typedef pair<string, int>         GSVecMapPair;
 
 class ProbVerifier
 {
-private:
     vector<StateMachine*> _macPtrs;
     vector<GSMap> _arrClass;
     
@@ -41,7 +41,9 @@ private:
     int _maxClass;
     int _curClass;   
     int _max ; // Used to check livelock
-    
+    Checker* _checker;
+ 
+private:
     bool (*_printStop)(GlobalState*, GlobalState*);
 
     bool addToClass(GlobalState* childNode, int toClass);
@@ -51,12 +53,11 @@ private:
     { collection.insert( GSVecMapPair(gs->toString(), gs->getProb()) ); }
     void printSeq(const vector<GlobalState*>& seq) ;
     
-    bool isError(const GlobalState* obj);
+    bool isError(GlobalState* obj);
     bool isStopping(const GlobalState* obj);
     bool findMatch(const GlobalState* obj, const vector<StoppingState*>& container) ;
     
     void printStopping(const GlobalState* obj) ;
-
 
 public:
     ProbVerifier():_curClass(0), _max(0) {}
@@ -66,6 +67,8 @@ public:
     void addRS(StoppingState* rs);
     // Add errorState into the list of errorStates
     void addError(StoppingState* es);
+    // Add the pointer to the user-specified checker machine
+    void addChecker(Checker* chkPtr) { _checker = chkPtr; }
     // Provide the criterion on which the program determines to print out the stopping
     // state trace
     void addPrintStop(bool (*printStop)(GlobalState*, GlobalState*) = 0);

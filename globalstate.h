@@ -9,6 +9,7 @@
 #include "fsm.h"
 #include "state.h"
 #include "statemachine.h"
+#include "checker.h"
 #include "myHash.h"
 #include "parser.h"
 
@@ -63,6 +64,7 @@ protected:
     static vector<StateMachine*> _machines;
     
     vector<StateSnapshot*> _gStates;
+    CheckerState* _checker ;
 private:
     //void trim();
     void addParents(const vector<GlobalState*>& arr);
@@ -98,15 +100,15 @@ public:
     GlobalState(vector<StateSnapshot*>& stateVec) ;
     // *** This constructor should be called first. It will set the static member of
     // GlobalState, such as number of state machines, the pointers to machines, etc.
-    GlobalState(vector<StateMachine*> macs);
+    GlobalState(vector<StateMachine*> macs, CheckerState* chkState = 0);
     ~GlobalState();
     
     GlobalState* getChild (size_t i) { return _childs[i]; }
     int getProb() const { return _depth ; }
-    //GlobalState* getGlobalState( vector<int> gs ) ;
     int getVisit() { return _countVisit ;}
     int getDistance() { return _dist;}
     const vector<StateSnapshot*> getStateVec() const { return _gStates ;}
+    CheckerState* chkState() { return _checker; }
     const vector<string> getStringVec() const;
     size_t size() { return _childs.size() ; }
     bool hasChild() { return size()!=0; }
