@@ -22,7 +22,7 @@ using namespace std;
 #define LOG
 #endif
 
-//#define LOG
+#define LOG
 
 typedef map<string,int> Table;
 typedef Table::value_type Entry;

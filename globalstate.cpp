@@ -199,9 +199,6 @@ void GlobalState::findSucc()
 
         }
                
-        recordProb();
-        // Trim the list of childs    
-        //trim() ;
     } catch ( exception& e ) {
         cerr << e.what() << endl ;
     } catch (...) {
@@ -406,6 +403,9 @@ void GlobalState::updateParents()
 
 bool GlobalState::removeBranch(GlobalState* leaf)
 {
+    if( leaf == _root )
+        return false ;
+    
     assert(leaf->_parents.size() == 1) ;
     
     GlobalState* par = leaf->_parents.front() ;
@@ -553,14 +553,6 @@ void GlobalState::clearAll()
         ++it;
     }
      */
-}
-
-void GlobalState::recordProb()
-{
-    _probs.clear();
-    for( size_t i = 0 ; i < _childs.size() ; ++i ) {
-        _probs.push_back(_childs[i]->_depth);
-    }
 }
 
 

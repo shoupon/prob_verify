@@ -44,7 +44,6 @@ class GlobalState
     
     vector<GlobalState*> _childs;
     vector<GlobalState*> _parents;
-    vector<int> _probs;
     queue<MessageTuple*> _fifo;
 
     int _countVisit;
@@ -103,7 +102,6 @@ public:
     ~GlobalState();
     
     GlobalState* getChild (size_t i) { return _childs[i]; }
-    int getProb( size_t i ) const { return _probs[i] ; }
     int getProb() const { return _depth ; }
     //GlobalState* getGlobalState( vector<int> gs ) ;
     int getVisit() { return _countVisit ;}

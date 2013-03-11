@@ -204,7 +204,7 @@ void ProbVerifier::start(int maxClass)
                     for( size_t idx = 0 ; idx < st->size() ; ++idx ) {
                         
                         GlobalState* childNode = st->getChild(idx);
-                        int prob = st->getProb(idx);                        
+                        int prob = childNode->getProb();
 #ifdef LOG
                         int dist = childNode->getDistance();
                         cout << childNode->toString() << " Prob = " << prob
