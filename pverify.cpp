@@ -142,6 +142,20 @@ void ProbVerifier::start(int maxClass)
                 
                 if( !st->hasChild() ) {
                     // Compute all the globalstate's childs
+                    // First, check if the state does not meet the specification
+                    if( isError(st) ) {
+                        // The child matches the criterion of an ErrorState.
+                        // Print out the path that reaches this error state.
+                        cout << _max << "composite states explored." << endl ;
+                        cout << endl << "Error state found: " << endl ;
+                        cout << st->toString() << endl;
+                        
+                        vector<GlobalState*> seq;
+                        st->pathRoot(seq);
+                        printSeq(seq);
+                        
+                        return ;
+                    }
 #ifdef VERBOSE
                     cout << "====  Finding successors of " << st->toString() << endl;
 #endif
@@ -188,19 +202,6 @@ void ProbVerifier::start(int maxClass)
                     vector<GlobalState*> seq;
                     st->pathRoot(seq);
                     printSeq(seq);
-                    
-                    return ;
-                }
-                else if( isError(st) ) {
-                    // The child matches the criterion of an ErrorState.
-                    // Print out the path that reaches this error state.
-                    cout << _max << "composite states explored." << endl ;
-                    cout << endl << "Error state found: " << endl ;
-                    cout << st->toString() << endl;
-                    
-                    vector<GlobalState*> seq;
-                    st->pathRoot(seq);
-                    printSeq(seq);                    
                     
                     return ;
                 }
