@@ -193,6 +193,13 @@ void GlobalState::findSucc()
                     cIdx--;
                     _childs.insert(_childs.end(), ret.begin(), ret.end());
                 }
+            } catch (GlobalState* blocked) {
+                // Remove the child that is blocked by unmatched transition
+                _childs.erase(_childs.begin()+cIdx);
+                // Continue on evaluating other children
+                cIdx-- ;
+                cout << "REMOVE global state. CONTINUE" << endl ;
+                continue ;
             } catch (string str) {
                 // This catch phrase should only be reached when no matching transition found for a message reception
                 // When such occurs, erase the child that has no matching transition and print the error message.
@@ -273,7 +280,8 @@ vector<GlobalState*> GlobalState::evaluate()
                 throw ss.str();
 #else
                 cout << ss.str() ;
-                cout << "SKIP unmatched transition. CONTINUE" << endl;
+                cout << "SKIP unmatched transition. " << endl;                
+                throw this;
 #endif
             } // no matching transition found
             else {

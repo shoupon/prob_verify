@@ -8,7 +8,7 @@ using namespace std;
 //#define FULL_DUPLEX
 #define UN_NUM_ACK
 
-//#define ALLOW_UNMATCHED
+#define ALLOW_UNMATCHED
 #define TRACE_UNMATCHED
 //#define TRACE_STOPPING
 //#define CONTROLLER_TIME
