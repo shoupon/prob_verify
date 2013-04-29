@@ -189,6 +189,7 @@ void ProbVerifier::start(int maxClass)
                     for( size_t ci = 0 ; ci < st->size() ; ++ci ) {
                         st->getChild(ci)->addOrigin(st);
                     }
+                    continue;
                 }
                 
 #ifdef LOG
