@@ -31,7 +31,8 @@ class ProbVerifier
     
     vector<StoppingState*> _errors;
     vector<StoppingState*> _RS;
-
+    vector<StoppingState*> _END;
+    
     GSVecMap _arrRS;
     GSVecMap _arrFinRS;
     GSVecMap _arrFinStart;
@@ -39,32 +40,34 @@ class ProbVerifier
     
     GlobalState* _root ;
     int _maxClass;
-    int _curClass;   
+    int _curClass;
     int _max ; // Used to check livelock
     Checker* _checker;
- 
+    
 private:
     bool (*_printStop)(GlobalState*, GlobalState*);
-
+    
     bool addToClass(GlobalState* childNode, int toClass);
     GSVecMap::iterator find(GSVecMap& collection, GlobalState* gs);
     GSMap::iterator find(GSMap& collection, GlobalState* gs);
-    void insert(GSVecMap& collection, GlobalState* gs) 
+    void insert(GSVecMap& collection, GlobalState* gs)
     { collection.insert( GSVecMapPair(gs->toString(), gs->getProb()) ); }
     void printSeq(const vector<GlobalState*>& seq) ;
     
     bool isError(GlobalState* obj);
     bool isStopping(const GlobalState* obj);
+    bool isEnding(const GlobalState* obj);
     bool findMatch(const GlobalState* obj, const vector<StoppingState*>& container) ;
     
     void printStopping(const GlobalState* obj) ;
-
+    
 public:
     ProbVerifier():_curClass(0), _max(0) {}
-
+    
     void addMachine(StateMachine* machine) { _macPtrs.push_back(machine); }
-    //void setRS(vector<GlobalState*> rs); 
+    //void setRS(vector<GlobalState*> rs);
     void addRS(StoppingState* rs);
+    void addEND(StoppingState* end);
     // Add errorState into the list of errorStates
     void addError(StoppingState* es);
     // Add the pointer to the user-specified checker machine

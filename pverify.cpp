@@ -1,21 +1,22 @@
 #include <cassert>
 
 #include "pverify.h"
-    
+
 //#define VERBOSE
 
 
 bool ProbVerifier::addToClass(GlobalState* childNode, int toClass)
 {
-    if( toClass >= _maxClass ) 
+    if( toClass >= _maxClass )
         return false;
     
-    // If the child node is already a member of STATETABLE, which indicates the protocol under test
-    // has successfully completed its function, there is no need to explore this child node later on, 
-    // so do not add this child node to ST[k] (_arrClass[toClass])
+    // If the child node is already a member of STATETABLE, which indicates the protocol
+    // under test has successfully completed its function, there is no need to explore
+    // this child node later on, so do not add this child node
+    // to ST[k] (_arrClass[toClass])
     if( find(_arrFinRS,childNode) != _arrFinRS.end() )
         return false ;
-
+    
     GSMapIter it = _arrClass[toClass].find(childNode)  ;
     if( it != _arrClass[toClass].end() ) {
         it->first->increaseVisit(childNode->getVisit());
@@ -24,8 +25,8 @@ bool ProbVerifier::addToClass(GlobalState* childNode, int toClass)
     else {
         _arrClass[toClass].insert( GSMapPair(childNode, 0) );
         return true ;
-    }    
-
+    }
+    
 }
 
 void ProbVerifier::addError(StoppingState *es)
@@ -86,8 +87,9 @@ void ProbVerifier::start(int maxClass)
         
         for( _curClass = 0 ; _curClass <= _maxClass ; ++_curClass ) {
             cout << "-------- Exploring GlobalStates of class[" << _curClass
-            << "] --------" << endl ;
-            // Check if the members in class[k] are already contained in STATET (_arrFinStart).
+                 << "] --------" << endl ;
+            // Check if the members in class[k] are already contained
+            // in STATET (_arrFinStart).
             // If yes, remove the member from class[k];
             // otherwise, add that member to STATET
             GSMap::iterator it = _arrClass[_curClass].begin();
@@ -123,8 +125,8 @@ void ProbVerifier::start(int maxClass)
                 GlobalState* st = it->first ;
                 // Remove st from class[k] (_arrClass[_curClass])
                 _arrClass[_curClass].erase(it);
-
-                                
+                
+                
                 if( st->getDistance() > _max ) {
                     cout << _max << "composite states explored." << endl ;
                     cout << "Livelock found after " << st->getProb()
@@ -189,7 +191,6 @@ void ProbVerifier::start(int maxClass)
                     for( size_t ci = 0 ; ci < st->size() ; ++ci ) {
                         st->getChild(ci)->addOrigin(st);
                     }
-                    continue;
                 }
                 
 #ifdef LOG
@@ -215,7 +216,7 @@ void ProbVerifier::start(int maxClass)
 #ifdef LOG
                         int dist = childNode->getDistance();
                         cout << childNode->toString() << " Prob = " << prob
-                        << " Dist = " << dist << endl;
+                             << " Dist = " << dist << endl;
 #endif
                         // Add the childnode to _arrClass[_curClass] provided that it is not
                         // already a member of _arrFinStart (STATETABLE as in paper)
@@ -237,7 +238,7 @@ void ProbVerifier::start(int maxClass)
 #endif
                 }
                 
-                // Finish exploring st.                 
+                // Finish exploring st.
             } // while (explore the global state in class[_curClass] until all the global states in the class
             // are explored
             cout << _max << "composite states explored." << endl ;
@@ -261,19 +262,24 @@ void ProbVerifier::start(int maxClass)
 #endif
         
     } // catch
-
+    
 }
 /*
-void ProbVerifier::setRS(vector<GlobalState*> rs) 
-{     
-    for( size_t ii = 0 ; ii < rs.size() ; ++ii ) {
-        _RS.insert( GSMapPair(rs[ii],0) );
-    }
-} // setRS()*/
+ void ProbVerifier::setRS(vector<GlobalState*> rs)
+ {
+ for( size_t ii = 0 ; ii < rs.size() ; ++ii ) {
+ _RS.insert( GSMapPair(rs[ii],0) );
+ }
+ } // setRS()*/
 
 void ProbVerifier::addRS(StoppingState* rs)
 {
     _RS.push_back(rs);
+}
+
+void ProbVerifier::addEND(StoppingState *end)
+{
+    _END.push_back(end);
 }
 
 GSVecMap::iterator ProbVerifier::find(GSVecMap& collection, GlobalState* gs)
@@ -281,7 +287,7 @@ GSVecMap::iterator ProbVerifier::find(GSVecMap& collection, GlobalState* gs)
     string gsStr = gs->toString();
     if( collection.empty() )
         return collection.end();
-
+    
     return collection.find(gsStr);
 }
 
@@ -290,7 +296,7 @@ GSMap::iterator ProbVerifier::find(GSMap& collection, GlobalState* gs)
     return collection.find(gs);
 }
 
-void ProbVerifier::printSeq(const vector<GlobalState*>& seq) 
+void ProbVerifier::printSeq(const vector<GlobalState*>& seq)
 {
     for( int ii = 0 ; ii < (int)seq.size()-1 ; ++ii ) {
         if( seq[ii]->getProb() != seq[ii+1]->getProb() ) {
@@ -326,6 +332,11 @@ bool ProbVerifier::isStopping(const GlobalState* obj)
     return findMatch(obj, _RS) ;
 }
 
+bool ProbVerifier::isEnding(const GlobalState *obj)
+{
+    return findMatch(obj, _END);
+}
+
 bool ProbVerifier::findMatch(const GlobalState* obj,
                              const vector<StoppingState*>& container)
 {
@@ -343,18 +354,18 @@ void ProbVerifier::printStopping(const GlobalState *obj)
 }
 
 /*
-void ProbVerifier::printRS()
-{
-    GSVecMap::iterator it ;
-    for( it = _RS.begin() ; it != _RS.end() ; ++it ) {
-        cout << "[" ;
-        for( size_t i = 0 ; i < it->first.size()-1 ; ++i ) {
-            cout << it->first.at(i) << "," ;
-        }
-        cout << it->first.back() << "]" ;
-    }
-    cout << endl ;
-}*/
+ void ProbVerifier::printRS()
+ {
+ GSVecMap::iterator it ;
+ for( it = _RS.begin() ; it != _RS.end() ; ++it ) {
+ cout << "[" ;
+ for( size_t i = 0 ; i < it->first.size()-1 ; ++i ) {
+ cout << it->first.at(i) << "," ;
+ }
+ cout << it->first.back() << "]" ;
+ }
+ cout << endl ;
+ }*/
 
 void ProbVerifier::clear()
 {
