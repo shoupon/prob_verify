@@ -49,7 +49,6 @@ void ProbVerifier::addPrintStop(bool (*printStop)(GlobalState *, GlobalState *))
 void ProbVerifier::start(int maxClass)
 {
     try {
-        _totalStates = GSHash(10000) ;
 #ifdef LOG
         cout << "Stopping states:" << endl ;
         for( size_t i = 0 ; i < _RS.size() ; ++i ) {
@@ -88,13 +87,13 @@ void ProbVerifier::start(int maxClass)
         for( _curClass = 0 ; _curClass <= _maxClass ; ++_curClass ) {
             cout << "-------- Exploring GlobalStates of class[" << _curClass
                  << "] --------" << endl ;
+            GSMap::iterator it = _arrClass[_curClass].begin();
+            cout << "There are " << _arrClass[_curClass].size() << " GlobalStates "
+                 << "in class[" << _curClass << "]" << endl;
             // Check if the members in class[k] are already contained
             // in STATET (_arrFinStart).
             // If yes, remove the member from class[k];
             // otherwise, add that member to STATET
-            GSMap::iterator it = _arrClass[_curClass].begin();
-            cout << "There are " << _arrClass[_curClass].size() << " GlobalStates "
-                 << "in class[" << _curClass << "]" << endl;
             while( it != _arrClass[_curClass].end() ) {
                 GlobalState* st = it->first ;
                 if( _curClass == 0 ) {
@@ -133,7 +132,9 @@ void ProbVerifier::start(int maxClass)
                 if( !st->hasChild() ) {
                     // Compute all the globalstate's childs
                     st->findSucc();
+#ifdef TRACE
                     st->updateParents();
+#endif
                     // Increase the threshold of livelock detection
                     _max += st->size();
                 }
@@ -181,18 +182,25 @@ void ProbVerifier::start(int maxClass)
                         // Do something else, such as print out the probability
                         cout << "Stopping state reached: " << _max << endl ;
                         //childNode->printOrigins(_printStop);
+#ifdef TRACE
                         if(GlobalState::removeBranch(childNode))
                             break;
                         else
                             idx--;
+#else
+                        delete childNode;
+#endif
                     }
                 }
 
                 // Finish exploring st.
+#ifndef TRACE
+                delete st;
+#endif
+                
             } // while (explore the global state in class[_curClass] until all the global
               // states in the class are explored
             cout << _max << "composite states explored." << endl ;
-            cout << "Total GlobalStates in unique table: " << _totalStates.size() << endl ;
         } // for (explore all the class until class[0] through class[_maxClass-1]
           // are fully explored
         
@@ -200,7 +208,6 @@ void ProbVerifier::start(int maxClass)
         cout << endl;
         cout << "Procedure complete" << endl ;
         cout << _max << "composite states explored." << endl ;
-        cout << "Total GlobalStates in unique table: " << _totalStates.size() << endl ;
         cout << "Up to " << maxClass << " low probability transitions considered." << endl ;
         cout << "No deadlock or livelock found." << endl;
         
@@ -348,10 +355,11 @@ bool ProbVerifier::checkDeadlock(GlobalState *gs)
         // No child found. Report deadlock
         cout << _max << "composite states explored." << endl ;
         cout << "Deadlock found." << endl ;
-        
+#ifdef TRACE
         vector<GlobalState*> seq;
         gs->pathRoot(seq);
         printSeq(seq);
+#endif
         return true;
     }
     else
@@ -364,13 +372,11 @@ bool ProbVerifier::checkLivelock(GlobalState* gs)
         cout << _max << "composite states explored." << endl ;
         cout << "Livelock found after " << gs->getProb()
              << " low probability transitions" << endl ;
-        cout << "Total GlobalStates in unique table: " << _totalStates.size()
-             << endl ;
-        
+#ifdef TRACE
         vector<GlobalState*> seq;
-        gs->pathCycle(seq);
+        gs->pathRoot(seq);
         printSeq(seq);
-        
+#endif
         return true;
     }
     else
@@ -385,11 +391,11 @@ bool ProbVerifier::checkError(GlobalState *gs)
         cout << _max << "composite states explored." << endl ;
         cout << "Error state found: " << endl ;
         cout << gs->toString() << endl;
-        
+#ifdef TRACE
         vector<GlobalState*> seq;
         gs->pathRoot(seq);
         printSeq(seq);
-        
+#endif
         return true;
     }
     else

@@ -36,7 +36,6 @@ class ProbVerifier
     GSVecMap _arrRS;
     GSVecMap _arrFinRS;
     GSVecMap _arrFinStart;
-    GSHash   _totalStates;
     
     GlobalState* _root ;
     int _maxClass;

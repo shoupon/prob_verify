@@ -24,17 +24,6 @@ typedef Hash<GSVecHashKey, vector<string> > GSVecHash;
 // An integer represents the probability class of global state transition
 typedef pair<vector<int>,int> GSProb;
 
-/*
-class Matching
-{
-public:
-    OutLabel _outLabel ;
-    int _source;
-    int _transId;
-
-    Matching(OutLabel lbl, int s, int transId):_outLabel(lbl), _source(s),_transId(transId) {}
-};*/
-
 class GlobalState
 {
     // The ID's of states in a global state
