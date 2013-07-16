@@ -110,7 +110,7 @@ public:
     const vector<StateSnapshot*> getStateVec() const { return _gStates ;}
     CheckerState* chkState() { return _checker; }
     const vector<string> getStringVec() const;
-    size_t size() { return _childs.size() ; }
+    const size_t size() { return _childs.size() ; }
     bool hasChild() { return size()!=0; }
     bool isBusy() { return !_fifo.empty();}
 

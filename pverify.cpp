@@ -123,51 +123,25 @@ void ProbVerifier::start(int maxClass)
                 // Pop a globalstate pointer ptr from class[k] (_arrClass[_curClass])
                 GSMap::iterator it = _arrClass[_curClass].begin();
                 GlobalState* st = it->first ;
-                // Remove st from class[k] (_arrClass[_curClass])
                 _arrClass[_curClass].erase(it);
                 
-                
-                if( st->getDistance() > _max ) {
-                    cout << _max << "composite states explored." << endl ;
-                    cout << "Livelock found after " << st->getProb()
-                         << " low probability transitions" << endl ;
-                    cout << "Total GlobalStates in unique table: " << _totalStates.size()
-                         << endl ;
-                    
-                    vector<GlobalState*> seq;
-                    st->pathCycle(seq);
-                    printSeq(seq);
-                    
+                if( checkLivelock(st) )
                     return ;
-                }
-                
-                
+                if( checkError(st) )
+                    return ;
+                                
                 if( !st->hasChild() ) {
                     // Compute all the globalstate's childs
-                    // First, check if the state does not meet the specification
-                    if( isError(st) ) {
-                        // The child matches the criterion of an ErrorState.
-                        // Print out the path that reaches this error state.
-                        cout << _max << "composite states explored." << endl ;
-                        cout << endl << "Error state found: " << endl ;
-                        cout << st->toString() << endl;
-                        
-                        vector<GlobalState*> seq;
-                        st->pathRoot(seq);
-                        printSeq(seq);
-                        
-                        return ;
-                    }
-#ifdef VERBOSE
-                    cout << "====  Finding successors of " << st->toString() << endl;
-#endif
                     st->findSucc();
                     st->updateParents();
                     // Increase the threshold of livelock detection
                     _max += st->size();
                 }
+                
+                if( checkDeadlock(st) )
+                    return;
+                
                 st->updateTrip();
-                size_t nChilds = st->size();
                 
                 // If the explored GlobalState st is in RS, add st to STATETABLE
                 // (_arrFinRS), so when the later probabilistic search reaches st, the
@@ -192,58 +166,35 @@ void ProbVerifier::start(int maxClass)
                         st->getChild(ci)->addOrigin(st);
                     }
                 }
-                
 #ifdef LOG
-                cout << "Exploring " << st->toString() << ":" << endl ;  ;
+                printStep(st) ;
 #endif
-                if( nChilds == 0 ) {
-                    // No child found. Report deadlock
-                    cout << _max << "composite states explored." << endl ;
-                    cout << "Deadlock found." << endl ;
-                    
-                    vector<GlobalState*> seq;
-                    st->pathRoot(seq);
-                    printSeq(seq);
-                    
-                    return ;
-                }
-                else {
-                    // Add the computed childs to class array ST[class].
-                    for( size_t idx = 0 ; idx < st->size() ; ++idx ) {
-                        
-                        GlobalState* childNode = st->getChild(idx);
-                        int prob = childNode->getProb();
-#ifdef LOG
-                        int dist = childNode->getDistance();
-                        cout << childNode->toString() << " Prob = " << prob
-                             << " Dist = " << dist << endl;
-#endif
-                        // Add the childnode to _arrClass[_curClass] provided that it is not
-                        // already a member of _arrFinStart (STATETABLE as in paper)
-                        if( find(_arrFinStart,childNode) == _arrFinStart.end() ) {
-                            addToClass(childNode, prob);
-                        }
-                        else {
-                            // Do something else, such as print out the probability
-                            cout << "Stopping state reached: " << _max << endl ;
-                            //childNode->printOrigins(_printStop);
-                            if(GlobalState::removeBranch(childNode))
-                                break;
-                            else
-                                idx--;
-                        }
+                // Add the computed childs to class array ST[class].
+                for( size_t idx = 0 ; idx < st->size() ; ++idx ) {
+                    GlobalState* childNode = st->getChild(idx);
+                    // Add the childnode to _arrClass[_curClass] provided that it is not
+                    // already a member of _arrFinStart (STATETABLE as in paper)
+                    if( find(_arrFinStart,childNode) == _arrFinStart.end() ) {
+                        addToClass(childNode, childNode->getProb());
                     }
-#ifdef LOG
-                    cout << endl   ;
-#endif
+                    else {
+                        // Do something else, such as print out the probability
+                        cout << "Stopping state reached: " << _max << endl ;
+                        //childNode->printOrigins(_printStop);
+                        if(GlobalState::removeBranch(childNode))
+                            break;
+                        else
+                            idx--;
+                    }
                 }
-                
+
                 // Finish exploring st.
-            } // while (explore the global state in class[_curClass] until all the global states in the class
-            // are explored
+            } // while (explore the global state in class[_curClass] until all the global
+              // states in the class are explored
             cout << _max << "composite states explored." << endl ;
             cout << "Total GlobalStates in unique table: " << _totalStates.size() << endl ;
-        } // for (explore all the class until class[0] through class[_maxClass-1] are fully explored
+        } // for (explore all the class until class[0] through class[_maxClass-1]
+          // are fully explored
         
         // Conclude success
         cout << endl;
@@ -260,17 +211,9 @@ void ProbVerifier::start(int maxClass)
         st->pathRoot(seq);
         printSeq(seq);
 #endif
-        
     } // catch
     
 }
-/*
- void ProbVerifier::setRS(vector<GlobalState*> rs)
- {
- for( size_t ii = 0 ; ii < rs.size() ; ++ii ) {
- _RS.insert( GSMapPair(rs[ii],0) );
- }
- } // setRS()*/
 
 void ProbVerifier::addRS(StoppingState* rs)
 {
@@ -353,6 +296,17 @@ void ProbVerifier::printStopping(const GlobalState *obj)
          << obj->toString() << endl;
 }
 
+void ProbVerifier::printStep(GlobalState *obj)
+{
+    cout << "Exploring " << obj->toString() << ":" << endl ;  ;
+    for( size_t idx = 0 ; idx < obj->size() ; ++idx ) {
+        GlobalState* childNode = obj->getChild(idx);
+        int prob = childNode->getProb();
+        int dist = childNode->getDistance();
+        cout << childNode->toString()
+             << " Prob = " << prob << " Dist = " << dist << endl;
+    }
+}
 /*
  void ProbVerifier::printRS()
  {
@@ -386,4 +340,58 @@ vector<StateMachine*> ProbVerifier::getMachinePtrs() const
         ret[i] = _macPtrs[i] ;
     }
     return ret;
+}
+
+bool ProbVerifier::checkDeadlock(GlobalState *gs)
+{
+    if( gs->size() == 0 ) {
+        // No child found. Report deadlock
+        cout << _max << "composite states explored." << endl ;
+        cout << "Deadlock found." << endl ;
+        
+        vector<GlobalState*> seq;
+        gs->pathRoot(seq);
+        printSeq(seq);
+        return true;
+    }
+    else
+        return false;
+}
+
+bool ProbVerifier::checkLivelock(GlobalState* gs)
+{
+    if( gs->getDistance() > _max ) {
+        cout << _max << "composite states explored." << endl ;
+        cout << "Livelock found after " << gs->getProb()
+             << " low probability transitions" << endl ;
+        cout << "Total GlobalStates in unique table: " << _totalStates.size()
+             << endl ;
+        
+        vector<GlobalState*> seq;
+        gs->pathCycle(seq);
+        printSeq(seq);
+        
+        return true;
+    }
+    else
+        return false;
+}
+
+bool ProbVerifier::checkError(GlobalState *gs)
+{
+    if( isError(gs) ) {
+        // The child matches the criterion of an ErrorState.
+        // Print out the path that reaches this error state.
+        cout << _max << "composite states explored." << endl ;
+        cout << "Error state found: " << endl ;
+        cout << gs->toString() << endl;
+        
+        vector<GlobalState*> seq;
+        gs->pathRoot(seq);
+        printSeq(seq);
+        
+        return true;
+    }
+    else
+        return false;
 }

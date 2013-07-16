@@ -60,6 +60,11 @@ private:
     bool findMatch(const GlobalState* obj, const vector<StoppingState*>& container) ;
     
     void printStopping(const GlobalState* obj) ;
+    void printStep(GlobalState* obj) ;
+    
+    bool checkDeadlock( GlobalState* gs );
+    bool checkLivelock( GlobalState* gs ) ;
+    bool checkError( GlobalState* gs ) ;
     
 public:
     ProbVerifier():_curClass(0), _max(0) {}
@@ -81,7 +86,7 @@ public:
     void clear();
     
     size_t getNumMachines() { return _macPtrs.size(); }
-    vector<StateMachine*> getMachinePtrs() const ;
+    vector<StateMachine*> getMachinePtrs() const ;    
 };
 
 
