@@ -30,8 +30,8 @@ class ProbVerifier
     vector<GSMap> _arrClass;
     
     vector<StoppingState*> _errors;
-    vector<StoppingState*> _RS;
-    vector<StoppingState*> _END;
+    vector<StoppingState*> _stops;
+    vector<StoppingState*> _ends;
     
     GSVecMap _arrRS;
     GSVecMap _arrFinRS;
@@ -70,7 +70,7 @@ public:
     
     void addMachine(StateMachine* machine) { _macPtrs.push_back(machine); }
     //void setRS(vector<GlobalState*> rs);
-    void addRS(StoppingState* rs);
+    void addSTOP(StoppingState* rs);
     void addEND(StoppingState* end);
     // Add errorState into the list of errorStates
     void addError(StoppingState* es);

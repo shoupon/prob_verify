@@ -420,6 +420,10 @@ void GlobalState::updateParents()
     }
 }
 
+// This function removes the leafy GlobalState if it has no successor
+// If removing such leaf also turns its parent a leaf, recursively remove its leafy parent
+// Return true if its parent turned leafy and is removed;
+// return false if only leaf is removed
 bool GlobalState::removeBranch(GlobalState* leaf)
 {
     if( leaf == _root )

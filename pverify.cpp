@@ -14,12 +14,12 @@ bool ProbVerifier::addToClass(GlobalState* childNode, int toClass)
     // under test has successfully completed its function, there is no need to explore
     // this child node later on, so do not add this child node
     // to ST[k] (_arrClass[toClass])
-    if( find(_arrFinRS,childNode) != _arrFinRS.end() )
-        return false ;
+    //if( find(_arrFinRS,childNode) != _arrFinRS.end() )
+      //  return false ;
     
     GSMapIter it = _arrClass[toClass].find(childNode)  ;
     if( it != _arrClass[toClass].end() ) {
-        it->first->increaseVisit(childNode->getVisit());
+        it->first->merge(childNode) ;
         return false ;
     }
     else {
@@ -51,8 +51,8 @@ void ProbVerifier::start(int maxClass)
     try {
 #ifdef LOG
         cout << "Stopping states:" << endl ;
-        for( size_t i = 0 ; i < _RS.size() ; ++i ) {
-            cout << _RS[i]->toString() ;
+        for( size_t i = 0 ; i < _stops.size() ; ++i ) {
+            cout << _stops[i]->toString() ;
         }
         cout << endl;
         cout << "Error states:" << endl;
@@ -97,12 +97,7 @@ void ProbVerifier::start(int maxClass)
             while( it != _arrClass[_curClass].end() ) {
                 GlobalState* st = it->first ;
                 if( _curClass == 0 ) {
-                    if( isStopping(st) ) {
-                        // If *ptr is a member of RS, add it to STATETABLE (_arrFinRS)
-                        // and to STATET (_arrFinStart)
-                        insert(_arrFinRS, st );
-                        insert(_arrFinStart, st);
-                    }
+                    insert(_arrFinStart, st);
                 }
                 else {
                     if( find(_arrFinStart,st) != _arrFinStart.end() ) {
@@ -148,15 +143,10 @@ void ProbVerifier::start(int maxClass)
                 // (_arrFinRS), so when the later probabilistic search reaches st, the
                 // search will stop and explore some other paths
                 if( isStopping(st) ) {
-                    if( find( _arrRS, st) != _arrRS.end() ) {
-                        insert(_arrFinStart, st);
-                        insert(_arrFinRS, st);
-                        
-                        cout << "Stopping state reached: " << _max << endl ;
-                        //st->printOrigins(_printStop);
-                    }
-                    else {
-                        insert(_arrRS, st) ;
+                    cout << "Stooping state reached: " << _max << endl ;
+                    insert(_arrFinRS, st);
+                    if( find( _arrRS, st) == _arrRS.end() ) {
+                        insert(_arrRS, st);
                     }
                     
                     // for each child of this stopping state, add this stopping state
@@ -170,32 +160,48 @@ void ProbVerifier::start(int maxClass)
 #ifdef LOG
                 printStep(st) ;
 #endif
-                // Add the computed childs to class array ST[class].
+                // Processes the computed successors
+                // Add the childnode to _arrClass[_curClass] provided that it is not
+                // already a member of _arrFinStart (STATETABLE as in paper)
                 for( size_t idx = 0 ; idx < st->size() ; ++idx ) {
-                    GlobalState* childNode = st->getChild(idx);
-                    // Add the childnode to _arrClass[_curClass] provided that it is not
-                    // already a member of _arrFinStart (STATETABLE as in paper)
-                    if( find(_arrFinStart,childNode) == _arrFinStart.end() ) {
-                        addToClass(childNode, childNode->getProb());
+                    GlobalState* childNode = st->getChild(idx);                    
+                    if( isEnding(childNode) ) {
+                        cout << "Ending state reached: " << _max << endl ;
+#ifdef TRACE
+                        if(GlobalState::removeBranch(childNode)) 
+                            break;
+#else
+                        delete childNode;
+#endif
                     }
-                    else {
+                    else if( find(_arrFinStart,childNode) != _arrFinStart.end() ) {
                         // Do something else, such as print out the probability
-                        cout << "Stopping state reached: " << _max << endl ;
+                        cout << "Explored class entry reached: " << _max << endl ;
                         //childNode->printOrigins(_printStop);
 #ifdef TRACE
                         if(GlobalState::removeBranch(childNode))
                             break;
-                        else
-                            idx--;
 #else
                         delete childNode;
 #endif
+                    }
+                    else if( find(_arrFinRS, childNode) != _arrFinRS.end() ) {
+                        cout << "Explored stopping state reached: " << _max << endl;
+#ifdef TRACE
+                        if(GlobalState::removeBranch(childNode))
+                            break;
+#else
+                        delete childNode;
+#endif
+                    }
+                    else{
+                        addToClass(childNode, childNode->getProb());
                     }
                 }
 
                 // Finish exploring st.
 #ifndef TRACE
-                delete st;
+                //delete st;
 #endif
                 
             } // while (explore the global state in class[_curClass] until all the global
@@ -222,14 +228,14 @@ void ProbVerifier::start(int maxClass)
     
 }
 
-void ProbVerifier::addRS(StoppingState* rs)
+void ProbVerifier::addSTOP(StoppingState* rs)
 {
-    _RS.push_back(rs);
+    _stops.push_back(rs);
 }
 
 void ProbVerifier::addEND(StoppingState *end)
 {
-    _END.push_back(end);
+    _ends.push_back(end);
 }
 
 GSVecMap::iterator ProbVerifier::find(GSVecMap& collection, GlobalState* gs)
@@ -279,12 +285,12 @@ bool ProbVerifier::isError(GlobalState* obj)
 
 bool ProbVerifier::isStopping(const GlobalState* obj)
 {
-    return findMatch(obj, _RS) ;
+    return findMatch(obj, _stops) ;
 }
 
 bool ProbVerifier::isEnding(const GlobalState *obj)
 {
-    return findMatch(obj, _END);
+    return findMatch(obj, _ends);
 }
 
 bool ProbVerifier::findMatch(const GlobalState* obj,
@@ -314,19 +320,6 @@ void ProbVerifier::printStep(GlobalState *obj)
              << " Prob = " << prob << " Dist = " << dist << endl;
     }
 }
-/*
- void ProbVerifier::printRS()
- {
- GSVecMap::iterator it ;
- for( it = _RS.begin() ; it != _RS.end() ; ++it ) {
- cout << "[" ;
- for( size_t i = 0 ; i < it->first.size()-1 ; ++i ) {
- cout << it->first.at(i) << "," ;
- }
- cout << it->first.back() << "]" ;
- }
- cout << endl ;
- }*/
 
 void ProbVerifier::clear()
 {
