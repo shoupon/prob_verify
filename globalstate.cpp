@@ -16,8 +16,8 @@ vector<StateMachine*> GlobalState::_machines;
 GlobalState* GlobalState::_root = 0;
 Parser* GlobalState::_psrPtr = 0;
 
-GlobalState::GlobalState(GlobalState* gs): _countVisit(1),
-        _dist(gs->_dist+1), _depth(gs->_depth), _white(true), _origin(gs->_origin)
+GlobalState::GlobalState(GlobalState* gs): _visit(1),
+        _dist(gs->_dist), _depth(gs->_depth), _white(true), _origin(gs->_origin)
 {
     // Clone the pending tasks
     // Duplicate the container since the original gs->_fifo cannot be popped
@@ -43,7 +43,7 @@ GlobalState::GlobalState(GlobalState* gs): _countVisit(1),
 }
 
 GlobalState::GlobalState(vector<StateMachine*> macs, CheckerState* chkState)
-    :_countVisit(1), _dist(0), _white(true)
+    :_visit(1), _dist(0), _white(true)
 {
     if( _nMacs < 0 ) {
         _nMacs = (int)macs.size();
@@ -63,7 +63,7 @@ GlobalState::GlobalState(vector<StateMachine*> macs, CheckerState* chkState)
 }
 
 GlobalState::GlobalState(vector<StateSnapshot*>& stateVec)
-: _countVisit(1),_dist(0), _white(true)
+: _visit(1),_dist(0), _white(true)
 {
     assert(stateVec.size() == _machines.size());
     for( size_t i = 0 ; i < stateVec.size() ; ++i ) {
@@ -407,8 +407,13 @@ void GlobalState::addTask(vector<MessageTuple*> msgs)
 void GlobalState::updateTrip()
 {
     for( size_t ii = 0 ; ii < _childs.size() ; ++ii ) {
-        if( _childs[ii]->_dist < this->_dist + 1 )
+        if( _childs[ii]->_depth != this->_depth ) {
+            assert(_childs[ii]->_depth > this->_depth ) ;
+            _childs[ii]->_dist = 0 ;
+        }
+        else if( _childs[ii]->_dist < this->_dist + 1 ) {
             _childs[ii]->_dist = this->_dist + 1 ;
+        }
     }
 }
 
@@ -455,7 +460,7 @@ bool GlobalState::removeBranch(GlobalState* leaf)
 
 void GlobalState::merge(GlobalState *gs)
 {
-    this->increaseVisit(gs->getVisit()) ;
+    this->_visit += gs->_visit ;
     
     // Take care of the _childs vector of parents of gs
     for( size_t i = 0 ; i < gs->_parents.size() ; i++ ) {

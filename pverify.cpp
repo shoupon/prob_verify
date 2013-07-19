@@ -4,29 +4,39 @@
 
 //#define VERBOSE
 
-
-bool ProbVerifier::addToClass(GlobalState* childNode, int toClass)
+/**
+ Add the successor GlobalState* childNode to appropriate probability class, provided
+ that childNode does not already exist in the class of GlobalStates; Also this function
+ maintains a table of reachable states
+ */
+bool ProbVerifier::addToClass(GlobalState* childNode, int prob)
 {
-    if( toClass >= _maxClass )
+    if( prob >= _maxClass )
         return false;
-    
-    // If the child node is already a member of STATETABLE, which indicates the protocol
-    // under test has successfully completed its function, there is no need to explore
-    // this child node later on, so do not add this child node
-    // to ST[k] (_arrClass[toClass])
     //if( find(_arrFinRS,childNode) != _arrFinRS.end() )
       //  return false ;
     
-    GSMapIter it = _arrClass[toClass].find(childNode)  ;
-    if( it != _arrClass[toClass].end() ) {
+    GSMapIter it = _arrClass[prob].find(childNode)  ;
+    if( it != _arrClass[prob].end() ) {
         it->first->merge(childNode) ;
         return false ;
     }
     else {
-        _arrClass[toClass].insert( GSMapPair(childNode, 0) );
+        _arrClass[prob].insert( GSMapPair(childNode, 0) );
+        addToReachable(childNode) ;
         return true ;
     }
-    
+}
+
+bool ProbVerifier::addToReachable(GlobalState *gs)
+{
+    string str = gs->toString() ;
+    if( _reachable.find(str) == _reachable.end() ) {
+        _reachable.insert(str) ;
+        return true ;
+    }
+    else
+        return false;
 }
 
 void ProbVerifier::addError(StoppingState *es)
@@ -103,6 +113,7 @@ void ProbVerifier::start(int maxClass)
                     if( find(_arrFinStart,st) != _arrFinStart.end() ) {
                         // st is already contained in STATET (_arrFinStart)
                         // which means st is already explored
+                        // TODO: should merge globalstate instead
                         _arrClass[_curClass].erase(it++);
                         continue ;
                     }
@@ -130,7 +141,7 @@ void ProbVerifier::start(int maxClass)
 #ifdef TRACE
                     st->updateParents();
 #endif
-                    // Increase the threshold of livelock detection
+                    // Increase the number of step taken
                     _max += st->size();
                 }
                 
@@ -166,7 +177,8 @@ void ProbVerifier::start(int maxClass)
                 for( size_t idx = 0 ; idx < st->size() ; ++idx ) {
                     GlobalState* childNode = st->getChild(idx);                    
                     if( isEnding(childNode) ) {
-                        cout << "Ending state reached: " << _max << endl ;
+                        cout << "Ending state reached. " << endl;
+                        printStat() ;
 #ifdef TRACE
                         if(GlobalState::removeBranch(childNode)) 
                             break;
@@ -174,19 +186,9 @@ void ProbVerifier::start(int maxClass)
                         delete childNode;
 #endif
                     }
-                    else if( find(_arrFinStart,childNode) != _arrFinStart.end() ) {
-                        // Do something else, such as print out the probability
-                        cout << "Explored class entry reached: " << _max << endl ;
-                        //childNode->printOrigins(_printStop);
-#ifdef TRACE
-                        if(GlobalState::removeBranch(childNode))
-                            break;
-#else
-                        delete childNode;
-#endif
-                    }
                     else if( find(_arrFinRS, childNode) != _arrFinRS.end() ) {
-                        cout << "Explored stopping state reached: " << _max << endl;
+                        cout << "Explored stopping state reached." << endl ;
+                        printStat() ;
 #ifdef TRACE
                         if(GlobalState::removeBranch(childNode))
                             break;
@@ -206,14 +208,13 @@ void ProbVerifier::start(int maxClass)
                 
             } // while (explore the global state in class[_curClass] until all the global
               // states in the class are explored
-            cout << _max << "composite states explored." << endl ;
+            printStat();
         } // for (explore all the class until class[0] through class[_maxClass-1]
           // are fully explored
         
-        // Conclude success
-        cout << endl;
-        cout << "Procedure complete" << endl ;
-        cout << _max << "composite states explored." << endl ;
+        // Conclude success, print statistics
+        cout << "Procedure complete." << endl;
+        printStat();
         cout << "Up to " << maxClass << " low probability transitions considered." << endl ;
         cout << "No deadlock or livelock found." << endl;
         
@@ -321,6 +322,14 @@ void ProbVerifier::printStep(GlobalState *obj)
     }
 }
 
+void ProbVerifier::printStat()
+{
+    cout << _reachable.size() << " reachable states found." << endl ;
+    cout << _max << " transitions taken." << endl ;
+    cout << _arrFinStart.size() << " entry points discoverd (_arrFinStart)" << endl;
+    cout << _arrFinRS.size() << " stopping states discovered (_arrFinRS)" << endl ;
+}
+
 void ProbVerifier::clear()
 {
     GSMap::iterator it ;
@@ -346,8 +355,8 @@ bool ProbVerifier::checkDeadlock(GlobalState *gs)
 {
     if( gs->size() == 0 ) {
         // No child found. Report deadlock
-        cout << _max << "composite states explored." << endl ;
         cout << "Deadlock found." << endl ;
+        printStat() ;
 #ifdef TRACE
         vector<GlobalState*> seq;
         gs->pathRoot(seq);
@@ -361,10 +370,11 @@ bool ProbVerifier::checkDeadlock(GlobalState *gs)
 
 bool ProbVerifier::checkLivelock(GlobalState* gs)
 {
-    if( gs->getDistance() > _max ) {
-        cout << _max << "composite states explored." << endl ;
+    // Theorem 1 in [Maxemchuk and Sabnani]
+    if( gs->getDistance() > _reachable.size() - _arrFinRS.size() ) {
         cout << "Livelock found after " << gs->getProb()
              << " low probability transitions" << endl ;
+        printStat();
 #ifdef TRACE
         vector<GlobalState*> seq;
         gs->pathRoot(seq);
@@ -381,9 +391,8 @@ bool ProbVerifier::checkError(GlobalState *gs)
     if( isError(gs) ) {
         // The child matches the criterion of an ErrorState.
         // Print out the path that reaches this error state.
-        cout << _max << "composite states explored." << endl ;
-        cout << "Error state found: " << endl ;
-        cout << gs->toString() << endl;
+        cout << "Error state found: " << gs->toString() << endl;
+        printStat() ;
 #ifdef TRACE
         vector<GlobalState*> seq;
         gs->pathRoot(seq);
