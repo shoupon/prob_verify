@@ -9,9 +9,6 @@
 #include <stdexcept>
 using namespace std;
 
-#include "fsm.h"
-#include "transition.h"
-#include "lookup.h"
 #include "parser.h"
 
 #pragma warning(disable : 4996)
@@ -37,7 +34,7 @@ void Parser::getLine()
     strcpy(chLine, tempLine.c_str() );
     
     // Get rid of the semicolon
-    strtok (chLine,";");
+    strtok(chLine,";");
     
     _line.clear();
     _line.str(string(chLine));

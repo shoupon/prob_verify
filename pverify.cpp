@@ -73,7 +73,7 @@ void ProbVerifier::start(int maxClass)
 #endif
         
         _maxClass = maxClass ;
-        _arrClass.resize(maxClass, GSMap());
+        _arrClass.resize(maxClass+1, GSMap());
         for( size_t ii = 0 ; ii < _macPtrs.size() ; ++ii )
             _macPtrs[ii]->reset();
         
@@ -83,16 +83,12 @@ void ProbVerifier::start(int maxClass)
         else {
             _root = new GlobalState(_macPtrs) ;
         }
-        GlobalState::init(_root);
-        _root->setRoot();
         
         // Initialize _arrClass[0] to contain the initial global state.
         // the other maps are initialized null.
-        _arrClass.push_back( GSMap() );
         _arrClass[0].insert( GSMapPair(_root,0) );
-#ifdef VERBOSE
-        cout << _root->toString() << endl ;
-#endif
+        GlobalState::init(_root);
+        addToReachable(_root);
         
         for( _curClass = 0 ; _curClass <= _maxClass ; ++_curClass ) {
             cout << "-------- Exploring GlobalStates of class[" << _curClass
