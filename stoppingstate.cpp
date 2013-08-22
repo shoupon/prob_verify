@@ -51,7 +51,7 @@ bool StoppingState::match(const GlobalState* gs)
     for( size_t i = 0 ; i < _allows.size() ; ++i ) {
         int mac = _allows[i];
         // check if the machine is in the specified set
-        if( vecSnap[mac]->toString() != _aSets[i]->toString() )
+        if( !vecSnap[mac]->match(_aSets[i]) )
             return false ;
     }
     // All the machines that need to be checked are in the error state

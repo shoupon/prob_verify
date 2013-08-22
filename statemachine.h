@@ -119,6 +119,7 @@ public:
     // Cast the Snapshot into a integer. Used in HashTable
     virtual int toInt() = 0;
     virtual StateSnapshot* clone() const = 0;
+    virtual bool match(StateSnapshot* other) { return toString() == other->toString(); }
 };
 
 #endif
