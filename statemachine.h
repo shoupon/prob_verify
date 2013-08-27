@@ -6,6 +6,7 @@
 #include <exception>
 #include <stdexcept>
 #include <memory>
+#include <sstream>
 using namespace std;
 
 #include "define.h"
@@ -48,9 +49,29 @@ protected:
     int _subject;
 };
 
+class StateMachine;
 
-
-class StateSnapshot;
+// Used for restore the state of a state machine back to a certain point. Should contain
+// the state in which the machine was, the internal variables at that point
+class StateSnapshot
+{
+    friend class StateMachine;
+public:
+    StateSnapshot(): _ss_state(0) {}
+    StateSnapshot(int s):_ss_state(s) {}
+    virtual ~StateSnapshot() {}
+    virtual int curStateId() const { return _ss_state; }
+    // Returns the name of current state as specified in the input file. Used to identify
+    // states in the set STATET, STATETABLE, RS
+    virtual string toString();
+    // Cast the Snapshot into a integer. Used in HashTable
+    virtual int toInt() {return _ss_state;}
+    virtual StateSnapshot* clone() const { return new StateSnapshot(_ss_state); }
+    virtual bool match(StateSnapshot* other) { return toString() == other->toString(); }
+    
+protected:
+    int _ss_state;
+};
 
 class StateMachine
 {
@@ -79,15 +100,15 @@ public:
     // Returns the identifier of current state
     virtual int nullInputTrans(vector<MessageTuple*>& outMsgs,
                                   bool& high_prob, int startIdx = 0) = 0;
-    // Restore the state of a StateMachine back to a previous point which can be completely specified
-    // by s StateSnapshot
-    virtual void restore(const StateSnapshot* snapshot) = 0;
-    // Store current snapshot. This function should allocate a new StateSnapshot* object. The object would be
-    // deallocate after the process of probabilistic verification is complete, when all the StateSnapshot* in the
-    // _uniqueTable is released.
-    virtual StateSnapshot* curState() = 0 ;
+    // Restore the state of a StateMachine back to a previous point which can be
+    // completely specified by a StateSnapshot
+    virtual void restore(const StateSnapshot* snapshot) { _state = snapshot->curStateId(); }
+    // Store current snapshot. This function should allocate a new StateSnapshot* object.
+    // The object would be deallocate after the process of probabilistic verification is
+    // complete, when all the StateSnapshot* in the _uniqueTable is released.
+    virtual StateSnapshot* curState() { return new StateSnapshot(_state); }
     // Reset the machine to initial state
-    virtual void reset() = 0;
+    virtual void reset() { _state = 0 ; }
     
     int macId() const { return _machineId; }
     void setId(int num) { _machineId = num ; }
@@ -95,6 +116,7 @@ public:
 protected:
     Lookup* _msgLookup;
     Lookup* _macLookup;
+    int _state;
     
     int messageToInt(string msg) ;
     int machineToInt(string macName) ;
@@ -103,23 +125,6 @@ protected:
     
 private:
     int _machineId;
-};
-
-// Used for restore the state of a state machine back to a certain point. Should contain
-// the state in which the machine was, the internal variables at that point
-class StateSnapshot
-{
-    friend class StateMachine;
-public:
-    virtual ~StateSnapshot() {} ;
-    virtual int curStateId() const = 0 ;
-    // Returns the name of current state as specified in the input file. Used to identify states
-    // in the set STATET, STATETABLE, RS
-    virtual string toString() = 0 ;
-    // Cast the Snapshot into a integer. Used in HashTable
-    virtual int toInt() = 0;
-    virtual StateSnapshot* clone() const = 0;
-    virtual bool match(StateSnapshot* other) { return toString() == other->toString(); }
 };
 
 #endif

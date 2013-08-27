@@ -26,3 +26,10 @@ int StateMachine::machineToInt(string macName)
         return _macLookup->insert(macName) ;       
     }
 }
+
+string StateSnapshot::toString()
+{
+    stringstream ss;
+    ss << _ss_state ;
+    return ss.str() ;
+}
