@@ -13,7 +13,6 @@
 using namespace std;
 
 #include "sync.h"
-#include "PUChecker.h"
 
 class SyncSnapshot;
 

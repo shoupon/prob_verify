@@ -176,6 +176,7 @@ void ProbVerifier::start(int maxClass)
                         cout << "Ending state reached. " << endl;
                         printStat() ;
 #ifdef TRACE
+                        idx--;
                         if(GlobalState::removeBranch(childNode)) 
                             break;
 #else
@@ -186,6 +187,7 @@ void ProbVerifier::start(int maxClass)
                         cout << "Explored stopping state reached." << endl ;
                         printStat() ;
 #ifdef TRACE
+                        idx-- ;
                         if(GlobalState::removeBranch(childNode))
                             break;
 #else
