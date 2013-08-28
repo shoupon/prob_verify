@@ -77,6 +77,8 @@ private:
     
     static void printSeq(const vector<GlobalState*>& seq);
     
+    string msg2str(MessageTuple* msg);
+    
 public:
     // Default constructor creates a global state with all its machine set to initial
     // state 0.

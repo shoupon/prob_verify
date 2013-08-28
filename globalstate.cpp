@@ -195,6 +195,12 @@ void GlobalState::findSucc()
                 else
                     ++cit ;
             } catch (GlobalState* blocked) {
+#ifdef TRACE
+                // Print the sequence that leads to this unmatched transition
+                vector<GlobalState*> seq;
+                this->pathRoot(seq);
+                printSeq(seq);
+#endif
                 // Remove the child that is blocked by unmatched transition
                 _childs.erase(cit);
                 // Continue on evaluating other children
@@ -259,11 +265,9 @@ vector<GlobalState*> GlobalState::evaluate()
                 // No found matching transition, this null transition should not be carry out
                 // Another null input transition should be evaluate first
                 stringstream ss ;
-                ss << "No matching transition for outlabel: " 
-                   << "Destination Machine = " << _psrPtr->IntToMachine(tuple->destId())
-                   << " Message = " << _psrPtr->IntToMessage(tuple->destMsgId()) << endl
-                   << "GlobalState = " << this->toString() << endl ;   
-
+                ss << "No matching transition for message: " << endl
+                   << msg2str(tuple) 
+                   << "GlobalState = " << this->toString() << endl ;
                 // Print all the task in _fifo
                 ss << "Content in fifo: " << endl ;
                 while( !_fifo.empty() ) {
@@ -640,9 +644,6 @@ void GlobalState::pathRoot(vector<GlobalState* >& arr, const GlobalState* end)
         } // if
     }
     //BFS(arr, &rootStop);
-#ifdef VERBOSE
-    cout << "The length of the path towards to the deadlock state = " << arr.size() << endl;
-#endif
 }
 
 GlobalState* self;
@@ -773,6 +774,8 @@ size_t GlobalState::markPath(GlobalState* ptr)
 
 void GlobalState::printSeq(const vector<GlobalState*>& seq)
 {
+    if( seq.size() < 1 )
+        return ;
     for( int ii = 0 ; ii < (int)seq.size()-1 ; ++ii ) {
         if( seq[ii]->getProb() != seq[ii+1]->getProb() )
             cout << seq[ii]->toString() << " -p-> ";
@@ -780,6 +783,15 @@ void GlobalState::printSeq(const vector<GlobalState*>& seq)
             cout << seq[ii]->toString() << " -> ";
     }
     cout << seq.back()->toString() << endl ;
+}
+
+string GlobalState::msg2str(MessageTuple *msg)
+{
+    stringstream ss;
+    ss << "Source Machine = " << _psrPtr->IntToMachine(msg->subjectId()) << endl
+       << "Destination Machine = " << _psrPtr->IntToMachine(msg->destId()) << endl
+       << "Message = " << _psrPtr->IntToMessage(msg->destMsgId()) << endl ;
+    return ss.str() ;
 }
 
 void GlobalState::restore()
