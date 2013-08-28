@@ -184,30 +184,31 @@ void GlobalState::findSucc()
 
         // For each child just created, simulate the message reception of each
         // messsage (task) in the queue _fifo using the function evaluate()
-        for( size_t cIdx = 0 ; cIdx < _childs.size() ; ++cIdx ) {
+        vector<GlobalState*>::iterator cit = _childs.begin();
+        while( cit != _childs.end() ) {
             try {
-                vector<GlobalState*> ret = _childs[cIdx]->evaluate();
+                vector<GlobalState*> ret = (*cit)->evaluate();
                 if( ret.size() > 1 ) {
-                    _childs.erase(_childs.begin()+cIdx);
-                    cIdx--;
-                    _childs.insert(_childs.end(), ret.begin(), ret.end());
+                    _childs.erase(cit);
+                    _childs.insert(cit, ret.begin(), ret.end());
                 }
+                else
+                    ++cit ;
             } catch (GlobalState* blocked) {
                 // Remove the child that is blocked by unmatched transition
-                _childs.erase(_childs.begin()+cIdx);
+                _childs.erase(cit);
                 // Continue on evaluating other children
-                cIdx-- ;
                 cout << "REMOVE global state. CONTINUE" << endl ;
                 continue ;
             } catch (string str) {
-                // This catch phrase should only be reached when no matching transition found for a message reception
-                // When such occurs, erase the child that has no matching transition and print the error message.
-                // The process of verification will not stop
-                _childs.erase(_childs.begin()+cIdx);                
+                // This catch phrase should only be reached when no matching transition
+                // found for a message reception. When such occurs, erase the child that
+                // has no matching transition and print the error message. The process of
+                // verification will not stop
+                _childs.erase(cit);
                 cerr << "When finding successors (findSucc) " 
                      << this->toString() << endl ;
                 cerr << str << endl ;
-                cIdx--;
                 
 #ifdef TRACE_UNMATCHED
                 throw this;
