@@ -61,10 +61,10 @@ int Sync::nullInputTrans(vector<MessageTuple*>& outMsgs, bool& high_prob, int st
             for( int ii = 0 ; ii < _allMacs.size() ; ++ii ) {
                 MessageTuple* fire = new SyncMessage(0, _allMacs[ii]->macId(),
                                                      0, messageToInt("DEADLINE"),
-                                                     macId(), false, 0) ;
+                                                     macId(), false, _nextDl) ;
                 outMsgs.push_back(fire);
             }
-            _actives[0] = 0 ;
+            _actives[_nextDl] = 0 ;
             getNextActive() ;
             _time++ ;
             
