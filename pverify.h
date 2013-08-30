@@ -30,6 +30,7 @@ class ProbVerifier
 {
     vector<StateMachine*> _macPtrs;
     vector<GSMap> _arrClass;
+    vector<GSMap> _all;
     
     vector<StoppingState*> _errors;
     vector<StoppingState*> _stops;
@@ -88,6 +89,7 @@ private:
     void printStopping(const GlobalState* obj) ;
     void printStep(GlobalState* obj) ;
     void printStat();
+    void printFinRS();
     
     bool checkDeadlock( GlobalState* gs );
     bool checkLivelock( GlobalState* gs ) ;

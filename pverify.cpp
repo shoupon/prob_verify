@@ -150,7 +150,14 @@ void ProbVerifier::start(int maxClass)
                 // (_arrFinRS), so when the later probabilistic search reaches st, the
                 // search will stop and explore some other paths
                 if( isStopping(st) ) {
-                    cout << "Stooping state reached: " << _max << endl ;
+                    cout << "Stopping state reached: " << _max << endl ;
+#ifdef TRACE_STOPPING
+                    vector<GlobalState*> seq;
+                    if( st != _root ) {
+                        st->pathRoot(seq);
+                        printSeq(seq);
+                    }
+#endif
                     insert(_arrFinRS, st);
                     if( find( _arrRS, st) == _arrRS.end() ) {
                         insert(_arrRS, st);
@@ -213,6 +220,7 @@ void ProbVerifier::start(int maxClass)
         // Conclude success, print statistics
         cout << "Procedure complete." << endl;
         printStat();
+        printFinRS();
         cout << "Up to " << maxClass << " low probability transitions considered." << endl ;
         cout << "No deadlock or livelock found." << endl;
         
@@ -253,6 +261,8 @@ GSMap::iterator ProbVerifier::find(GSMap& collection, GlobalState* gs)
 
 void ProbVerifier::printSeq(const vector<GlobalState*>& seq)
 {
+    if( seq.size() == 0 )
+        return;
     for( int ii = 0 ; ii < (int)seq.size()-1 ; ++ii ) {
         if( seq[ii]->getProb() != seq[ii+1]->getProb() ) {
             int d = seq[ii+1]->getProb() - seq[ii]->getProb() ;
@@ -326,6 +336,14 @@ void ProbVerifier::printStat()
     cout << _max << " transitions taken." << endl ;
     cout << _arrFinStart.size() << " entry points discoverd (_arrFinStart)" << endl;
     cout << _arrFinRS.size() << " stopping states discovered (_arrFinRS)" << endl ;
+}
+
+void ProbVerifier::printFinRS()
+{
+    cout << "StoppingStates encountered:" << endl ;
+    for( GSVecMap::iterator it = _arrFinRS.begin(); it != _arrFinRS.end() ; ++it ) {
+        cout << it->first << endl ;
+    }
 }
 
 void ProbVerifier::clear()

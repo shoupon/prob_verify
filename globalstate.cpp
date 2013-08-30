@@ -13,6 +13,7 @@ using namespace std;
 int GlobalState::_nMacs = -1;
 vector<StateMachine*> GlobalState::_machines;
 GlobalState* GlobalState::_root = 0;
+set<GlobalState*> GlobalState::_all ;
 Parser* GlobalState::_psrPtr = 0;
 
 GlobalState::GlobalState(GlobalState* gs): _visit(1),
@@ -39,6 +40,9 @@ GlobalState::GlobalState(GlobalState* gs): _visit(1),
 #ifdef VERBOSE
     cout << "Create new GlobalState from " << this->toString() << endl;
 #endif
+#ifdef TRACE
+    insertNode(this);
+#endif
 }
 
 GlobalState::GlobalState(vector<StateMachine*> macs, CheckerState* chkState)
@@ -59,6 +63,10 @@ GlobalState::GlobalState(vector<StateMachine*> macs, CheckerState* chkState)
     else {
         _checker = chkState->clone() ;
     }
+    
+#ifdef TRACE
+    insertNode(this);
+#endif
 }
 
 GlobalState::GlobalState(vector<StateSnapshot*>& stateVec)
@@ -68,6 +76,10 @@ GlobalState::GlobalState(vector<StateSnapshot*>& stateVec)
     for( size_t i = 0 ; i < stateVec.size() ; ++i ) {
         _gStates[i] = stateVec[i]->clone() ;
     }
+    
+#ifdef TRACE
+    insertNode(this);
+#endif
 }
 
 GlobalState::~GlobalState()
@@ -82,6 +94,9 @@ GlobalState::~GlobalState()
         delete task ;
         _fifo.pop();
     }
+#ifdef TRACE
+    removeNode(this);
+#endif
 }
 
 void GlobalState::init()
@@ -129,6 +144,14 @@ void GlobalState::explore(int subject)
         // create childs if needed
     }
 }*/
+
+GlobalState* GlobalState::getChild(size_t i)
+{
+    vector<GlobalState*>::iterator it = _childs.begin() ;
+    for( size_t c = 0 ; c < i ; ++c )
+        it++ ;
+    return *it;
+}
 
 const vector<string> GlobalState::getStringVec() const
 {
@@ -184,16 +207,18 @@ void GlobalState::findSucc()
 
         // For each child just created, simulate the message reception of each
         // messsage (task) in the queue _fifo using the function evaluate()
-        vector<GlobalState*>::iterator cit = _childs.begin();
-        while( cit != _childs.end() ) {
+        size_t cidx = 0 ;
+        while( cidx < _childs.size() ) {
             try {
-                vector<GlobalState*> ret = (*cit)->evaluate();
+                vector<GlobalState*> ret = _childs[cidx]->evaluate();
                 if( ret.size() > 1 ) {
-                    _childs.erase(cit);
-                    _childs.insert(cit, ret.begin(), ret.end());
+                    for( size_t rii = 0 ; rii < ret.size() ; ++rii )
+                        _childs.push_back(ret[rii]) ;
+                    eraseChild(cidx) ;
                 }
-                else
-                    ++cit ;
+                else {
+                    ++cidx ;
+                }
             } catch (GlobalState* blocked) {
 #ifdef TRACE
                 // Print the sequence that leads to this unmatched transition
@@ -202,7 +227,7 @@ void GlobalState::findSucc()
                 printSeq(seq);
 #endif
                 // Remove the child that is blocked by unmatched transition
-                _childs.erase(cit);
+                _childs.erase(_childs.begin()+cidx);
                 // Continue on evaluating other children
                 cout << "REMOVE global state. CONTINUE" << endl ;
                 continue ;
@@ -211,7 +236,7 @@ void GlobalState::findSucc()
                 // found for a message reception. When such occurs, erase the child that
                 // has no matching transition and print the error message. The process of
                 // verification will not stop
-                _childs.erase(cit);
+                _childs.erase(_childs.begin()+cidx);
                 cerr << "When finding successors (findSucc) " 
                      << this->toString() << endl ;
                 cerr << str << endl ;
@@ -410,22 +435,24 @@ void GlobalState::addTask(vector<MessageTuple*> msgs)
 
 void GlobalState::updateTrip()
 {
-    for( size_t ii = 0 ; ii < _childs.size() ; ++ii ) {
-        if( _childs[ii]->_depth != this->_depth ) {
-            assert(_childs[ii]->_depth > this->_depth ) ;
-            _childs[ii]->_dist = 0 ;
+    vector<GlobalState*>::iterator it;
+    for( it = _childs.begin() ; it != _childs.end() ; ++it ) {
+        if( (*it)->_depth != this->_depth ) {
+            assert((*it)->_depth > this->_depth ) ;
+            (*it)->_dist = 0 ;
         }
-        else if( _childs[ii]->_dist < this->_dist + 1 ) {
-            _childs[ii]->_dist = this->_dist + 1 ;
+        else if( (*it)->_dist < this->_dist + 1 ) {
+            (*it)->_dist = this->_dist + 1 ;
         }
     }
 }
 
 void GlobalState::updateParents()
 {
-    for( size_t ci = 0 ; ci < _childs.size() ; ++ci ) {
-        assert( _childs[ci]->_parents.size() == 0 );
-        _childs[ci]->_parents.push_back(this);
+    vector<GlobalState*>::iterator it;
+    for( it = _childs.begin() ; it != _childs.end() ; ++it ) {
+        assert( (*it)->_parents.size() == 0 );
+        (*it)->_parents.push_back(this);
     }
 }
 
@@ -460,6 +487,23 @@ bool GlobalState::removeBranch(GlobalState* leaf)
     }
     delete leaf ;
     return ret;
+}
+
+bool GlobalState::removeNode(GlobalState *gs)
+{
+    set<GlobalState*>::iterator it = _all.find(gs) ;
+    if( it != _all.end()) {
+        _all.erase(it) ;
+        return true;
+    }
+    else
+        return false;
+}
+
+bool GlobalState::insertNode(GlobalState *gs)
+{
+    _all.insert(gs);
+    return true ;
 }
 
 void GlobalState::merge(GlobalState *gs)
@@ -576,6 +620,15 @@ void GlobalState::addParents(const vector<GlobalState*>& arr)
     }
 }
 
+void GlobalState::eraseChild(size_t idx)
+{
+    assert(idx < _childs.size()) ;
+    for( size_t ii = idx ; ii < _childs.size()-1 ; ++ii ) {
+        _childs[ii] = _childs[ii+1] ;
+    }
+    _childs.pop_back() ;
+}
+
 void GlobalState::clearAll()
 {
     /*
@@ -626,7 +679,7 @@ void GlobalState::pathRoot(vector<GlobalState* >& arr, const GlobalState* end)
 #endif
             do {
                 arr.push_back(gs);
-                gs = gs->_childs[gs->_trace] ;
+                gs = gs->getChild(gs->_trace) ;
             } while( gs != this );
             arr.push_back(this);
             break;
@@ -643,7 +696,7 @@ void GlobalState::pathRoot(vector<GlobalState* >& arr, const GlobalState* end)
                 cout << "No parents." << endl ;
         } // if
     }
-    //BFS(arr, &rootStop);
+    GlobalState::resetColor();
 }
 
 GlobalState* self;
@@ -685,7 +738,7 @@ void GlobalState::pathCycle(vector<GlobalState*>& arr)
             // Trace back
             do {
                 arr.push_back(gs);
-                gs = gs->_childs[gs->_trace] ;
+                gs = gs->getChild(gs->_trace) ;
             } while( gs != this );
             arr.push_back(this);
         }
@@ -729,7 +782,7 @@ void GlobalState::BFS(vector<GlobalState*>& arr, bool (*stop)(GlobalState*))
             // Trace back
             do {
                 arr.push_back(gs);
-                gs = gs->_childs[gs->_trace] ;
+                gs = gs->getChild(gs->_trace) ;
             } while( gs != this );
         }
         else {
@@ -747,6 +800,9 @@ void GlobalState::BFS(vector<GlobalState*>& arr, bool (*stop)(GlobalState*))
 
 void GlobalState::resetColor()
 {
+    set<GlobalState*>::iterator it = _all.begin() ;
+    for( ; it != _all.end() ; ++ it )
+        (*it)->_white = true;
     /*
     for( GSHash::iterator it = _uniqueTable.begin() ; it != _uniqueTable.end() ; ++it ) 
         (*it).second->_white = true;    
@@ -756,7 +812,7 @@ void GlobalState::resetColor()
 size_t GlobalState::markPath(GlobalState* ptr)
 {
     for( size_t ii = 0 ; ii < _childs.size() ; ++ii ) {
-        if( _childs[ii] == ptr ) {
+        if( getChild(ii) == ptr ) {
             _trace = ii;
             return _trace;
         }

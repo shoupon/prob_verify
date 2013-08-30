@@ -9,7 +9,7 @@ using namespace std;
 #define TRACE
 #ifdef TRACE
 #define TRACE_UNMATCHED
-//#define TRACE_STOPPING
+#define TRACE_STOPPING
 #endif
 
 //#define CONTROLLER_TIME

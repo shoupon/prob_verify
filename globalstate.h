@@ -5,6 +5,8 @@
 #include <cassert>
 #include <string>
 #include <queue>
+#include <set>
+#include <list>
 
 #include "fsm.h"
 #include "state.h"
@@ -30,6 +32,7 @@ class GlobalState
     // A table stores all of the reachable globalState. Each reachable globalState is
     // unique. The _uniqueTable stores the pointers to each unique GlobalState
     static GlobalState* _root;
+    static set<GlobalState*> _all;
     static Parser* _psrPtr;
     
     vector<GlobalState*> _childs;
@@ -57,6 +60,7 @@ protected:
 private:
     //void trim();
     void addParents(const vector<GlobalState*>& arr);
+    void eraseChild(size_t idx);
     //void execute(int macId, int transId, Transition* transPtr);
     vector<GlobalState*> evaluate();
     // Invoke explore when an unexplored transition is push onto the queue
@@ -70,6 +74,8 @@ private:
     void recordProb();
 
     // Used in breadth-first search
+    static bool removeNode(GlobalState* gs);
+    static bool insertNode(GlobalState* gs);
     void resetColor();
     size_t markPath(GlobalState* ptr);
     //bool rootStop(GlobalState* gsPtr);
@@ -94,7 +100,7 @@ public:
     GlobalState(vector<StateMachine*> macs, CheckerState* chkState = 0);
     ~GlobalState();
     
-    GlobalState* getChild (size_t i) { return _childs[i]; }
+    GlobalState* getChild (size_t i);
     int getProb() const { return _depth ; }
     int getVisit() { return _visit ;}
     int getDistance() { return _dist;}
