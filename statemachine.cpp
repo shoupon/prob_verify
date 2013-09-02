@@ -2,6 +2,8 @@
 
 #include "statemachine.h"
 
+Lookup* StateMachine::_msgLookup = 0 ;
+Lookup* StateMachine::_macLookup = 0;
 
 int StateMachine::messageToInt(string msg) 
 { 

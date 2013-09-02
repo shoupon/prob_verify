@@ -80,7 +80,7 @@ public:
     // StateMachine, so the StateMachine can convert a string of an input or an output
     // label into id (integer). A pointer to Parser should be provided to the StateMachine.
     // The Parser class contains the necessary look up function that StateMachine needs
-    StateMachine( Lookup* msg, Lookup* mac ): _msgLookup(msg), _macLookup(mac) {}
+    StateMachine( Lookup* msg, Lookup* mac ) {}
     virtual ~StateMachine() {}
 
     // Simulate message reception
@@ -112,16 +112,18 @@ public:
     
     int macId() const { return _machineId; }
     void setId(int num) { _machineId = num ; }
-
+    
+    static void setLookup(Lookup* msg, Lookup* mac){ _msgLookup = msg, _macLookup = mac;}
+    
 protected:
-    Lookup* _msgLookup;
-    Lookup* _macLookup;
+    static Lookup* _msgLookup;
+    static Lookup* _macLookup;
     int _state;
     
-    int messageToInt(string msg) ;
-    int machineToInt(string macName) ;
-    string IntToMessage(int num) { return _msgLookup->toString(num); }
-    string IntToMachine(int num) { return _macLookup->toString(num); }
+    static int messageToInt(string msg) ;
+    static int machineToInt(string macName) ;
+    static string IntToMessage(int num) { return _msgLookup->toString(num); }
+    static string IntToMachine(int num) { return _macLookup->toString(num); }
     
 private:
     int _machineId;

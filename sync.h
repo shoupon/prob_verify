@@ -16,6 +16,7 @@ using namespace std;
 #include "statemachine.h"
 
 class SyncSnapshot;
+class SyncMessage;
 
 
 class Sync: public StateMachine
@@ -34,6 +35,9 @@ public:
     
     void setMaster(const StateMachine* master) ;
     void addMachine(const StateMachine* mac) ;
+    
+    static SyncMessage* setDeadline(MessageTuple* inMsg, int macid, int did);
+    static SyncMessage* revokeDeadline(MessageTuple* inMsg, int macid, int did);
     
 protected:
     vector<int> _actives;

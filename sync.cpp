@@ -31,7 +31,7 @@ int Sync::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
     assert( d <= _numDl ) ;
     
     bool set = inMsg->getParam(0) ;
-    if( set ) {
+    if( set ) {  // "SET"
         if( startIdx == 0 ) {
             // Change state
             _actives[d] = 1 ;   // setup deadline d
@@ -42,7 +42,12 @@ int Sync::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
             return -1;
         }
     }
-    else {
+    else {      // "REVOKE"
+        if( startIdx == 0 ) {
+            _actives[d] = 0 ;  // cancel deadline d
+            _nextDl = getNextActive();
+            return 3;
+        }
         return -1;
     }
 }
@@ -108,6 +113,31 @@ void Sync::setMaster(const StateMachine* master)
 void Sync::addMachine(const StateMachine* mac)
 {
     _allMacs.push_back(mac) ;
+}
+
+SyncMessage* Sync::setDeadline(MessageTuple *inMsg, int macid, int did)
+{
+    if( inMsg == 0 )
+        return new SyncMessage(0, machineToInt("sync"),
+                               0, messageToInt("SET"),
+                               macid, true, did);
+    else
+        return new SyncMessage(inMsg->srcID(), machineToInt("sync"),
+                               inMsg->srcMsgId(), messageToInt("SET"),
+                               macid, true, did);
+}
+
+// Revoke deadline[did] that corresponds to the deadline set by a machine
+SyncMessage* Sync::revokeDeadline(MessageTuple *inMsg, int macid, int did)
+{
+    if( inMsg == 0 )
+        return new SyncMessage(0, machineToInt("sync"),
+                               0, messageToInt("REVOKE"),
+                               macid, false, did);
+    else
+        return new SyncMessage(inMsg->srcID(), machineToInt("sync"),
+                               inMsg->srcMsgId(), messageToInt("REVOKE"),
+                               macid, false, did);
 }
 
 int Sync::getNextActive()
