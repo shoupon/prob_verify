@@ -80,7 +80,7 @@ public:
     // StateMachine, so the StateMachine can convert a string of an input or an output
     // label into id (integer). A pointer to Parser should be provided to the StateMachine.
     // The Parser class contains the necessary look up function that StateMachine needs
-    StateMachine( Lookup* msg, Lookup* mac ) {}
+    StateMachine( Lookup* msg, Lookup* mac ) { setLookup(msg, mac); }
     virtual ~StateMachine() {}
 
     // Simulate message reception

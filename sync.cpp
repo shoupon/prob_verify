@@ -142,15 +142,11 @@ SyncMessage* Sync::revokeDeadline(MessageTuple *inMsg, int macid, int did)
 
 int Sync::getNextActive()
 {
-    _nextDl++ ;
-    if( _nextDl >= _numDl ) {
-        _nextDl = -1 ;
-        return -1;
-    }
-    while( _nextDl < _numDl ) {
-        if( _actives[_nextDl] == 1 )
-            return _nextDl ;
-        _nextDl++;
+    for( int ai = 0 ; ai < (int)_actives.size() ; ++ai ) {
+        if( _actives[ai] == 1 ) {
+            _nextDl = ai;
+            return ai;
+        }
     }
     _nextDl = -1;
     return -1;
