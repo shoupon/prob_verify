@@ -285,7 +285,7 @@ void ProbVerifier::printSeq(const vector<GlobalState*>& seq)
 
 bool ProbVerifier::isError(GlobalState* obj)
 {
-    bool result ;
+    bool result = true;
     if( _checker != 0 ) {
         result = _checker->check(obj->chkState(), obj->getStateVec()) ;
     }
