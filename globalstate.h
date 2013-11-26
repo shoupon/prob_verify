@@ -1,5 +1,5 @@
-#ifndef GLOBAL_H
-#define GLOBAL_H
+#ifndef GLOBALSTATE_H
+#define GLOBALSTATE_H
 
 #include <vector>
 #include <cassert>
@@ -14,6 +14,7 @@
 #include "checker.h"
 #include "myHash.h"
 #include "parser.h"
+#include "service.h"
 
 class GlobalStateHashKey;
 class GSVecHashKey;
@@ -54,6 +55,7 @@ protected:
     static int _nMacs ;
     // array of ptr to machines
     static vector<StateMachine*> _machines;
+    static Service* _service;
     
     vector<StateSnapshot*> _gStates;
     CheckerState* _checker ;
@@ -145,10 +147,11 @@ public:
     string toString() const ;
 
     void setRoot() { _root = this; }
-    static bool init(GlobalState*) ;    
+    static bool init(GlobalState*) ;
     static void clearAll() ;
     
     static void setParser(Parser* ptr) { _psrPtr = ptr ;}
+    static void setSevice(Service* srvc) { _service = srvc; }
 };
 
 class GlobalStateHashKey

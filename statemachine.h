@@ -41,6 +41,9 @@ public:
     }
     
     virtual MessageTuple* clone() const {return new MessageTuple(*this); }
+    
+    virtual bool operator==(const MessageTuple& rhs) const;
+    virtual bool operator<(const MessageTuple &rhs) const;
 protected:
     int _src;
     int _dest;
@@ -81,6 +84,7 @@ public:
     // label into id (integer). A pointer to Parser should be provided to the StateMachine.
     // The Parser class contains the necessary look up function that StateMachine needs
     StateMachine( Lookup* msg, Lookup* mac ) { setLookup(msg, mac); }
+    StateMachine() {}
     virtual ~StateMachine() {}
 
     // Simulate message reception

@@ -12,9 +12,10 @@ using namespace std;
 
 int GlobalState::_nMacs = -1;
 vector<StateMachine*> GlobalState::_machines;
-GlobalState* GlobalState::_root = 0;
+Service* GlobalState::_service = NULL;
+GlobalState* GlobalState::_root = NULL;
 set<GlobalState*> GlobalState::_all ;
-Parser* GlobalState::_psrPtr = 0;
+Parser* GlobalState::_psrPtr = NULL;
 
 GlobalState::GlobalState(GlobalState* gs): _visit(1),
         _dist(gs->_dist), _depth(gs->_depth), _white(true), _origin(gs->_origin)
@@ -266,6 +267,9 @@ vector<GlobalState*> GlobalState::evaluate()
         // Get a task out of the queue
         MessageTuple* tuple = _fifo.front() ;
         _fifo.pop();
+        // Let the Service model process the MessageTuple
+        if (_service)
+            _service->putMsg(tuple);
 #ifdef VERBOSE_EVAL
         cout << "Evaluating task: " << tuple->toString() << endl;
 #endif
@@ -639,7 +643,6 @@ void GlobalState::clearAll()
     }
      */
 }
-
 
 bool rootStop(GlobalState* gsPtr)
 {
