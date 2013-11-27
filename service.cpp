@@ -8,6 +8,7 @@
 
 #include "service.h"
 
+set<string> Service::_traversed;
 Service::~Service()
 {
     MsgSet::iterator it;
@@ -26,4 +27,13 @@ void Service::putMsg(MessageTuple *msg)
 bool Service::isMonitored(MessageTuple *msg)
 {
     return _interface.find(msg) != _interface.end();
+}
+
+static void print(string label)
+{
+    cout << label << endl;
+}
+void Service::printTraversed()
+{
+    for_each(_traversed.begin(), _traversed.end(), &print);
 }

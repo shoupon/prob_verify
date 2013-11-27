@@ -38,6 +38,7 @@ public:
 
     void addInterface(MessageTuple *input) {_interface.insert(input->clone());}
     virtual void putMsg(MessageTuple *msg);
+    void printTraversed();
     
 protected:
     class lessThan { // simple comparison function
@@ -48,6 +49,7 @@ protected:
     
     typedef set<MessageTuple *, lessThan> MsgSet;
     MsgSet _interface;
+    static set<string> _traversed;
     
     virtual bool isMonitored(MessageTuple* msg);
 };
