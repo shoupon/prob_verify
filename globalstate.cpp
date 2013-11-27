@@ -17,8 +17,8 @@ GlobalState* GlobalState::_root = NULL;
 set<GlobalState*> GlobalState::_all ;
 Parser* GlobalState::_psrPtr = NULL;
 
-GlobalState::GlobalState(GlobalState* gs): _visit(1),
-        _dist(gs->_dist), _depth(gs->_depth), _white(true), _origin(gs->_origin)
+GlobalState::GlobalState(GlobalState* gs)
+: _visit(1), _dist(gs->_dist), _depth(gs->_depth), _white(true), _origin(gs->_origin)
 {
     // Clone the pending tasks
     // Duplicate the container since the original gs->_fifo cannot be popped
@@ -37,6 +37,8 @@ GlobalState::GlobalState(GlobalState* gs): _visit(1),
     }
     // Copy CheckerState
     _checker = gs->_checker->clone() ;
+    // Copy the ServiceSnapshot
+    _srvcState = gs->_srvcState->clone();
     
 #ifdef VERBOSE
     cout << "Create new GlobalState from " << this->toString() << endl;
@@ -58,13 +60,15 @@ GlobalState::GlobalState(vector<StateMachine*> macs, CheckerState* chkState)
 
     init();
     
+    _service->reset();
+    _srvcState = _service->curState();
+    
     if( chkState == 0 ) {
         _checker = new CheckerState();
     }
     else {
         _checker = chkState->clone() ;
     }
-    
 #ifdef TRACE
     insertNode(this);
 #endif
@@ -95,6 +99,9 @@ GlobalState::~GlobalState()
         delete task ;
         _fifo.pop();
     }
+    
+    if (_srvcState)
+        delete _srvcState;
 #ifdef TRACE
     removeNode(this);
 #endif
@@ -107,7 +114,11 @@ void GlobalState::init()
     for( size_t ii = 0 ; ii < _machines.size() ; ++ii ) {
         _machines[ii]->reset();
         _gStates[ii] = _machines[ii]->curState();
-    } 
+    }
+    /*
+    _service->reset();
+    _srvcState = _service->curState();
+     */
 }       
 
 /*
@@ -195,6 +206,7 @@ void GlobalState::findSucc()
                     GlobalState* cc = new GlobalState(this);
                     // Execute state transition
                     cc->_gStates[m] = _machines[m]->curState();
+                    cc->_srvcState = _service->curState();
                     // Push tasks to be evaluated onto the queue
                     cc->addTask( pendingTasks );
                     // Record the probability
@@ -267,9 +279,6 @@ vector<GlobalState*> GlobalState::evaluate()
         // Get a task out of the queue
         MessageTuple* tuple = _fifo.front() ;
         _fifo.pop();
-        // Let the Service model process the MessageTuple
-        if (_service)
-            _service->putMsg(tuple);
 #ifdef VERBOSE_EVAL
         cout << "Evaluating task: " << tuple->toString() << endl;
 #endif
@@ -288,7 +297,11 @@ vector<GlobalState*> GlobalState::evaluate()
 #endif
             this->restore();
             pending.clear();
+            // The destined machine processes the tuple
             idx = _machines[macNum-1]->transit(tuple, pending, high_prob, 0);
+            // Let the Service model process the MessageTuple
+            if (_service)
+                _service->putMsg(tuple);
 
             if( idx < 0 ) {
                 // No found matching transition, this null transition should not be carry out
@@ -325,6 +338,7 @@ vector<GlobalState*> GlobalState::evaluate()
                     // before, but this time operate on the created child
                     delete creation->_gStates[macNum-1];
                     creation->_gStates[macNum-1] = _machines[macNum-1]->curState();
+                    creation->_srvcState = _service->curState();
                     creation->addTask(pending);
                     if( !high_prob )
                         creation->_depth++;
@@ -357,6 +371,7 @@ vector<GlobalState*> GlobalState::evaluate()
                 for( size_t m = 0 ; m < _gStates.size() ; ++m ) {
                     _gStates[m] = only->_gStates[m]->clone() ;
                 }
+                _srvcState = only->_srvcState->clone();
 #ifdef VERBOSE_EVAL
                 cout << "Move the pending tasks from the only child to its parent. " << endl;
                 cout << "Remove task: " << endl;
@@ -408,6 +423,8 @@ vector<GlobalState*> GlobalState::evaluate()
                 // Save current snapshot of the machine, and continue execution
                 delete _gStates[macNum-1];
                 _gStates[macNum-1] = _machines[macNum-1]->curState();
+                delete _srvcState;
+                _srvcState = _service->curState();
             }
         } // if destId >=0, messages being passed to other machines
         
@@ -644,6 +661,12 @@ void GlobalState::clearAll()
      */
 }
 
+void GlobalState::setService(Service* srvc)
+{
+    _service = srvc;
+    //_srvcState = _service->curState();
+}
+
 bool rootStop(GlobalState* gsPtr)
 {
     //if( gsPtr->_parents.size() == 0 )
@@ -857,10 +880,12 @@ void GlobalState::restore()
 {
     for( size_t m = 0 ; m < _machines.size() ; ++m )
         _machines[m]->restore(_gStates[m]);
+    _service->restore(_srvcState);
 }
 
 void GlobalState::store()
 {
     for( size_t m = 0 ; m < _machines.size(); ++m )
         _gStates[m] = _machines[m]->curState();
+    _srvcState = _service->curState();
 }

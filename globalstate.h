@@ -59,6 +59,7 @@ protected:
     
     vector<StateSnapshot*> _gStates;
     CheckerState* _checker ;
+    ServiceSnapshot* _srvcState;
 private:
     //void trim();
     void addParents(const vector<GlobalState*>& arr);
@@ -128,16 +129,17 @@ public:
     // Save the current state of machines to _gStates
     void store();
 
-    // This function will start tracing back until root it found. The path will be saved in
-    // arr. This is best used to print out the transitions from the initial state that lead
-    // to deadlock
+    // This function will start tracing back until root it found. The path will
+    // be saved in arr. This is best used to print out the transitions from the
+    // initial state that lead to deadlock
     void pathRoot(vector<GlobalState*>& arr);
     void pathRoot(vector<GlobalState*>& arr, const GlobalState* end);
-    // This function will start tracing back until a cycle is found. Only high probability transitions
-    // will be checked. 
-    // If there is no such cycle that contains no low probability transition, return false;
-    // If a cycle is found, return true and the found cycle is saved to arr. The first and the last
-    // element in the vector<GlobalState*> is the same.
+    // This function will start tracing back until a cycle is found. Only high
+    // probability transitions will be checked.
+    // If there is no such cycle that contains no low probability transition,
+    // return false;
+    // If a cycle is found, return true and the found cycle is saved to arr.
+    // The first and thelast element in the vector<GlobalState*> is the same.
     void pathCycle(vector<GlobalState*>& arr);
     void BFS(vector<GlobalState*>& arr, bool (*stop)(GlobalState*));
     
@@ -151,7 +153,7 @@ public:
     static void clearAll() ;
     
     static void setParser(Parser* ptr) { _psrPtr = ptr ;}
-    static void setSevice(Service* srvc) { _service = srvc; }
+    static void setService(Service* srvc);
 };
 
 class GlobalStateHashKey
