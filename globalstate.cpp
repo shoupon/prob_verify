@@ -355,6 +355,9 @@ vector<GlobalState*> GlobalState::evaluate()
                     this->restore();
                     pending.clear();
                     idx = _machines[macNum-1]->transit(tuple, pending, high_prob, idx);
+                    // Let the Service model process the MessageTuple
+                    if (_service)
+                        _service->putMsg(tuple);
                 } while( idx > 0 );
             } // Matching transition(s) found
             
