@@ -33,6 +33,9 @@ int Sync::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
     bool set = inMsg->getParam(0) ;
     if( set ) {  // "SET"
         if( startIdx == 0 ) {
+            // Block setting deadline 0 if the last sequence hasn't finished
+            if (d == 0 && _nextDl != -1)
+                return -1;
             // Change state
             _actives[d] = 1 ;   // setup deadline d
             _nextDl = getNextActive() ;
