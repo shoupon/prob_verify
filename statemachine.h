@@ -119,15 +119,15 @@ public:
     
     static void setLookup(Lookup* msg, Lookup* mac){ _msgLookup = msg, _macLookup = mac;}
     
-protected:
-    static Lookup* _msgLookup;
-    static Lookup* _macLookup;
-    int _state;
-    
     static int messageToInt(string msg) ;
     static int machineToInt(string macName) ;
     static string IntToMessage(int num) { return _msgLookup->toString(num); }
     static string IntToMachine(int num) { return _macLookup->toString(num); }
+
+protected:
+    static Lookup* _msgLookup;
+    static Lookup* _macLookup;
+    int _state;
     
 private:
     int _machineId;

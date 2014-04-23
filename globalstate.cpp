@@ -240,6 +240,13 @@ void GlobalState::findSucc()
                 printSeq(seq);
 #endif
                 // Remove the child that is blocked by unmatched transition
+                MessageTuple *blockedMsg = _childs[cidx]->_fifo.front();
+                string debug_dest = StateMachine::IntToMachine(blockedMsg->destId());
+                string debug_destMsg = StateMachine::IntToMessage(blockedMsg->destMsgId());
+                if (debug_dest != "") {
+                    cout << debug_dest << endl;
+                    cout << debug_destMsg << endl;
+                }
                 _childs.erase(_childs.begin()+cidx);
                 // Continue on evaluating other children
                 cout << "REMOVE global state. CONTINUE" << endl ;
@@ -320,6 +327,7 @@ vector<GlobalState*> GlobalState::evaluate()
                         << " Message ID = " << content->destMsgId() << endl ;
                     delete content;
                 }
+                _fifo.push(tuple);
                     
 #ifndef ALLOW_UNMATCHED
                 delete tuple;
