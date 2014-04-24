@@ -15,13 +15,22 @@ using namespace std;
 
 #include "statemachine.h"
 
+#define DEADLINE "DEADLINE"
+#define SET "SET"
+
 class SyncSnapshot;
 class SyncMessage;
-
 
 class Sync: public StateMachine
 {
 public:
+    struct MachineHandle
+    {
+        bool _normal;
+        const StateMachine* _mac;
+        const StateMachine* operator->() const { return _mac; }
+    };
+
     Sync( int numDeadline, Lookup* msg, Lookup* mac ) ;
     ~Sync() { }
     
@@ -52,7 +61,8 @@ protected:
     
     const int _numDl; // Total number of deadlines that will be used throughout the system
     const StateMachine* _masterPtr ;
-    vector<const StateMachine*> _allMacs;
+    vector<MachineHandle> _allMacs;
+    vector<vector<const StateMachine*> > _failureGroups;
     
     int getNextActive();
 };
@@ -100,7 +110,7 @@ class SyncSnapshot: public StateSnapshot
 public:
     SyncSnapshot() {}
     SyncSnapshot( const SyncSnapshot& item );
-    SyncSnapshot( const vector<int>& active, const int next, int time) ;
+    SyncSnapshot( const vector<int>& active, const int next, const vector<Sync::MachineHandle> handles, int time) ;
     ~SyncSnapshot() { }
     int curStateId() const ;
     string toString() ;
@@ -108,11 +118,12 @@ public:
     SyncSnapshot* clone() const { return new SyncSnapshot(*this) ; }
     
     int time() { return _ss_time; }
-    
+
 private:
     vector<int> _ss_act;
     int _ss_next ; 
     int _ss_time ;
+    vector<Sync::MachineHandle> _ss_handles;
 };
 
 #endif

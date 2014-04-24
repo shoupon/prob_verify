@@ -92,11 +92,12 @@ void Sync::restore(const StateSnapshot* snapshot)
     _actives = sss->_ss_act ;
     _nextDl = sss->_ss_next ;
     _time = sss->_ss_time ;
+    _allMacs = sss->_ss_handles;
 }
 
 StateSnapshot* Sync::curState()
 {
-    return new SyncSnapshot( _actives, _nextDl, _time ) ;
+    return new SyncSnapshot( _actives, _nextDl, _allMacs, _time ) ;
 }
 
 void Sync::reset()
@@ -105,17 +106,25 @@ void Sync::reset()
     _actives.resize(_numDl,0) ;
     _time = 0 ;
     _nextDl = -1;
+    for (size_t ii = 0; ii < _allMacs.size(); ++ii)
+        _allMacs[ii]._normal = true;
 }
 
 // Associate the Sync (machine) with the pointer of the master (machine)
 void Sync::setMaster(const StateMachine* master)
 {
     _masterPtr = master ;
-    _allMacs.insert(_allMacs.begin(), master);
+    MachineHandle handle;
+    handle._mac = master;
+    handle._normal = true;
+    _allMacs.insert(_allMacs.begin(), handle);
 }
 void Sync::addMachine(const StateMachine* mac)
 {
-    _allMacs.push_back(mac) ;
+    MachineHandle handle;
+    handle._mac = mac;
+    handle._normal = true;
+    _allMacs.push_back(handle) ;
 }
 
 SyncMessage* Sync::setDeadline(MessageTuple *inMsg, int macid, int did)
@@ -190,12 +199,14 @@ SyncSnapshot::SyncSnapshot( const SyncSnapshot& item )
     this->_ss_next = item._ss_next ;
     this->_ss_act = item._ss_act ;
     this->_ss_time = item._ss_time ;
+    this->_ss_handles = item._ss_handles;
 }
 
-SyncSnapshot::SyncSnapshot( const vector<int>& active, const int next, int time )
+SyncSnapshot::SyncSnapshot(const vector<int>& active, const int next, const vector<Sync::MachineHandle> handles, int time)
 {
     this->_ss_act = active ;
     this->_ss_next = next ;
+    this->_ss_handles = handles;
     this->_ss_time = time;
 }
 
@@ -208,11 +219,12 @@ string SyncSnapshot::toString()
 {
     stringstream ss ;
     ss << "(" ;
-    for( size_t ii = 0 ; ii < _ss_act.size() ; ++ii ) {
+    for( size_t ii = 0 ; ii < _ss_act.size() ; ++ii )
         ss << _ss_act[ii] ;
-    }
     ss << "," ;
-    ss << _ss_next << ")" ;
+    for (size_t ii = 0; ii < _ss_handles.size(); ++ii) 
+        ss << _ss_handles[ii]._normal;
+    ss << "," << _ss_next << ")" ;
     return ss.str() ;
 }
 
