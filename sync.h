@@ -53,6 +53,7 @@ protected:
     const int _numDl; // Total number of deadlines that will be used throughout the system
     const StateMachine* _masterPtr ;
     vector<const StateMachine*> _allMacs;
+    static vector<vector<const StateMachine*> > _failureGroups;
     
     int getNextActive();
 };
@@ -113,6 +114,8 @@ private:
     vector<int> _ss_act;
     int _ss_next ; 
     int _ss_time ;
+    vector<bool> _ss_group_status;
+    vector<bool> _ss_machine_status;
 };
 
 #endif
