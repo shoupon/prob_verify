@@ -15,13 +15,29 @@ using namespace std;
 
 #include "statemachine.h"
 
+#define DEADLINE "DEADLINE"
+#define SET "SET"
+#define CLOCKFAIL "CLOCKFAIL"
+
 class SyncSnapshot;
 class SyncMessage;
-
 
 class Sync: public StateMachine
 {
 public:
+    struct MachineHandle
+    {
+        bool _normal;
+        const StateMachine* _mac;
+        const StateMachine* operator->() const { return _mac; }
+    };
+
+    struct FailureGroup
+    {
+        bool _normal;
+        vector<const StateMachine*> _machines;
+    };
+
     Sync( int numDeadline, Lookup* msg, Lookup* mac ) ;
     ~Sync() { }
     
@@ -35,6 +51,7 @@ public:
     
     void setMaster(const StateMachine* master) ;
     void addMachine(const StateMachine* mac) ;
+    void addFailureGroup(const vector<const StateMachine*>& machines);
     
     static SyncMessage* setDeadline(MessageTuple* inMsg, int macid, int did);
     static SyncMessage* revokeDeadline(MessageTuple* inMsg, int macid, int did);
@@ -48,14 +65,16 @@ protected:
     // The identifier of the deadline that is going to fire next
     // -1 indicates there is no deadline that will fire (no active deadline)
     int _time;
-    // meaningless
+    // obsolete
     
     const int _numDl; // Total number of deadlines that will be used throughout the system
     const StateMachine* _masterPtr ;
-    vector<const StateMachine*> _allMacs;
-    static vector<vector<const StateMachine*> > _failureGroups;
+    vector<MachineHandle> _allMacs;
+    vector<FailureGroup> _failureGroups;
     
     int getNextActive();
+    void failureEvent(size_t groupIdx, vector<MessageTuple*>& outMsgs);
+    MessageTuple* generateMsg(const StateMachine *machine, const string& msg, bool isSet, int did);
 };
 
 class SyncMessage : public MessageTuple
@@ -101,15 +120,15 @@ class SyncSnapshot: public StateSnapshot
 public:
     SyncSnapshot() {}
     SyncSnapshot( const SyncSnapshot& item );
-    SyncSnapshot( const vector<int>& active, const int next, int time) ;
+    SyncSnapshot( const vector<int>& active, const int next, const vector<Sync::FailureGroup>& groups, const vector<Sync::MachineHandle>& handles, int time) ;
     ~SyncSnapshot() { }
     int curStateId() const ;
     string toString() ;
     int toInt() ;
     SyncSnapshot* clone() const { return new SyncSnapshot(*this) ; }
-    
+
     int time() { return _ss_time; }
-    
+
 private:
     vector<int> _ss_act;
     int _ss_next ; 
