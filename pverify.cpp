@@ -133,6 +133,10 @@ void ProbVerifier::start(int maxClass)
                                 
                 if( !st->hasChild() ) {
                     // Compute all the globalstate's childs
+                    cout << "Exploring " << st->toString()
+                         << " Prob = " << st->getProb()
+                         << " Dist = " << st->getDistance()
+                         << ":" << endl ;
                     st->findSucc();
 #ifdef TRACE
                     st->updateParents();
@@ -171,9 +175,6 @@ void ProbVerifier::start(int maxClass)
                         st->getChild(ci)->addOrigin(st);
                     }
                 }
-#ifdef LOG
-                printStep(st) ;
-#endif
                 // Processes the computed successors
                 // Add the childnode to _arrClass[_curClass] provided that it is not
                 // already a member of _arrFinStart (STATETABLE as in paper)
@@ -181,32 +182,20 @@ void ProbVerifier::start(int maxClass)
                     GlobalState* childNode = st->getChild(idx);                    
                     if( isEnding(childNode) ) {
                         cout << "Ending state reached. " << endl;
-                        printStat() ;
-#ifdef TRACE
-                        idx--;
-                        if(GlobalState::removeBranch(childNode)) 
-                            break;
-#else
-                        delete childNode;
-#endif
                     }
                     else if( find(_arrFinRS, childNode) != _arrFinRS.end() ) {
                         cout << "Explored stopping state reached." << endl ;
-                        printStat() ;
-#ifdef TRACE
-                        idx-- ;
-                        if(GlobalState::removeBranch(childNode))
-                            break;
-#else
-                        delete childNode;
-#endif
                     }
                     else{
+                        cout << childNode->toString()
+                             << " Prob = " << childNode->getProb() 
+                             << " Dist = " << childNode->getDistance() << endl;
                         addToClass(childNode, childNode->getProb());
                     }
                 }
 
                 // Finish exploring st.
+                printStat();
 #ifndef TRACE
                 //delete st;
 #endif
@@ -392,6 +381,9 @@ bool ProbVerifier::checkLivelock(GlobalState* gs)
              << " low probability transitions" << endl ;
         printStat();
 #ifdef TRACE
+        vector<GlobalState*> cyc;
+        gs->pathCycle(cyc);
+        printSeq(cyc);
         vector<GlobalState*> seq;
         gs->pathRoot(seq);
         printSeq(seq);
