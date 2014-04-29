@@ -60,27 +60,10 @@ int Sync::nullInputTrans(vector<MessageTuple*>& outMsgs, bool& high_prob, int st
     high_prob = true ;
     outMsgs.clear() ;
     
-    if( startIdx == 0 ) {
-        if( _nextDl == -1 )   // There is no deadline that is currently active
-            return -1;
-        else {
-            assert( _actives[_nextDl] == 1);
-            // Generate deadline message
-            for( int ii = 0 ; ii < _allMacs.size() ; ++ii ) {
-                if (_allMacs[ii]._normal)
-                    outMsgs.push_back(generateMsg(_allMacs[ii]._mac, DEADLINE, false, _nextDl)); 
-            }
-            _actives[_nextDl] = 0 ;
-            getNextActive() ;
-            _time++ ;
-            
-            return 1 ;
-        }
-        return -1 ;
-    }
-    else if (startIdx <= _failureGroups.size()) {
+    if (startIdx <= _failureGroups.size()) {
         vector<FailureGroup>::iterator it = _failureGroups.begin();
-        int countDown = startIdx - 1;
+        int countDown = startIdx;
+        // Clock failure events
         for (size_t gidx = 0; gidx < _failureGroups.size(); gidx++) {
             if (_failureGroups[gidx]._normal) {
                 if (countDown == 0) {
@@ -94,7 +77,21 @@ int Sync::nullInputTrans(vector<MessageTuple*>& outMsgs, bool& high_prob, int st
                 }
             }
         }
-        return -1;
+        // Deadline expiry events
+        if (_nextDl != -1) {
+            assert( _actives[_nextDl] == 1);
+            // Generate deadline message
+            for( int ii = 0 ; ii < _allMacs.size() ; ++ii ) {
+                if (_allMacs[ii]._normal)
+                    outMsgs.push_back(generateMsg(_allMacs[ii]._mac, DEADLINE, false, _nextDl)); 
+            }
+            _actives[_nextDl] = 0 ;
+            getNextActive() ;
+            _time++ ;
+            return _failureGroups.size()+1;
+        }
+        else 
+            return -1;
     }
     else
         return -1;
