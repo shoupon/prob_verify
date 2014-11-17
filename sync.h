@@ -10,6 +10,7 @@
 #ifndef SYNC_H
 #define SYNC_H
 
+#include <typeinfo>
 #include <vector>
 using namespace std;
 

@@ -1,4 +1,5 @@
 #include <map>
+#include <string>
 using namespace std;
 
 #ifndef DEFINE_H

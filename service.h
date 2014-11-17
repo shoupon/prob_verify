@@ -9,6 +9,7 @@
 #ifndef SERVICE_H
 #define SERVICE_H
 
+#include <algorithm>
 #include <iostream>
 #include <set>
 using namespace std;
