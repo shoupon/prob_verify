@@ -18,9 +18,6 @@ public:
     MessageTuple(int src, int dest, int srcMsg, int destMsg, int subject)
     :_src(src), _dest(dest), _srcMsg(srcMsg), _destMsg(destMsg), _subject(subject) {}
     
-    MessageTuple( const MessageTuple& tuple ):_src(tuple._src), _dest(tuple._dest),
-    _srcMsg(tuple._srcMsg), _destMsg(tuple._destMsg), _subject(tuple._subject) {}
-    
     virtual ~MessageTuple() {}
     
     int srcID() {return _src;}
@@ -69,7 +66,7 @@ public:
     virtual string toString();
     // Cast the Snapshot into a integer. Used in HashTable
     virtual int toInt() {return _ss_state;}
-    virtual StateSnapshot* clone() const { return new StateSnapshot(_ss_state); }
+    virtual StateSnapshot* clone() const { return new StateSnapshot(*this); }
     virtual bool match(StateSnapshot* other) { return toString() == other->toString(); }
     
 protected:
@@ -83,7 +80,7 @@ public:
     // StateMachine, so the StateMachine can convert a string of an input or an output
     // label into id (integer). A pointer to Parser should be provided to the StateMachine.
     // The Parser class contains the necessary look up function that StateMachine needs
-    StateMachine( Lookup* msg, Lookup* mac ) { setLookup(msg, mac); }
+    StateMachine(Lookup* msg, Lookup* mac) { setLookup(msg, mac); }
     StateMachine() {}
     virtual ~StateMachine() {}
 
