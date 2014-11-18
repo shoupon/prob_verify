@@ -12,12 +12,12 @@ using namespace std ;
 
 #include "sync.h"
 
+int Sync::recurring_ = 0;
 
 Sync::Sync( int numDeadline, Lookup* msg, Lookup* mac)
-: StateMachine(msg,mac), _numDl(numDeadline)
-{
-    setId(machineToInt("sync"));
-    reset() ;
+: StateMachine(msg,mac), _numDl(numDeadline) {
+  setId(machineToInt("sync"));
+  reset() ;
 }
 
 int Sync::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
@@ -61,7 +61,6 @@ int Sync::nullInputTrans(vector<MessageTuple*>& outMsgs, bool& high_prob, int st
     outMsgs.clear() ;
     
     if (startIdx <= _failureGroups.size()) {
-        vector<FailureGroup>::iterator it = _failureGroups.begin();
         int countDown = startIdx;
         // Clock failure events
         for (size_t gidx = 0; gidx < _failureGroups.size(); gidx++) {
@@ -85,9 +84,11 @@ int Sync::nullInputTrans(vector<MessageTuple*>& outMsgs, bool& high_prob, int st
                 if (_allMacs[ii]._normal)
                     outMsgs.push_back(generateMsg(_allMacs[ii]._mac, DEADLINE, false, _nextDl)); 
             }
-            _actives[_nextDl] = 0 ;
+            if (!recurring_) {
+              _actives[_nextDl] = 0 ;
+              _time++ ;
+            }
             getNextActive() ;
-            _time++ ;
             return _failureGroups.size()+1;
         }
         else 
@@ -118,16 +119,20 @@ StateSnapshot* Sync::curState()
     return new SyncSnapshot( _actives, _nextDl, _failureGroups, _allMacs, _time ) ;
 }
 
-void Sync::reset()
-{
-    _actives.resize(0);
-    _actives.resize(_numDl,0) ;
-    _time = 0 ;
+void Sync::reset() {
+  _actives.resize(0);
+  _time = 0;
+  if (recurring_) {
+    _actives.resize(_numDl, 1);
+    _nextDl = 0;
+  } else {
+    _actives.resize(_numDl, 0);
     _nextDl = -1;
-    for (size_t ii = 0; ii < _allMacs.size(); ++ii)
-        _allMacs[ii]._normal = true;
-    for (size_t ii = 0; ii < _failureGroups.size(); ++ii)
-        _failureGroups[ii]._normal = true;
+  }
+  for (size_t ii = 0; ii < _allMacs.size(); ++ii)
+    _allMacs[ii]._normal = true;
+  for (size_t ii = 0; ii < _failureGroups.size(); ++ii)
+    _failureGroups[ii]._normal = true;
 }
 
 // Associate the Sync (machine) with the pointer of the master (machine)
@@ -180,16 +185,17 @@ SyncMessage* Sync::revokeDeadline(MessageTuple *inMsg, int macid, int did)
                                macid, false, did);
 }
 
-int Sync::getNextActive()
-{
-    for( int ai = 0 ; ai < (int)_actives.size() ; ++ai ) {
-        if( _actives[ai] == 1 ) {
-            _nextDl = ai;
-            return ai;
-        }
+int Sync::getNextActive() {
+  for( int ai = 0 ; ai < (int)_actives.size() ; ++ai ) {
+    if( _actives[ai] == 1 ) {
+      _nextDl = ai;
+      return ai;
     }
-    _nextDl = -1;
-    return -1;
+  }
+  if (recurring_)
+    return _nextDl = 0;
+  else
+    return _nextDl = -1;
 }
 
 void Sync::failureEvent(size_t groupIdx, vector<MessageTuple*> &outMsgs)

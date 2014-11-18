@@ -23,8 +23,8 @@ using namespace std;
 class SyncSnapshot;
 class SyncMessage;
 
-class Sync: public StateMachine
-{
+class Sync: public StateMachine {
+  static int recurring_;
 public:
     struct MachineHandle
     {
@@ -57,6 +57,7 @@ public:
     static SyncMessage* setDeadline(MessageTuple* inMsg, int macid, int did);
     static SyncMessage* revokeDeadline(MessageTuple* inMsg, int macid, int did);
     
+    static void setRecurring(int flag) { recurring_ = flag; }
 protected:
     vector<int> _actives;
     // A vector indicates that which deadlines are active.
