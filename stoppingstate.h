@@ -25,13 +25,13 @@ class StoppingState : public GlobalState
     vector<StateSnapshot*> _pSets;
 public:
     StoppingState(GlobalState* gs):GlobalState(gs) {}
-    ~StoppingState();
+    virtual ~StoppingState();
     
     void addAllow(StateSnapshot* criterion, int mac);
     void addProhibit(StateSnapshot* criterion, int mac);
-    bool match(const GlobalState* gs);
+    virtual bool match(const GlobalState* gs);
     
-    string toString() ;
+    virtual string toString() ;
 };
 
 
