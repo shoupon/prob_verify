@@ -865,17 +865,16 @@ size_t GlobalState::markPath(GlobalState* ptr)
     return ret;
 }
 
-void GlobalState::printSeq(const vector<GlobalState*>& seq)
-{
-    if( seq.size() < 1 )
-        return ;
-    for( int ii = 0 ; ii < (int)seq.size()-1 ; ++ii ) {
-        if( seq[ii]->getProb() != seq[ii+1]->getProb() )
-            cout << seq[ii]->toString() << " -p-> ";
-        else
-            cout << seq[ii]->toString() << " -> ";
-    }
-    cout << seq.back()->toString() << endl ;
+void GlobalState::printSeq(const vector<GlobalState*>& seq) {
+  if (seq.size() < 1)
+    return ;
+  for (int ii = 0 ; ii < (int)seq.size()-1 ; ++ii) {
+    if (seq[ii]->getProb() != seq[ii+1]->getProb())
+      cout << seq[ii]->toString() << endl << "\n -p-> ";
+    else
+      cout << seq[ii]->toString() << endl << "\n -> ";
+  }
+  cout << seq.back()->toString() << endl;
 }
 
 string GlobalState::msg2str(MessageTuple *msg)

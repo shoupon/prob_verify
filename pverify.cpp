@@ -248,28 +248,27 @@ GSMap::iterator ProbVerifier::find(GSMap& collection, GlobalState* gs)
     return collection.find(gs);
 }
 
-void ProbVerifier::printSeq(const vector<GlobalState*>& seq)
-{
-    if( seq.size() == 0 )
-        return;
-    for( int ii = 0 ; ii < (int)seq.size()-1 ; ++ii ) {
-        if( seq[ii]->getProb() != seq[ii+1]->getProb() ) {
-            int d = seq[ii+1]->getProb() - seq[ii]->getProb() ;
-            if( d == 1 )
-                cout << seq[ii]->toString() << " -p-> ";
-            else
-                cout << seq[ii]->toString() << " -p" << d << "->";
-        }
-        else
-            cout << seq[ii]->toString() << " -> ";
-#ifdef DEBUG
-        if( isError(seq[ii]) ) {
-            cout << endl ;
-            cout << "Error state found in sequence: " << seq[ii]->toString() << endl ;
-        }
-#endif
+void ProbVerifier::printSeq(const vector<GlobalState*>& seq) {
+  if (!seq.size())
+    return;
+  for (int ii = 0 ; ii < (int)seq.size()-1 ; ++ii) {
+    if (seq[ii]->getProb() != seq[ii+1]->getProb()) {
+      int d = seq[ii+1]->getProb() - seq[ii]->getProb();
+      if (d == 1)
+        cout << seq[ii]->toString() << " -p->" << endl;
+      else
+        cout << seq[ii]->toString() << " -p" << d << "->" << endl;
     }
-    cout << seq.back()->toString() << endl ;
+    else
+      cout << seq[ii]->toString() << " -> " << endl;
+#ifdef DEBUG
+    if (isError(seq[ii])) {
+      cout << endl;
+      cout << "Error state found in sequence: " << seq[ii]->toString() << endl;
+    }
+#endif
+  }
+  cout << seq.back()->toString() << endl;
 }
 
 bool ProbVerifier::isError(GlobalState* obj)
