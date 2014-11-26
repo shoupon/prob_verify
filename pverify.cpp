@@ -3,12 +3,19 @@
 #include "pverify.h"
 
 //#define VERBOSE
+#define LESS_VERBOSE
 
 /**
  Add the successor GlobalState* childNode to appropriate probability class, provided
  that childNode does not already exist in the class of GlobalStates; Also this function
  maintains a table of reachable states
  */
+
+const ProtocolError ProtocolError::kDeadLock("deadlock");
+const ProtocolError ProtocolError::kLivelock("livelock");
+const ProtocolError ProtocolError::kErrorState("error_state");
+const ProtocolError ProtocolError::kCheckerError("checker_error");
+
 void ProbVerifier::addError(StoppingState *es) {
   if( es->getStateVec().size() != _macPtrs.size() ) {
     cerr << "The size of the ErrorState does not match the number of machines"
@@ -71,40 +78,38 @@ void ProbVerifier::start(int max_class) {
         }
       }
     }
-  }
-  catch (GlobalState* st) {
+  } catch (GlobalState* st) {
 #ifdef TRACE_UNMATCHED
     vector<GlobalState*> seq;
     st->pathRoot(seq);
     printSeq(seq);
 #endif
-  } // catch
+  } catch (ProtocolError pe) {
+    cout << pe.toString() << endl;
+  }
 }
           
 void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
   stackPush(gs);
 #ifdef LESS_VERBOSE
-  cout << "Exploring " << gt->toString()
-       << " Prob = " << st->getProb()
-       << " Dist = " << st->getDistance() << endl;
+  cout << "Exploring " << gs->toString()
+       << " Prob = " << gs->getProb()
+       << " Dist = " << gs->getDistance() << endl;
 #endif
   vector<GlobalState*> childs;
   gs->findSucc(childs);
   if (!childs.size()) {
     reportDeadlock(gs);
-    // TODO(shoupon): change this to throwing exception
-    return;
   }
   if (isError(gs)) {
     reportError(gs);
-    return;
   }
 
   for (auto child_ptr : childs) {
     if (isMemberOfStack(child_ptr)) {
       // found cycle
-      // TODO(shoupon): check if this cycle contains progress
-      reportLivelock(child_ptr);
+      if (!hasProgress(child_ptr))
+        reportLivelock(child_ptr);
     }
     int p = child_ptr->getProb() - gs->getProb();
     if (!isMemberOfClasses(child_ptr)) {
@@ -242,35 +247,18 @@ vector<StateMachine*> ProbVerifier::getMachinePtrs() const
     return ret;
 }
 
-bool ProbVerifier::checkDeadlock(GlobalState *gs) {
-  if (gs->size() == 0) {
-    reportDeadlock(gs);
-    return true;
+bool ProbVerifier::hasProgress(GlobalState* gs) {
+  int in_cycle = 0;
+  string str_cycle_start = gs->toString();
+  for (auto s : dfs_stack_state_) {
+    if (in_cycle && isStopping(s)) {
+      reached_stoppings_.push_back(s->toString());
+      return true;
+    } else if (s->toString() == str_cycle_start) {
+      in_cycle = 1;
+    }
   }
-  else {
-    return false;
-  }
-}
-
-bool ProbVerifier::checkLivelock(GlobalState* gs) {
-  // Theorem 1 in [Maxemchuk and Sabnani]
-  if (gs->getDistance() > _reachable.size() - _arrFinRS.size()) {
-    reportLivelock(gs);
-    return true;
-  } else {
-    return false;
-  }
-}
-
-bool ProbVerifier::checkError(GlobalState *gs) {
-  if (isError(gs)) {
-    // The child matches the criterion of an ErrorState.
-    // Print out the path that reaches this error state.
-    reportError(gs);
-    return true;
-  } else {
-    return false;
-  }
+  return false;
 }
 
 void ProbVerifier::reportDeadlock(GlobalState* gs) {
@@ -280,6 +268,7 @@ void ProbVerifier::reportDeadlock(GlobalState* gs) {
   dfs_stack_state_.front()->printTrail();
   stackPrint();
 #endif
+  throw ProtocolError::kDeadLock;
 }
 
 void ProbVerifier::reportLivelock(GlobalState* gs) {
@@ -293,6 +282,7 @@ void ProbVerifier::reportLivelock(GlobalState* gs) {
   stackPrintFrom(gs->toString());
   cout << "-> " << gs->toString() << endl;
 #endif
+  throw ProtocolError::kLivelock;
 }
 
 void ProbVerifier::reportError(GlobalState* gs) {
@@ -302,6 +292,7 @@ void ProbVerifier::reportError(GlobalState* gs) {
   dfs_stack_state_.front()->printTrail();
   stackPrint();
 #endif
+  throw ProtocolError::kErrorState;
 }
 
 bool ProbVerifier::isMemberOf(const GlobalState* gs,

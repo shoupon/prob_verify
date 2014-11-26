@@ -30,6 +30,19 @@ typedef map<string, int>          GSVecMap;
 typedef pair<string, int>         GSVecMapPair;
 typedef set<string>               GSVecSet;
 
+class ProtocolError {
+public:
+  ProtocolError(const string& s): error_msg_(s) {}
+  string toString() { return string("ProtocolError: ") + error_msg_; }
+
+  const static ProtocolError kDeadLock;
+  const static ProtocolError kLivelock;
+  const static ProtocolError kErrorState;
+  const static ProtocolError kCheckerError;
+private:
+  string error_msg_;
+};
+
 class ProbVerifier {
   typedef unordered_map<string, GlobalState*>      GSClass;
 
@@ -90,9 +103,7 @@ private:
   void printStat();
   void printFinRS();
   
-  bool checkDeadlock( GlobalState* gs );
-  bool checkLivelock( GlobalState* gs ) ;
-  bool checkError( GlobalState* gs ) ;
+  bool hasProgress(GlobalState* gs);
   void reportDeadlock(GlobalState* gs);
   void reportLivelock(GlobalState* gs);
   void reportError(GlobalState* gs);
@@ -123,6 +134,7 @@ private:
   vector<GSClass> entries_;
   vector<string> dfs_stack_string_;
   vector<GlobalState*> dfs_stack_state_;
+  vector<string> reached_stoppings_;
 };
 
 
