@@ -923,11 +923,11 @@ void GlobalState::printTrail() const {
   if (trail_.size()) {
     trail_.front()->printTrail();
     int p = getProb() - trail_.front()->getProb();
-    cout << "-p" << p << "->" << endl;
+    cout << "-p" << p << "-> " << endl;
   } else {
     assert(getProb() == 0);
   }
   for (const auto s : trail_) {
-    cout << "->" << s->toString() << endl;
+    cout << "-> " << s->toString() << endl;
   }
 }

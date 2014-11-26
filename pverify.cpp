@@ -52,7 +52,6 @@ void ProbVerifier::start(int max_class) {
     else
       _root = new GlobalState(_macPtrs);
 
-    classes_[0][_root->toString()] = _root;
     entries_[0][_root->toString()] = _root;
         
     for (int cur_class = 0; cur_class <= max_class; ++cur_class) {
@@ -83,6 +82,7 @@ void ProbVerifier::start(int max_class) {
 }
           
 void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
+  stackPush(gs);
 #ifdef LESS_VERBOSE
   cout << "Exploring " << gt->toString()
        << " Prob = " << st->getProb()
@@ -104,7 +104,7 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
     if (isMemberOfStack(child_ptr)) {
       // found cycle
       // TODO(shoupon): check if this cycle contains progress
-      reportLivelock(gs);
+      reportLivelock(child_ptr);
     }
     int p = child_ptr->getProb() - gs->getProb();
     if (!isMemberOfClasses(child_ptr)) {
@@ -114,9 +114,7 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
         if (isEnding(child_ptr)) {
           cout << "Ending state reached. " << endl;
         } else {
-          stackPush(child_ptr);
           DFSVisit(child_ptr, k);
-          stackPop();
         }
       } else {
         child_ptr->setTrail(dfs_stack_state_);
@@ -126,6 +124,7 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
       // TODO(shoupon): path count
     }
   }
+  stackPop();
 }
 
 void ProbVerifier::addSTOP(StoppingState* rs) {
@@ -278,9 +277,8 @@ void ProbVerifier::reportDeadlock(GlobalState* gs) {
   cout << "Deadlock found." << endl ;
   printStat() ;
 #ifdef TRACE
-  vector<GlobalState*> seq;
-  gs->pathRoot(seq);
-  printSeq(seq);
+  dfs_stack_state_.front()->printTrail();
+  stackPrint();
 #endif
 }
 
@@ -289,12 +287,11 @@ void ProbVerifier::reportLivelock(GlobalState* gs) {
        << " low probability transitions" << endl ;
   printStat();
 #ifdef TRACE
-  vector<GlobalState*> cyc;
-  gs->pathCycle(cyc);
-  printSeq(cyc);
-  vector<GlobalState*> seq;
-  gs->pathRoot(seq);
-  printSeq(seq);
+  dfs_stack_state_.front()->printTrail();
+  stackPrintUntil(gs->toString());
+  cout << "entering cycle:" << endl;
+  stackPrintFrom(gs->toString());
+  cout << "-> " << gs->toString() << endl;
 #endif
 }
 
@@ -302,9 +299,8 @@ void ProbVerifier::reportError(GlobalState* gs) {
   cout << "Error state found: " << gs->toString() << endl;
   printStat() ;
 #ifdef TRACE
-  vector<GlobalState*> seq;
-  gs->pathRoot(seq);
-  printSeq(seq);
+  dfs_stack_state_.front()->printTrail();
+  stackPrint();
 #endif
 }
 
@@ -364,7 +360,32 @@ void ProbVerifier::stackPop() {
 
 void ProbVerifier::stackPrint() {
   for (auto s : dfs_stack_state_)
-    cout << "->" << s->toString() << endl;
+    printArrowStateNewline(s);
+}
+
+void ProbVerifier::stackPrintFrom(const string& from) {
+  int start = 0;
+  for (auto s : dfs_stack_state_) {
+    if (start) {
+      printArrowStateNewline(s);
+    } else if (s->toString() == from) {
+      start = 1;
+      printArrowStateNewline(s);
+    }
+  }
+}
+
+void ProbVerifier::stackPrintUntil(const string& until) {
+  for (auto s : dfs_stack_state_) {
+    if (s->toString() == until)
+      break;
+    else
+      printArrowStateNewline(s);
+  }
+}
+
+void ProbVerifier::printArrowStateNewline(const GlobalState* gs) {
+  cout << "-> " << gs->toString() << endl;
 }
 
 bool ProbVerifier::isMemberOfStack(const GlobalState* gs) {

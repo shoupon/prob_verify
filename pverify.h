@@ -110,6 +110,13 @@ private:
   void stackPush(GlobalState* gs);
   void stackPop();
   void stackPrint();
+  // print the content of dfs_stack_string_ from the state string that reads
+  // "from" until the end of the stack. [from, end)
+  void stackPrintFrom(const string& from);
+  // print the content of dfs_stack_string_ from the start of the stack until
+  // the state string reads "until". does not print until [begin, until)
+  void stackPrintUntil(const string& until);
+  void printArrowStateNewline(const GlobalState* gs);
   bool isMemberOfStack(const GlobalState* gs);
 
   vector<GSClass> classes_;
