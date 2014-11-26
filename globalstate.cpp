@@ -48,6 +48,20 @@ GlobalState::GlobalState(GlobalState* gs)
 #endif
 }
 
+GlobalState::GlobalState(const GlobalState* gs)
+    : _visit(1), _dist(gs->_dist), _depth(gs->_depth),
+      _white(true), _origin(gs->_origin), trail_(gs->trail_) {
+  // Copy Snapshots
+  _gStates.resize( gs->_gStates.size() );
+  for( size_t m = 0 ; m < _machines.size() ; ++m ) {
+    _gStates[m] = gs->_gStates[m]->clone();
+  }
+  // Copy CheckerState
+  _checker = gs->_checker->clone() ;
+  // Copy the ServiceSnapshot
+  _srvcState = gs->_srvcState->clone();
+}
+
 GlobalState::GlobalState(vector<StateMachine*> macs, CheckerState* chkState)
     :_visit(1), _dist(0), _white(true)
 {
@@ -274,6 +288,11 @@ void GlobalState::findSucc()
         cerr << "When finding successors (findSucc) " << this->toString() << endl ;
         throw;
     }
+}
+
+void GlobalState::findSucc(vector<GlobalState*>& successors) {
+  findSucc();
+  successors = _childs;
 }
 
 vector<GlobalState*> GlobalState::evaluate() 
@@ -898,4 +917,17 @@ void GlobalState::store()
     for( size_t m = 0 ; m < _machines.size(); ++m )
         _gStates[m] = _machines[m]->curState();
     _srvcState = _service->curState();
+}
+
+void GlobalState::printTrail() const {
+  if (trail_.size()) {
+    trail_.front()->printTrail();
+    int p = getProb() - trail_.front()->getProb();
+    cout << "-p" << p << "->" << endl;
+  } else {
+    assert(getProb() == 0);
+  }
+  for (const auto s : trail_) {
+    cout << "->" << s->toString() << endl;
+  }
 }

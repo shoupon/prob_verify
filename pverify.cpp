@@ -9,45 +9,13 @@
  that childNode does not already exist in the class of GlobalStates; Also this function
  maintains a table of reachable states
  */
-bool ProbVerifier::addToClass(GlobalState* childNode, int prob)
-{
-    if( prob >= _maxClass )
-        return false;
-    //if( find(_arrFinRS,childNode) != _arrFinRS.end() )
-      //  return false ;
-    
-    GSMapIter it = _arrClass[prob].find(childNode)  ;
-    if( it != _arrClass[prob].end() ) {
-        it->first->merge(childNode) ;
-        return false ;
-    }
-    else {
-        _arrClass[prob].insert( GSMapPair(childNode, 0) );
-        addToReachable(childNode) ;
-        return true ;
-    }
-}
-
-bool ProbVerifier::addToReachable(GlobalState *gs)
-{
-    string str = gs->toString() ;
-    if( _reachable.find(str) == _reachable.end() ) {
-        _reachable.insert(str) ;
-        return true ;
-    }
-    else
-        return false;
-}
-
-void ProbVerifier::addError(StoppingState *es)
-{
-    if( es->getStateVec().size() != _macPtrs.size() ) {
-        cerr << "The size of the ErrorState does not match the number of machines" << endl;
-        return ;
-    }
-    
-    _errors.push_back(es);
-    
+void ProbVerifier::addError(StoppingState *es) {
+  if( es->getStateVec().size() != _macPtrs.size() ) {
+    cerr << "The size of the ErrorState does not match the number of machines"
+         << endl;
+    return ;
+  }
+  _errors.push_back(es);
 }
 
 void ProbVerifier::addPrintStop(bool (*printStop)(GlobalState *, GlobalState *))
@@ -56,196 +24,116 @@ void ProbVerifier::addPrintStop(bool (*printStop)(GlobalState *, GlobalState *))
 }
 
 // The basic procedure
-void ProbVerifier::start(int maxClass)
-{
-    try {
+void ProbVerifier::start(int max_class) {
+  try {
 #ifdef LOG
-        cout << "Stopping states:" << endl ;
-        for( size_t i = 0 ; i < _stops.size() ; ++i ) {
-            cout << _stops[i]->toString() ;
-        }
-        cout << endl;
-        cout << "Error states:" << endl;
-        for( size_t i = 0 ; i < _errors.size() ; ++i ) {
-            cout << _errors[i]->toString() ;
-        }
-        cout << endl;
+    cout << "Stopping states:" << endl ;
+    for( size_t i = 0 ; i < _stops.size() ; ++i ) {
+      cout << _stops[i]->toString() ;
+    }
+    cout << endl;
+    cout << "Error states:" << endl;
+    for( size_t i = 0 ; i < _errors.size() ; ++i ) {
+      cout << _errors[i]->toString() ;
+    }
+    cout << endl;
 #endif
-        
-        _maxClass = maxClass ;
-        _arrClass.resize(maxClass+1, GSMap());
-        for( size_t ii = 0 ; ii < _macPtrs.size() ; ++ii )
-            _macPtrs[ii]->reset();
-        
-        if( _checker != 0 ) {
-            _root = new GlobalState(_macPtrs, _checker->initState() ) ;
-        }
-        else {
-            _root = new GlobalState(_macPtrs) ;
-        }
-        
-        // Initialize _arrClass[0] to contain the initial global state.
-        // the other maps are initialized null.
-        _arrClass[0].insert( GSMapPair(_root,0) );
-        GlobalState::init(_root);
-        addToReachable(_root);
-        
-        for( _curClass = 0 ; _curClass <= _maxClass ; ++_curClass ) {
-            cout << "-------- Exploring GlobalStates of class[" << _curClass
-                 << "] --------" << endl ;
-            GSMap::iterator it = _arrClass[_curClass].begin();
-            cout << "There are " << _arrClass[_curClass].size() << " GlobalStates "
-                 << "in class[" << _curClass << "]" << endl;
-            // Check if the members in class[k] are already contained
-            // in STATET (_arrFinStart).
-            // If yes, remove the member from class[k];
-            // otherwise, add that member to STATET
-            while( it != _arrClass[_curClass].end() ) {
-                GlobalState* st = it->first ;
-                if( _curClass == 0 ) {
-                    insert(_arrFinStart, st);
-                }
-                else {
-                    if( find(_arrFinStart,st) != _arrFinStart.end() ) {
-                        // st is already contained in STATET (_arrFinStart)
-                        // which means st is already explored
-                        // TODO: should merge globalstate instead
-                        _arrClass[_curClass].erase(it++);
-                        continue ;
-                    }
-                    else {
-                        insert(_arrFinStart, st);
-                    }
-                }
-                it++;
-            } // while
-            
-            while( !_arrClass[_curClass].empty() ) {
-                // Pop a globalstate pointer ptr from class[k] (_arrClass[_curClass])
-                GSMap::iterator it = _arrClass[_curClass].begin();
-                GlobalState* st = it->first ;
-                _arrClass[_curClass].erase(it);
-                
-                if( checkLivelock(st) )
-                    return ;
-                if( checkError(st) )
-                    return ;
-                                
-                if( !st->hasChild() ) {
-                    // Compute all the globalstate's childs
-                    cout << "Exploring " << st->toString()
-                         << " Prob = " << st->getProb()
-                         << " Dist = " << st->getDistance()
-                         << ":" << endl ;
-                    st->findSucc();
-#ifdef TRACE
-                    st->updateParents();
-#endif
-                    // Increase the number of step taken
-                    _max += st->size();
-                }
-                
-                if( checkDeadlock(st) )
-                    return;
-                
-                st->updateTrip();
-                
-                // If the explored GlobalState st is in RS, add st to STATETABLE
-                // (_arrFinRS), so when the later probabilistic search reaches st, the
-                // search will stop and explore some other paths
-                if( isStopping(st) ) {
-                    cout << "Stopping state reached: " << _max << endl ;
-#ifdef TRACE_STOPPING
-                    vector<GlobalState*> seq;
-                    if( st != _root ) {
-                        st->pathRoot(seq);
-                        printSeq(seq);
-                    }
-#endif
-                    insert(_arrFinRS, st);
-                    if( find( _arrRS, st) == _arrRS.end() ) {
-                        insert(_arrRS, st);
-                    }
-                    
-                    // for each child of this stopping state, add this stopping state
-                    // in to the list of origin stopping states of the child (_origin)
-                    // Allow one to trace back to the stopping state that leads to this
-                    // state
-                    for( size_t ci = 0 ; ci < st->size() ; ++ci ) {
-                        st->getChild(ci)->addOrigin(st);
-                    }
-                }
-                // Processes the computed successors
-                // Add the childnode to _arrClass[_curClass] provided that it is not
-                // already a member of _arrFinStart (STATETABLE as in paper)
-                for( size_t idx = 0 ; idx < st->size() ; ++idx ) {
-                    GlobalState* childNode = st->getChild(idx);                    
-                    if( isEnding(childNode) ) {
-                        cout << "Ending state reached. " << endl;
-                    }
-                    else if( find(_arrFinRS, childNode) != _arrFinRS.end() ) {
-                        cout << "Explored stopping state reached." << endl ;
-                    }
-                    else{
-                        cout << childNode->toString()
-                             << " Prob = " << childNode->getProb() 
-                             << " Dist = " << childNode->getDistance() << endl;
-                        addToClass(childNode, childNode->getProb());
-                    }
-                }
 
-                // Finish exploring st.
-                printStat();
-#ifndef TRACE
-                //delete st;
-#endif
-                
-            } // while (explore the global state in class[_curClass] until all the global
-              // states in the class are explored
-            printStat();
-        } // for (explore all the class until class[0] through class[_maxClass-1]
-          // are fully explored
+    classes_.clear();
+    entries_.clear();
+    classes_.resize(max_class + 1, GSClass());
+    entries_.resize(max_class + 1, GSClass());
+
+    for (auto ptr : _macPtrs)
+      ptr->reset();
+
+    if (_checker)
+      _root = new GlobalState(_macPtrs, _checker->initState());
+    else
+      _root = new GlobalState(_macPtrs);
+
+    classes_[0][_root->toString()] = _root;
+    entries_[0][_root->toString()] = _root;
         
-        // Conclude success, print statistics
-        cout << "Procedure complete." << endl;
-        printStat();
-        printFinRS();
-        cout << "Up to " << maxClass << " low probability transitions considered." << endl ;
-        cout << "No deadlock or livelock found." << endl;
-        
-    } // try
-    catch ( GlobalState* st ) {
+    for (int cur_class = 0; cur_class <= max_class; ++cur_class) {
+      cout << "-------- Exploring GlobalStates of class[" << cur_class
+           << "] --------" << endl ;
+      cout << "There are " << classes_[cur_class].size() << " GlobalStates "
+           << "in class[" << cur_class << "]" << endl;
+      while (entries_[cur_class].size()) {
+        auto it = entries_[cur_class].begin();
+        GlobalState* s = it->second;
+        entries_[cur_class].erase(it);
+        if (isMemberOfClasses(s)) {
+          delete s;
+        } else {
+          copyToClass(s, cur_class);
+          DFSVisit(s, cur_class);
+        }
+      }
+    }
+  }
+  catch (GlobalState* st) {
 #ifdef TRACE_UNMATCHED
-        vector<GlobalState*> seq;
-        st->pathRoot(seq);
-        printSeq(seq);
+    vector<GlobalState*> seq;
+    st->pathRoot(seq);
+    printSeq(seq);
 #endif
-    } // catch
-    
+  } // catch
+}
+          
+void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
+#ifdef LESS_VERBOSE
+  cout << "Exploring " << gt->toString()
+       << " Prob = " << st->getProb()
+       << " Dist = " << st->getDistance() << endl;
+#endif
+  vector<GlobalState*> childs;
+  gs->findSucc(childs);
+  if (!childs.size()) {
+    reportDeadlock(gs);
+    // TODO(shoupon): change this to throwing exception
+    return;
+  }
+  if (isError(gs)) {
+    reportError(gs);
+    return;
+  }
+
+  for (auto child_ptr : childs) {
+    if (isMemberOfStack(child_ptr)) {
+      // found cycle
+      // TODO(shoupon): check if this cycle contains progress
+      reportLivelock(gs);
+    }
+    int p = child_ptr->getProb() - gs->getProb();
+    if (!isMemberOfClasses(child_ptr)) {
+      if (!p) {
+        copyToClass(child_ptr, k);
+        // TODO(shoupon): path count
+        if (isEnding(child_ptr)) {
+          cout << "Ending state reached. " << endl;
+        } else {
+          stackPush(child_ptr);
+          DFSVisit(child_ptr, k);
+          stackPop();
+        }
+      } else {
+        child_ptr->setTrail(dfs_stack_state_);
+        copyToEntry(child_ptr, k + p);
+      }
+    } else {
+      // TODO(shoupon): path count
+    }
+  }
 }
 
-void ProbVerifier::addSTOP(StoppingState* rs)
-{
-    _stops.push_back(rs);
+void ProbVerifier::addSTOP(StoppingState* rs) {
+  _stops.push_back(rs);
 }
 
-void ProbVerifier::addEND(StoppingState *end)
-{
-    _ends.push_back(end);
-}
-
-GSVecMap::iterator ProbVerifier::find(GSVecMap& collection, GlobalState* gs)
-{
-    string gsStr = gs->toString();
-    if( collection.empty() )
-        return collection.end();
-    
-    return collection.find(gsStr);
-}
-
-GSMap::iterator ProbVerifier::find(GSMap& collection, GlobalState* gs)
-{
-    return collection.find(gs);
+void ProbVerifier::addEND(StoppingState *end) {
+  _ends.push_back(end);
 }
 
 void ProbVerifier::printSeq(const vector<GlobalState*>& seq) {
@@ -355,58 +243,130 @@ vector<StateMachine*> ProbVerifier::getMachinePtrs() const
     return ret;
 }
 
-bool ProbVerifier::checkDeadlock(GlobalState *gs)
-{
-    if( gs->size() == 0 ) {
-        // No child found. Report deadlock
-        cout << "Deadlock found." << endl ;
-        printStat() ;
-#ifdef TRACE
-        vector<GlobalState*> seq;
-        gs->pathRoot(seq);
-        printSeq(seq);
-#endif
-        return true;
-    }
-    else
-        return false;
+bool ProbVerifier::checkDeadlock(GlobalState *gs) {
+  if (gs->size() == 0) {
+    reportDeadlock(gs);
+    return true;
+  }
+  else {
+    return false;
+  }
 }
 
-bool ProbVerifier::checkLivelock(GlobalState* gs)
-{
-    // Theorem 1 in [Maxemchuk and Sabnani]
-    if( gs->getDistance() > _reachable.size() - _arrFinRS.size() ) {
-        cout << "Livelock found after " << gs->getProb()
-             << " low probability transitions" << endl ;
-        printStat();
-#ifdef TRACE
-        vector<GlobalState*> cyc;
-        gs->pathCycle(cyc);
-        printSeq(cyc);
-        vector<GlobalState*> seq;
-        gs->pathRoot(seq);
-        printSeq(seq);
-#endif
-        return true;
-    }
-    else
-        return false;
+bool ProbVerifier::checkLivelock(GlobalState* gs) {
+  // Theorem 1 in [Maxemchuk and Sabnani]
+  if (gs->getDistance() > _reachable.size() - _arrFinRS.size()) {
+    reportLivelock(gs);
+    return true;
+  } else {
+    return false;
+  }
 }
 
-bool ProbVerifier::checkError(GlobalState *gs)
-{
-    if( isError(gs) ) {
-        // The child matches the criterion of an ErrorState.
-        // Print out the path that reaches this error state.
-        cout << "Error state found: " << gs->toString() << endl;
-        printStat() ;
+bool ProbVerifier::checkError(GlobalState *gs) {
+  if (isError(gs)) {
+    // The child matches the criterion of an ErrorState.
+    // Print out the path that reaches this error state.
+    reportError(gs);
+    return true;
+  } else {
+    return false;
+  }
+}
+
+void ProbVerifier::reportDeadlock(GlobalState* gs) {
+  cout << "Deadlock found." << endl ;
+  printStat() ;
 #ifdef TRACE
-        vector<GlobalState*> seq;
-        gs->pathRoot(seq);
-        printSeq(seq);
+  vector<GlobalState*> seq;
+  gs->pathRoot(seq);
+  printSeq(seq);
 #endif
-        return true;
-    }
-    else
-        return false;
+}
+
+void ProbVerifier::reportLivelock(GlobalState* gs) {
+  cout << "Livelock found after " << gs->getProb()
+       << " low probability transitions" << endl ;
+  printStat();
+#ifdef TRACE
+  vector<GlobalState*> cyc;
+  gs->pathCycle(cyc);
+  printSeq(cyc);
+  vector<GlobalState*> seq;
+  gs->pathRoot(seq);
+  printSeq(seq);
+#endif
+}
+
+void ProbVerifier::reportError(GlobalState* gs) {
+  cout << "Error state found: " << gs->toString() << endl;
+  printStat() ;
+#ifdef TRACE
+  vector<GlobalState*> seq;
+  gs->pathRoot(seq);
+  printSeq(seq);
+#endif
+}
+
+bool ProbVerifier::isMemberOf(const GlobalState* gs,
+                              const vector<string>& container) {
+  string gs_str = gs->toString();
+  for (const auto& str : container)
+    if (gs_str == str)
+      return true;
+  return false;
+}
+
+bool ProbVerifier::isMemberOf(const GlobalState* gs,
+                              const GSClass& container) {
+  if (container.find(gs->toString()) == container.end())
+    return false;
+  else
+    return true;
+}
+
+bool ProbVerifier::isMemberOf(const GlobalState* gs,
+                              const vector<GSClass>& containers) {
+  for (const auto& c : containers) {
+    if (isMemberOf(gs, c))
+      return true;
+  }
+  return false;
+}
+
+bool ProbVerifier::isMemberOfClasses(const GlobalState* gs) {
+  return isMemberOf(gs, classes_);
+}
+
+bool ProbVerifier::isMemberOfEntries(const GlobalState* gs) {
+  return isMemberOf(gs, entries_);
+}
+
+void ProbVerifier::copyToClass(const GlobalState* gs, int k) {
+  classes_[k][gs->toString()] = new GlobalState(gs);
+}
+
+void ProbVerifier::copyToEntry(const GlobalState* gs, int k) {
+  entries_[k][gs->toString()] = new GlobalState(gs);
+}
+
+void ProbVerifier::stackPush(GlobalState *gs) {
+  assert(dfs_stack_state_.size() == dfs_stack_string_.size());
+  dfs_stack_state_.push_back(gs);
+  dfs_stack_string_.push_back(gs->toString());
+}
+
+void ProbVerifier::stackPop() {
+  assert(dfs_stack_state_.size() == dfs_stack_string_.size());
+  dfs_stack_state_.pop_back();
+  dfs_stack_string_.pop_back();
+}
+
+void ProbVerifier::stackPrint() {
+  for (auto s : dfs_stack_state_)
+    cout << "->" << s->toString() << endl;
+}
+
+bool ProbVerifier::isMemberOfStack(const GlobalState* gs) {
+  return isMemberOf(gs, dfs_stack_string_);
 }
