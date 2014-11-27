@@ -96,13 +96,13 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
        << " Prob = " << gs->getProb()
        << " Dist = " << gs->getDistance() << endl;
 #endif
+  if (isError(gs)) {
+    reportError(gs);
+  }
   vector<GlobalState*> childs;
   gs->findSucc(childs);
   if (!childs.size()) {
     reportDeadlock(gs);
-  }
-  if (isError(gs)) {
-    reportError(gs);
   }
 
   for (auto child_ptr : childs) {
