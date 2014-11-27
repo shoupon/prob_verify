@@ -98,12 +98,13 @@ private:
   bool isEnding(const GlobalState* obj);
   bool findMatch(const GlobalState* obj, const vector<StoppingState*>& container) ;
   
-  void printStopping(const GlobalState* obj) ;
   void printStep(GlobalState* obj) ;
 
   void resetStat();
   void printStat();
   void printStat(int class_k);
+  void printStoppings();
+  void printEndings();
   void printFinRS();
   
   bool hasProgress(GlobalState* gs);
@@ -138,6 +139,7 @@ private:
   vector<string> dfs_stack_string_;
   vector<GlobalState*> dfs_stack_state_;
   unordered_set<string> reached_stoppings_;
+  unordered_set<string> reached_endings_;
 
   int num_transitions_;
 };

@@ -4,6 +4,7 @@
 
 //#define VERBOSE
 #define LESS_VERBOSE
+#define LIST_STOPPINGS
 
 /**
  Add the successor GlobalState* childNode to appropriate probability class, provided
@@ -82,6 +83,10 @@ void ProbVerifier::start(int max_class) {
     }
     cout << "Model checking procedure completes. Error not found." << endl;
     printStat();
+#ifdef LIST_STOPPINGS
+    printStoppings();
+    printEndings();
+#endif
   } catch (GlobalState* st) {
 #ifdef TRACE_UNMATCHED
     vector<GlobalState*> seq;
@@ -177,14 +182,18 @@ bool ProbVerifier::isError(GlobalState* obj)
     return ( !result || findMatch(obj, _errors) );
 }
 
-bool ProbVerifier::isStopping(const GlobalState* obj)
-{
-    return findMatch(obj, _stops) ;
+bool ProbVerifier::isStopping(const GlobalState* obj) {
+  bool result = findMatch(obj, _stops);
+  if (result)
+    reached_stoppings_.insert(obj->toString());
+  return result;
 }
 
-bool ProbVerifier::isEnding(const GlobalState *obj)
-{
-    return findMatch(obj, _ends);
+bool ProbVerifier::isEnding(const GlobalState *obj) {
+  bool result = findMatch(obj, _ends);
+  if (result)
+    reached_endings_.insert(obj->toString());
+  return result;
 }
 
 bool ProbVerifier::findMatch(const GlobalState* obj,
@@ -195,12 +204,6 @@ bool ProbVerifier::findMatch(const GlobalState* obj,
             return true ;
     }
     return false;
-}
-
-void ProbVerifier::printStopping(const GlobalState *obj)
-{
-    cout << "Stopping state reached: "
-         << obj->toString() << endl;
 }
 
 void ProbVerifier::printStep(GlobalState *obj)
@@ -226,6 +229,7 @@ void ProbVerifier::printStat() {
   cout << n << " reachable states found." << endl ;
   n = 0;
   cout << reached_stoppings_.size() << " stopping states discovered." << endl;
+  cout << reached_endings_.size() << " ending states discovered." << endl;
   cout << num_transitions_ << " transitions taken." << endl;
 }
 
@@ -234,6 +238,18 @@ void ProbVerifier::printStat(int class_k) {
        << class_k << "]" << endl;
   cout << entries_[class_k].size() << " entry points discovered in entry["
        << class_k << "]" << endl;
+}
+
+void ProbVerifier::printStoppings() {
+  cout << "Stopping states reached:" << endl;
+  for (const auto& s : reached_stoppings_)
+    cout << s << endl;
+}
+
+void ProbVerifier::printEndings() {
+  cout << "Ending states reached:" << endl;
+  for (const auto& s : reached_endings_)
+    cout << s << endl;
 }
 
 void ProbVerifier::printFinRS()
@@ -270,7 +286,6 @@ bool ProbVerifier::hasProgress(GlobalState* gs) {
   string str_cycle_start = gs->toString();
   for (auto s : dfs_stack_state_) {
     if (in_cycle && isStopping(s)) {
-      reached_stoppings_.insert(s->toString());
       return true;
     } else if (s->toString() == str_cycle_start) {
       in_cycle = 1;
