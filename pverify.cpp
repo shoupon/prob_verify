@@ -62,10 +62,9 @@ void ProbVerifier::start(int max_class) {
     entries_[0][_root->toString()] = _root;
         
     for (int cur_class = 0; cur_class <= max_class; ++cur_class) {
-      cout << "-------- Exploring GlobalStates of class[" << cur_class
+      cout << "-------- Start exploring states in class[" << cur_class
            << "] --------" << endl ;
-      cout << "There are " << classes_[cur_class].size() << " GlobalStates "
-           << "in class[" << cur_class << "]" << endl;
+      printStat(cur_class);
       while (entries_[cur_class].size()) {
         auto it = entries_[cur_class].begin();
         GlobalState* s = it->second;
@@ -77,7 +76,12 @@ void ProbVerifier::start(int max_class) {
           DFSVisit(s, cur_class);
         }
       }
+      cout << "-------- Complete exploring states in class[" << cur_class
+           << "] --------" << endl;
+      printStat(cur_class);
     }
+    cout << "Model checking procedure completes. Error not found." << endl;
+    printStat();
   } catch (GlobalState* st) {
 #ifdef TRACE_UNMATCHED
     vector<GlobalState*> seq;
@@ -104,6 +108,7 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
   if (!childs.size()) {
     reportDeadlock(gs);
   }
+  num_transitions_ += childs.size();
 
   for (auto child_ptr : childs) {
     if (isMemberOfStack(child_ptr)) {
@@ -210,12 +215,25 @@ void ProbVerifier::printStep(GlobalState *obj)
     }
 }
 
-void ProbVerifier::printStat()
-{
-    cout << _reachable.size() << " reachable states found." << endl ;
-    cout << _max << " transitions taken." << endl ;
-    cout << _arrFinStart.size() << " entry points discoverd (_arrFinStart)" << endl;
-    cout << _arrFinRS.size() << " stopping states discovered (_arrFinRS)" << endl ;
+void ProbVerifier::resetStat() {
+  num_transitions_ = 0;
+}
+
+void ProbVerifier::printStat() {
+  int n = 0;
+  for (const auto& c : classes_)
+    n += c.size();
+  cout << n << " reachable states found." << endl ;
+  n = 0;
+  cout << reached_stoppings_.size() << " stopping states discovered." << endl;
+  cout << num_transitions_ << " transitions taken." << endl;
+}
+
+void ProbVerifier::printStat(int class_k) {
+  cout << classes_[class_k].size() << " reachable states in class[" 
+       << class_k << "]" << endl;
+  cout << entries_[class_k].size() << " entry points discovered in entry["
+       << class_k << "]" << endl;
 }
 
 void ProbVerifier::printFinRS()
@@ -252,7 +270,7 @@ bool ProbVerifier::hasProgress(GlobalState* gs) {
   string str_cycle_start = gs->toString();
   for (auto s : dfs_stack_state_) {
     if (in_cycle && isStopping(s)) {
-      reached_stoppings_.push_back(s->toString());
+      reached_stoppings_.insert(s->toString());
       return true;
     } else if (s->toString() == str_cycle_start) {
       in_cycle = 1;

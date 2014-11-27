@@ -100,7 +100,10 @@ private:
   
   void printStopping(const GlobalState* obj) ;
   void printStep(GlobalState* obj) ;
+
+  void resetStat();
   void printStat();
+  void printStat(int class_k);
   void printFinRS();
   
   bool hasProgress(GlobalState* gs);
@@ -134,7 +137,9 @@ private:
   vector<GSClass> entries_;
   vector<string> dfs_stack_string_;
   vector<GlobalState*> dfs_stack_state_;
-  vector<string> reached_stoppings_;
+  unordered_set<string> reached_stoppings_;
+
+  int num_transitions_;
 };
 
 
