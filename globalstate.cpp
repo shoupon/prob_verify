@@ -247,12 +247,6 @@ void GlobalState::findSucc()
                     ++cidx ;
                 }
             } catch (GlobalState* blocked) {
-#ifdef TRACE
-                // Print the sequence that leads to this unmatched transition
-                vector<GlobalState*> seq;
-                this->pathRoot(seq);
-                printSeq(seq);
-#endif
                 // Remove the child that is blocked by unmatched transition
                 MessageTuple *blockedMsg = _childs[cidx]->_fifo.front();
                 string debug_dest = StateMachine::IntToMachine(blockedMsg->destId());
@@ -596,31 +590,6 @@ void GlobalState::addOrigin(GlobalState* rootStop)
     _origin.push_back(rootStop);
 }
 
-void GlobalState::printOrigins(bool (*printStop)(GlobalState*, GlobalState*))
-{
-    for( size_t i = 0 ; i < _origin.size() ; ++i ) {
-        int diffDepth = this->_depth - _origin[i]->_depth ;
-        if( diffDepth <= 0 ) {
-            if( diffDepth == 0 ) {
-                if( printStop == 0 || printStop(this,_origin[i]) ) {
-                    cout << _origin[i]->toString() << " =" << diffDepth << "=>"
-                         << this->toString() << endl ;
-#ifdef TRACE_STOPPING
-                    cout << "Print the path between origin and current states:" << endl ;
-                    vector<GlobalState*> seq;
-                    this->pathRoot(seq, _origin[i]);
-                    printSeq(seq);
-#endif
-                }
-            }
-            else {
-                cout << "Tracing back to a stopping state with lower probability. ERROR"
-                     << endl ;
-            }
-        }
-    }
-}
-
 string GlobalState::toString() const
 {
     stringstream ss ;
@@ -705,55 +674,6 @@ bool rootStop(GlobalState* gsPtr)
     else 
         return false;
 }
-void GlobalState::pathRoot(vector<GlobalState* > &arr)
-{
-    pathRoot(arr, _root);
-}
-
-void GlobalState::pathRoot(vector<GlobalState* >& arr, const GlobalState* end)
-{
-    resetColor();
-    arr.clear();
-
-    // Reverse breadth-first search until the root is found
-    queue<GlobalState*> unexplored;
-    unexplored.push(this);
-    
-    _trace = 0;
-    _trace--;
-
-    while( !unexplored.empty() ) {
-        GlobalState* gs = unexplored.front() ;
-        unexplored.pop();
-        gs->_white = false; // Paint the node black
-
-        if( gs->toString() == end->toString() ) {
-            // root found
-            // Trace back
-#ifdef VERBOSE
-            cout << "Root found when tracing back. " << endl;
-#endif
-            do {
-                arr.push_back(gs);
-                gs = gs->getChild(gs->_trace) ;
-            } while( gs != this );
-            arr.push_back(this);
-            break;
-        }
-        else {
-            for( size_t ii = 0 ; ii < gs->_parents.size() ; ++ii ) {
-                GlobalState* par = gs->_parents[ii];
-                if( par->_white ) {
-                    par->markPath(gs);
-                    unexplored.push(par);
-                }
-            }
-            if( gs->_parents.size() == 0 )
-                cout << "No parents." << endl ;
-        } // if
-    }
-    GlobalState::resetColor();
-}
 
 GlobalState* self;
 bool selfStop(GlobalState* gsPtr)
@@ -763,56 +683,6 @@ bool selfStop(GlobalState* gsPtr)
     else 
         return false;
 }
-
-void GlobalState::pathCycle(vector<GlobalState*>& arr)
-{
-    //self = this;
-    //BFS(arr, &selfStop);
-    resetColor();
-    arr.clear();
-
-    // Reverse breadth-first search until the root is found
-    queue<GlobalState*> unexplored;
-    for( size_t ii = 0 ; ii < _parents.size() ; ++ii ) { 
-        if( _parents[ii]->_depth != _depth )
-            continue;
-        _parents[ii]->markPath(this);
-        unexplored.push(_parents[ii]);
-    }
-    _trace = 0;
-    _trace--;
-
-    while( !unexplored.empty() ) {
-        GlobalState* gs = unexplored.front() ;
-        unexplored.pop();
-        gs->_white = false; // Paint the node black
-
-        //if( gs == this ) {
-        if( gs->toString() == this->toString() ) {
-            // this: the globalstate where the BFS is started from
-            // gs == this: the search return to the starting point, a cycle must be found
-            // Trace back
-            do {
-                arr.push_back(gs);
-                gs = gs->getChild(gs->_trace) ;
-            } while( gs != this );
-            arr.push_back(this);
-        }
-        else {
-            for( size_t ii = 0 ; ii < gs->_parents.size() ; ++ii ) {
-                GlobalState* par = gs->_parents[ii];
-                if( par->_depth != gs->_depth )
-                    continue;
-                if( par->_white ) {
-                    par->markPath(gs);
-                    unexplored.push(par);
-                }
-            }
-            
-        } // if
-    }
-}
-
 
 void GlobalState::BFS(vector<GlobalState*>& arr, bool (*stop)(GlobalState*)) 
 {

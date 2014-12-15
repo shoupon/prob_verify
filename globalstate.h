@@ -49,43 +49,6 @@ class GlobalState {
   
   // Used when determine transitions between stopping states
   vector<GlobalState*> _origin;
-protected:
-  // Number of machines
-  static int _nMacs ;
-  // array of ptr to machines
-  static vector<StateMachine*> _machines;
-  static Service* _service;
-  
-  vector<StateSnapshot*> _gStates;
-  CheckerState* _checker ;
-  ServiceSnapshot* _srvcState;
-private:
-  //void trim();
-  void addParents(const vector<GlobalState*>& arr);
-  void eraseChild(size_t idx);
-  //void execute(int macId, int transId, Transition* transPtr);
-  vector<GlobalState*> evaluate();
-  // Invoke explore when an unexplored transition is push onto the queue
-  void explore(int subject);
-  void addTask(vector<MessageTuple*> msgs);
-  
-  void init() ;
-  bool active();
-  Transition* getActive(int& macId, int& transId);
-  bool setActive(int macId, int transId) ;
-  void recordProb();
-
-  // Used in breadth-first search
-  static bool removeNode(GlobalState* gs);
-  static bool insertNode(GlobalState* gs);
-  void resetColor();
-  size_t markPath(GlobalState* ptr);
-  //bool rootStop(GlobalState* gsPtr);
-  //bool selfStop(GlobalState* gsPtr);
-  
-  static void printSeq(const vector<GlobalState*>& seq);
-  
-  string msg2str(MessageTuple* msg);
   
 public:
   // Default constructor creates a global state with all its machine set to initial
@@ -133,19 +96,9 @@ public:
   // This function will start tracing back until root it found. The path will
   // be saved in arr. This is best used to print out the transitions from the
   // initial state that lead to deadlock
-  void pathRoot(vector<GlobalState*>& arr);
-  void pathRoot(vector<GlobalState*>& arr, const GlobalState* end);
-  // This function will start tracing back until a cycle is found. Only high
-  // probability transitions will be checked.
-  // If there is no such cycle that contains no low probability transition,
-  // return false;
-  // If a cycle is found, return true and the found cycle is saved to arr.
-  // The first and thelast element in the vector<GlobalState*> is the same.
-  void pathCycle(vector<GlobalState*>& arr);
   void BFS(vector<GlobalState*>& arr, bool (*stop)(GlobalState*));
   
   void addOrigin(GlobalState* rootStop);
-  void printOrigins(bool (*printStop)(GlobalState*, GlobalState*) = 0);
 
   string toString() const ;
 
@@ -159,6 +112,43 @@ public:
   void setTrail(const vector<GlobalState*>& t) { trail_ = t; }
   void printTrail() const;
 
+protected:
+  // Number of machines
+  static int _nMacs ;
+  // array of ptr to machines
+  static vector<StateMachine*> _machines;
+  static Service* _service;
+  
+  vector<StateSnapshot*> _gStates;
+  CheckerState* _checker ;
+  ServiceSnapshot* _srvcState;
+private:
+  //void trim();
+  void addParents(const vector<GlobalState*>& arr);
+  void eraseChild(size_t idx);
+  //void execute(int macId, int transId, Transition* transPtr);
+  vector<GlobalState*> evaluate();
+  // Invoke explore when an unexplored transition is push onto the queue
+  void explore(int subject);
+  void addTask(vector<MessageTuple*> msgs);
+  
+  void init() ;
+  bool active();
+  Transition* getActive(int& macId, int& transId);
+  bool setActive(int macId, int transId) ;
+  void recordProb();
+
+  // Used in breadth-first search
+  static bool removeNode(GlobalState* gs);
+  static bool insertNode(GlobalState* gs);
+  void resetColor();
+  size_t markPath(GlobalState* ptr);
+  //bool rootStop(GlobalState* gsPtr);
+  //bool selfStop(GlobalState* gsPtr);
+  
+  static void printSeq(const vector<GlobalState*>& seq);
+  
+  string msg2str(MessageTuple* msg);
   vector<GlobalState*> trail_;
 };
 

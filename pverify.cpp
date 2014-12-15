@@ -3,8 +3,9 @@
 #include "pverify.h"
 
 //#define VERBOSE
-#define LESS_VERBOSE
+//#define LESS_VERBOSE
 #define LIST_STOPPINGS
+#define PROGRESS_CHUNK 1000
 
 /**
  Add the successor GlobalState* childNode to appropriate probability class, provided
@@ -88,10 +89,14 @@ void ProbVerifier::start(int max_class) {
     printEndings();
 #endif
   } catch (GlobalState* st) {
+    // TODO(shoupon): print seq even if unexpected reception is allowed;
+    // TODO(shoupon): find another way to continue the procedure when unexpected
+    // reception GlobalState is thrown and print the sequence that leads to this
+    // global state
 #ifdef TRACE_UNMATCHED
     vector<GlobalState*> seq;
-    st->pathRoot(seq);
-    printSeq(seq);
+    //st->pathRoot(seq);
+    //printSeq(seq);
 #endif
   } catch (ProtocolError pe) {
     cout << pe.toString() << endl;
@@ -105,6 +110,9 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
        << " Prob = " << gs->getProb()
        << " Dist = " << gs->getDistance() << endl;
 #endif
+  if (classes_[k].size() % PROGRESS_CHUNK == 0)
+    cerr << "Explore " << classes_[k].size()
+         << " states in class[" << k << "]" << endl;
   if (isError(gs)) {
     reportError(gs);
   }
@@ -127,7 +135,9 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
         copyToClass(child_ptr, k);
         // TODO(shoupon): path count
         if (isEnding(child_ptr)) {
+#ifdef LESS_VERBOSE
           cout << "Ending state reached. " << endl;
+#endif
         } else {
           DFSVisit(child_ptr, k);
         }
