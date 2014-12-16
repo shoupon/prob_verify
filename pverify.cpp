@@ -155,8 +155,8 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
         }
       } else {
         child_ptr->setTrail(dfs_stack_state_);
+        copyToEntry(child_ptr, k + p);
         if (verbosity_ >= 7) {
-          copyToEntry(child_ptr, k + p);
           for (int i = 0; i < dfs_stack_state_.size() + 1; ++i)
             cout << "  ";
           cout << dfs_stack_state_.size() + 1;
