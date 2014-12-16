@@ -73,6 +73,7 @@ void ProbVerifier::start(int max_class, int verbose) {
              << "] --------" << endl ;
         printStat(cur_class);
       }
+      leads_to_.clear();
       while (entries_[cur_class].size()) {
         auto it = entries_[cur_class].begin();
         GlobalState* s = it->second;
@@ -159,7 +160,15 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
         }
       } else {
         child_ptr->setTrail(dfs_stack_state_);
-        copyToEntry(child_ptr, k + p);
+        GlobalState* entry_point = copyToEntry(child_ptr, k + p);
+        for (auto& state_str : dfs_stack_string_)
+          leads_to_[state_str].insert(entry_point);
+        if (k) {
+          entry_point->increasePathCount(
+            dfs_stack_state_.front()->getPathCount());
+        } else {
+          entry_point->increasePathCount(1);
+        }
       }
     } else {
       // TODO(shoupon): path count
@@ -272,6 +281,15 @@ void ProbVerifier::printStat(int class_k) {
        << class_k << "]" << endl;
   cout << entries_[class_k].size() << " entry points discovered in entry["
        << class_k << "]" << endl;
+  int alpha = 0;
+  if (class_k) {
+    for(auto pr : entries_[class_k]) {
+      GlobalState* gs = pr.second;
+      alpha += gs->getPathCount();
+    }
+    cout << "alpha (sum of path counts of all entry point states) = " << alpha
+         << endl;
+  }
 }
 
 void ProbVerifier::printStoppings() {
@@ -396,11 +414,11 @@ bool ProbVerifier::isMemberOfEntries(const GlobalState* gs) {
   return isMemberOf(gs, entries_);
 }
 
-void ProbVerifier::copyToClass(const GlobalState* gs, int k) {
-  classes_[k][gs->toString()] = new GlobalState(gs);
+GlobalState* ProbVerifier::copyToClass(const GlobalState* gs, int k) {
+  return classes_[k][gs->toString()] = new GlobalState(gs);
 }
 
-void ProbVerifier::copyToEntry(const GlobalState* gs, int k) {
+GlobalState* ProbVerifier::copyToEntry(const GlobalState* gs, int k) {
   if (verbosity_ >= 7) {
     for (int i = 0; i < dfs_stack_state_.size() + 1; ++i)
       cout << "  ";
@@ -408,7 +426,7 @@ void ProbVerifier::copyToEntry(const GlobalState* gs, int k) {
     cout << "-> entry reached " << gs->toString()
          << " Prob = " << gs->getProb() << endl;
   }
-  entries_[k][gs->toString()] = new GlobalState(gs);
+  return entries_[k][gs->toString()] = new GlobalState(gs);
 }
 
 void ProbVerifier::stackPush(GlobalState *gs) {

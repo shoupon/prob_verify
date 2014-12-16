@@ -18,8 +18,8 @@ set<GlobalState*> GlobalState::_all ;
 Parser* GlobalState::_psrPtr = NULL;
 
 GlobalState::GlobalState(GlobalState* gs)
-: _visit(1), _dist(gs->_dist), _depth(gs->_depth), _white(true), _origin(gs->_origin)
-{
+    : _visit(1), _dist(gs->_dist), _depth(gs->_depth), _white(true),
+      _origin(gs->_origin), path_count_(0) {
     // Clone the pending tasks
     // Duplicate the container since the original gs->_fifo cannot be popped
     queue<MessageTuple*> cloneTasks = gs->_fifo ;
@@ -50,12 +50,10 @@ GlobalState::GlobalState(GlobalState* gs)
 
 GlobalState::GlobalState(const GlobalState* gs)
     : _visit(1), _dist(gs->_dist), _depth(gs->_depth),
-      _white(true), _origin(gs->_origin), trail_(gs->trail_) {
+      _white(true), _origin(gs->_origin), trail_(gs->trail_), path_count_(0) {
   // Copy Snapshots
-  _gStates.resize( gs->_gStates.size() );
-  for( size_t m = 0 ; m < _machines.size() ; ++m ) {
-    _gStates[m] = gs->_gStates[m]->clone();
-  }
+  for (auto ss : gs->_gStates)
+    _gStates.push_back(ss->clone());
   // Copy CheckerState
   _checker = gs->_checker->clone() ;
   // Copy the ServiceSnapshot
@@ -63,14 +61,14 @@ GlobalState::GlobalState(const GlobalState* gs)
 }
 
 GlobalState::GlobalState(vector<StateMachine*> macs, CheckerState* chkState)
-    :_visit(1), _dist(0), _white(true)
-{
-    if( _nMacs < 0 ) {
-        _nMacs = (int)macs.size();
-        _machines = macs ;      
-    }
-    else 
-        assert( _nMacs == macs.size() );
+    :_visit(1), _dist(0), _white(true), path_count_(0) {
+  if (_nMacs < 0) {
+    _nMacs = (int)macs.size();
+  }
+  else {
+    assert(_nMacs == macs.size());
+  }
+  _machines = macs;
 
     init();
     
@@ -89,15 +87,13 @@ GlobalState::GlobalState(vector<StateMachine*> macs, CheckerState* chkState)
 }
 
 GlobalState::GlobalState(vector<StateSnapshot*>& stateVec)
-: _visit(1),_dist(0), _white(true)
-{
-    assert(stateVec.size() == _machines.size());
-    for( size_t i = 0 ; i < stateVec.size() ; ++i ) {
-        _gStates[i] = stateVec[i]->clone() ;
-    }
-    
+    : _visit(1),_dist(0), _white(true), path_count_(0) {
+  assert(stateVec.size() == _machines.size());
+  for( size_t i = 0 ; i < stateVec.size() ; ++i ) {
+      _gStates[i] = stateVec[i]->clone() ;
+  }
 #ifdef TRACE
-    insertNode(this);
+  insertNode(this);
 #endif
 }
 
@@ -124,11 +120,18 @@ GlobalState::~GlobalState()
 void GlobalState::init()
 {
     _depth = 0;
-    _gStates = vector<StateSnapshot*>(_nMacs);
-    for( size_t ii = 0 ; ii < _machines.size() ; ++ii ) {
+    //_gStates = vector<StateSnapshot*>(_nMacs);
+    _gStates.clear();
+    for (auto m_ptr : _machines) {
+      m_ptr->reset();
+      _gStates.push_back(m_ptr->curState());
+    }
+    /*
+    for ( size_t ii = 0 ; ii < _machines.size() ; ++ii ) {
         _machines[ii]->reset();
         _gStates[ii] = _machines[ii]->curState();
     }
+    */
     /*
     _service->reset();
     _srvcState = _service->curState();
@@ -776,11 +779,10 @@ string GlobalState::msg2str(MessageTuple *msg)
     return ss.str() ;
 }
 
-void GlobalState::restore()
-{
-    for( size_t m = 0 ; m < _machines.size() ; ++m )
-        _machines[m]->restore(_gStates[m]);
-    _service->restore(_srvcState);
+void GlobalState::restore() {
+  for (int m = 0 ; m < _machines.size() ; ++m)
+    _machines[m]->restore(_gStates[m]);
+  _service->restore(_srvcState);
 }
 
 void GlobalState::store()

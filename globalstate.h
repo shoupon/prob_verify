@@ -7,6 +7,7 @@
 #include <queue>
 #include <set>
 #include <list>
+#include <unordered_set>
 
 #include "fsm.h"
 #include "state.h"
@@ -111,6 +112,9 @@ public:
 
   void setTrail(const vector<GlobalState*>& t) { trail_ = t; }
   void printTrail() const;
+  void setPathCount(int c) { path_count_ = c; }
+  void increasePathCount(int increment) { path_count_ += increment; }
+  int getPathCount() { return path_count_; }
 
 protected:
   // Number of machines
@@ -150,6 +154,7 @@ private:
   
   string msg2str(MessageTuple* msg);
   vector<GlobalState*> trail_;
+  int path_count_;
 };
 
 class GlobalStateHashKey

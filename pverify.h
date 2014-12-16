@@ -119,8 +119,8 @@ private:
   bool isMemberOfClasses(const GlobalState* gs);
   bool isMemberOfEntries(const GlobalState* gs);
 
-  void copyToClass(const GlobalState* gs, int k);
-  void copyToEntry(const GlobalState* gs, int k);
+  GlobalState* copyToClass(const GlobalState* gs, int k);
+  GlobalState* copyToEntry(const GlobalState* gs, int k);
 
   void DFSVisit(GlobalState* gs, int k);
   void stackPush(GlobalState* gs);
@@ -141,6 +141,7 @@ private:
   vector<GlobalState*> dfs_stack_state_;
   unordered_set<string> reached_stoppings_;
   unordered_set<string> reached_endings_;
+  unordered_map<string, unordered_set<GlobalState*>> leads_to_;
   // TODO(shoupon): use preprocessor to create if expression that prints
   // depending on verbosity
   int verbosity_;
