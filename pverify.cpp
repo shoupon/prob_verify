@@ -145,25 +145,21 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
     int p = child_ptr->getProb() - gs->getProb();
     if (!isMemberOfClasses(child_ptr)) {
       if (!p) {
-        copyToClass(child_ptr, k);
         // TODO(shoupon): path count
         if (isEnding(child_ptr)) {
+          copyToClass(child_ptr, k);
           if (verbosity_ >= 6)
             cout << "Ending state reached. " << endl;
+        } else if (!k && isStopping(child_ptr)) {
+          // discover new stopping state/entry point in probability class[0]
+          copyToEntry(child_ptr, k);
         } else {
           DFSVisit(child_ptr, k);
+          copyToClass(child_ptr, k);
         }
       } else {
         child_ptr->setTrail(dfs_stack_state_);
         copyToEntry(child_ptr, k + p);
-        if (verbosity_ >= 7) {
-          for (int i = 0; i < dfs_stack_state_.size() + 1; ++i)
-            cout << "  ";
-          cout << dfs_stack_state_.size() + 1;
-          cout << "-> entry reached " << child_ptr->toString()
-               << " Prob = " << child_ptr->getProb()
-               << " Dist = " << child_ptr->getDistance() << endl;
-        }
       }
     } else {
       // TODO(shoupon): path count
@@ -405,6 +401,13 @@ void ProbVerifier::copyToClass(const GlobalState* gs, int k) {
 }
 
 void ProbVerifier::copyToEntry(const GlobalState* gs, int k) {
+  if (verbosity_ >= 7) {
+    for (int i = 0; i < dfs_stack_state_.size() + 1; ++i)
+      cout << "  ";
+    cout << dfs_stack_state_.size() + 1;
+    cout << "-> entry reached " << gs->toString()
+         << " Prob = " << gs->getProb() << endl;
+  }
   entries_[k][gs->toString()] = new GlobalState(gs);
 }
 
