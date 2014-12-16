@@ -3,7 +3,7 @@
 #include "pverify.h"
 
 //#define VERBOSE
-//#define LESS_VERBOSE
+#define LESS_VERBOSE
 #define LIST_STOPPINGS
 #define PROGRESS_CHUNK 1000
 
@@ -32,8 +32,12 @@ void ProbVerifier::addPrintStop(bool (*printStop)(GlobalState *, GlobalState *))
     _printStop = printStop ;
 }
 
-// The basic procedure
 void ProbVerifier::start(int max_class) {
+  start(max_class, 1);
+}
+
+void ProbVerifier::start(int max_class, int verbose) {
+  verbosity_ = verbose;
   try {
 #ifdef LOG
     cout << "Stopping states:" << endl ;
@@ -64,9 +68,11 @@ void ProbVerifier::start(int max_class) {
     entries_[0][_root->toString()] = _root;
         
     for (int cur_class = 0; cur_class <= max_class; ++cur_class) {
-      cout << "-------- Start exploring states in class[" << cur_class
-           << "] --------" << endl ;
-      printStat(cur_class);
+      if (verbosity_) {
+        cout << "-------- Start exploring states in class[" << cur_class
+             << "] --------" << endl ;
+        printStat(cur_class);
+      }
       while (entries_[cur_class].size()) {
         auto it = entries_[cur_class].begin();
         GlobalState* s = it->second;
@@ -78,16 +84,20 @@ void ProbVerifier::start(int max_class) {
           DFSVisit(s, cur_class);
         }
       }
-      cout << "-------- Complete exploring states in class[" << cur_class
-           << "] --------" << endl;
-      printStat(cur_class);
+      if (verbosity_) {
+        cout << "-------- Complete exploring states in class[" << cur_class
+             << "] --------" << endl;
+        printStat(cur_class);
+      }
     }
-    cout << "Model checking procedure completes. Error not found." << endl;
-    printStat();
-#ifdef LIST_STOPPINGS
-    printStoppings();
-    printEndings();
-#endif
+    if (verbosity_) {
+      cout << "Model checking procedure completes. Error not found." << endl;
+      printStat();
+    }
+    if (verbosity_ >= 2) {
+      printStoppings();
+      printEndings();
+    }
   } catch (GlobalState* st) {
     // TODO(shoupon): print seq even if unexpected reception is allowed;
     // TODO(shoupon): find another way to continue the procedure when unexpected
@@ -105,13 +115,16 @@ void ProbVerifier::start(int max_class) {
           
 void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
   stackPush(gs);
-#ifdef LESS_VERBOSE
-  cout << "Exploring " << gs->toString()
-       << " Prob = " << gs->getProb()
-       << " Dist = " << gs->getDistance() << endl;
-#endif
+  if (verbosity_ >= 5) {
+    for (int i = 0; i < dfs_stack_state_.size(); ++i)
+      cout << "  ";
+    cout << dfs_stack_state_.size();
+    cout << "-> " << gs->toString()
+         << " Prob = " << gs->getProb()
+         << " Dist = " << gs->getDistance() << endl;
+  }
   if (classes_[k].size() % PROGRESS_CHUNK == 0)
-    cerr << "Explore " << classes_[k].size()
+    cerr << "Finished exploring " << classes_[k].size()
          << " states in class[" << k << "]" << endl;
   if (isError(gs)) {
     reportError(gs);
@@ -135,18 +148,33 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
         copyToClass(child_ptr, k);
         // TODO(shoupon): path count
         if (isEnding(child_ptr)) {
-#ifdef LESS_VERBOSE
-          cout << "Ending state reached. " << endl;
-#endif
+          if (verbosity_ >= 6)
+            cout << "Ending state reached. " << endl;
         } else {
           DFSVisit(child_ptr, k);
         }
       } else {
         child_ptr->setTrail(dfs_stack_state_);
-        copyToEntry(child_ptr, k + p);
+        if (verbosity_ >= 7) {
+          copyToEntry(child_ptr, k + p);
+          for (int i = 0; i < dfs_stack_state_.size() + 1; ++i)
+            cout << "  ";
+          cout << dfs_stack_state_.size() + 1;
+          cout << "-> entry reached " << child_ptr->toString()
+               << " Prob = " << child_ptr->getProb()
+               << " Dist = " << child_ptr->getDistance() << endl;
+        }
       }
     } else {
       // TODO(shoupon): path count
+      if (verbosity_ >= 7) {
+        for (int i = 0; i < dfs_stack_state_.size() + 1; ++i)
+          cout << "  ";
+        cout << dfs_stack_state_.size() + 1;
+        cout << "-> reached already " << child_ptr->toString()
+             << " Prob = " << child_ptr->getProb()
+             << " Dist = " << child_ptr->getDistance() << endl;
+      }
     }
   }
   stackPop();

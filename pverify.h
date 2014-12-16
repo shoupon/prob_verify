@@ -81,7 +81,8 @@ public:
   // state trace
   void addPrintStop(bool (*printStop)(GlobalState*, GlobalState*) = 0);
   // The basic procedure, start when all machines are in its initial state
-  void start(int maxClass);
+  void start(int max_class);
+  void start(int max_class, int verbose);
   // void start(vector<GlobalState*> initStates);
   void clear();
   
@@ -140,6 +141,9 @@ private:
   vector<GlobalState*> dfs_stack_state_;
   unordered_set<string> reached_stoppings_;
   unordered_set<string> reached_endings_;
+  // TODO(shoupon): use preprocessor to create if expression that prints
+  // depending on verbosity
+  int verbosity_;
 
   int num_transitions_;
 };

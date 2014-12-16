@@ -247,18 +247,19 @@ void GlobalState::findSucc()
                     ++cidx ;
                 }
             } catch (GlobalState* blocked) {
-                // Remove the child that is blocked by unmatched transition
-                MessageTuple *blockedMsg = _childs[cidx]->_fifo.front();
-                string debug_dest = StateMachine::IntToMachine(blockedMsg->destId());
-                string debug_destMsg = StateMachine::IntToMessage(blockedMsg->destMsgId());
-                if (debug_dest != "") {
-                    cout << debug_dest << endl;
-                    cout << debug_destMsg << endl;
-                }
-                _childs.erase(_childs.begin()+cidx);
-                // Continue on evaluating other children
-                cout << "REMOVE global state. CONTINUE" << endl ;
-                continue ;
+              // Remove the child that is blocked by unmatched transition
+              MessageTuple *blockedMsg = _childs[cidx]->_fifo.front();
+              string debug_dest = StateMachine::IntToMachine(blockedMsg->destId());
+              string debug_destMsg = StateMachine::IntToMessage(blockedMsg->destMsgId());
+              if (debug_dest != "") {
+                cout << debug_dest << endl;
+                cout << debug_destMsg << endl;
+              }
+              _childs.erase(_childs.begin()+cidx);
+              // Continue on evaluating other children
+              cout << "REMOVE global state." << endl;
+              cout << "CONTINUE exploring " << toString() << endl;
+              continue ;
             } catch (string str) {
                 // This catch phrase should only be reached when no matching transition
                 // found for a message reception. When such occurs, erase the child that
