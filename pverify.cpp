@@ -180,6 +180,7 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
              << " Prob = " << child_ptr->getProb()
              << " Dist = " << child_ptr->getDistance() << endl;
       }
+      //if (isMemberOf(child_ptr, classes_[cur_class]))
     }
   }
   stackPop();
@@ -389,28 +390,30 @@ bool ProbVerifier::isMemberOf(const GlobalState* gs,
   return false;
 }
 
-bool ProbVerifier::isMemberOf(const GlobalState* gs,
+GlobalState* ProbVerifier::isMemberOf(const GlobalState* gs,
                               const GSClass& container) {
-  if (container.find(gs->toString()) == container.end())
-    return false;
+  auto it = container.find(gs->toString());
+  if (it == container.end())
+    return nullptr;
   else
-    return true;
+    return it->second;
 }
 
-bool ProbVerifier::isMemberOf(const GlobalState* gs,
+GlobalState* ProbVerifier::isMemberOf(const GlobalState* gs,
                               const vector<GSClass>& containers) {
   for (const auto& c : containers) {
-    if (isMemberOf(gs, c))
-      return true;
+    auto ret = isMemberOf(gs, c);
+    if (ret)
+      return ret;
   }
-  return false;
+  return nullptr;
 }
 
-bool ProbVerifier::isMemberOfClasses(const GlobalState* gs) {
+GlobalState* ProbVerifier::isMemberOfClasses(const GlobalState* gs) {
   return isMemberOf(gs, classes_);
 }
 
-bool ProbVerifier::isMemberOfEntries(const GlobalState* gs) {
+GlobalState* ProbVerifier::isMemberOfEntries(const GlobalState* gs) {
   return isMemberOf(gs, entries_);
 }
 

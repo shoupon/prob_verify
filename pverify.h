@@ -114,10 +114,10 @@ private:
   void reportError(GlobalState* gs);
 
   bool isMemberOf(const GlobalState* gs, const vector<string>& container);
-  bool isMemberOf(const GlobalState* gs, const GSClass& container);
-  bool isMemberOf(const GlobalState* gs, const vector<GSClass>& containers);
-  bool isMemberOfClasses(const GlobalState* gs);
-  bool isMemberOfEntries(const GlobalState* gs);
+  GlobalState* isMemberOf(const GlobalState* gs, const GSClass& container);
+  GlobalState* isMemberOf(const GlobalState* gs, const vector<GSClass>& containers);
+  GlobalState* isMemberOfClasses(const GlobalState* gs);
+  GlobalState* isMemberOfEntries(const GlobalState* gs);
 
   GlobalState* copyToClass(const GlobalState* gs, int k);
   GlobalState* copyToEntry(const GlobalState* gs, int k);
