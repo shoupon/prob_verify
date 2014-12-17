@@ -180,7 +180,20 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
              << " Prob = " << child_ptr->getProb()
              << " Dist = " << child_ptr->getDistance() << endl;
       }
-      //if (isMemberOf(child_ptr, classes_[cur_class]))
+      GlobalState* explored = isMemberOf(child_ptr, classes_[k]);
+      if (explored) {
+        string explored_str = explored->toString();
+        for (auto entry_point : leads_to_[explored_str]) {
+          for (auto stack_str : dfs_stack_string_)
+            leads_to_[stack_str].insert(entry_point);
+          if (k) {
+            entry_point->increasePathCount(
+              dfs_stack_state_.front()->getPathCount());
+          } else {
+            entry_point->increasePathCount(1);
+          }
+        }
+      }
     }
   }
   stackPop();
