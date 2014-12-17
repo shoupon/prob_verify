@@ -38,6 +38,22 @@ bool MessageTuple::operator<(const MessageTuple &rhs) const
         return false;
 }
 
+MessageTuple* StateMachine::createOutput(MessageTuple* in_msg,
+                                         int dest, int dest_msg) {
+  if (in_msg)
+    return new MessageTuple(in_msg->srcID(), dest,
+                            in_msg->srcMsgId(), dest_msg, macId());
+  else
+    return new MessageTuple(0, dest, 0, dest_msg, macId());
+}
+
+MessageTuple* StateMachine::createOutput(MessageTuple* in_msg,
+                                         const string& dest_name,
+                                         const string& dest_msg_name) {
+  return createOutput(in_msg,
+                      machineToInt(dest_name), messageToInt(dest_msg_name));
+}
+
 int StateMachine::messageToInt(string msg) 
 { 
     int result = _msgLookup->toInt(msg);
