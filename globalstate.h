@@ -33,7 +33,6 @@ class GlobalState {
   // unique. The _uniqueTable stores the pointers to each unique GlobalState
   static GlobalState* _root;
   static set<GlobalState*> _all;
-  static Parser* _psrPtr;
   
   vector<GlobalState*> _childs;
   vector<GlobalState*> _parents;
@@ -106,7 +105,6 @@ public:
   static bool init(GlobalState*) ;
   static void clearAll() ;
   
-  static void setParser(Parser* ptr) { _psrPtr = ptr ;}
   static void setService(Service* srvc);
 
   void setTrail(const vector<GlobalState*>& t) { trail_ = t; }

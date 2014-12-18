@@ -12,46 +12,11 @@ using namespace std;
 #include "define.h"
 #include "lookup.h"
 
-class MessageTuple {
-public:
-  MessageTuple(int src, int dest, int srcMsg, int destMsg, int subject)
-  :_src(src), _dest(dest), _srcMsg(srcMsg), _destMsg(destMsg), _subject(subject) {}
-  
-  virtual ~MessageTuple() {}
-  
-  int srcID() {return _src;}
-  int destId() {return _dest;}
-  int srcMsgId() {return _srcMsg;}
-  int destMsgId() {return _destMsg;}
-  int subjectId() {return _subject;}
+class MessageTuple;
 
-  virtual size_t numParams() { return 0 ; }
-  virtual int getParam(size_t arg) { return 0 ; }
-  
-  virtual string toString()
-  {
-      stringstream ss;
-      ss << "subject=" << _subject << ":" ;
-      ss << "(" << _src << "?" << _srcMsg << "," << _dest << "!" << _destMsg << ")" ;
-      return ss.str() ;
-  }
-  
-  virtual MessageTuple* clone() const {return new MessageTuple(*this); }
-  
-  virtual bool operator==(const MessageTuple& rhs) const;
-  virtual bool operator<(const MessageTuple &rhs) const;
-protected:
-  int _src;
-  int _dest;
-  int _srcMsg;
-  int _destMsg;
-  int _subject;
-};
-
-class StateMachine;
-
-// Used for restore the state of a state machine back to a certain point. Should contain
-// the state in which the machine was, the internal variables at that point
+// Used for restore the state of a state machine back to a certain point.
+// Should contain the information that is necessary to restore a machine back to
+// a certain state
 class StateSnapshot {
   friend class StateMachine;
 public:
@@ -73,12 +38,16 @@ protected:
 
 class StateMachine
 {
+  static Lookup machine_lookup_;
+  static Lookup message_lookup_;
 public:
   // When the class is constructed, a lookup function should be provided to the
   // StateMachine, so the StateMachine can convert a string of an input or an output
   // label into id (integer). A pointer to Parser should be provided to the StateMachine.
   // The Parser class contains the necessary look up function that StateMachine needs
-  StateMachine(Lookup* msg, Lookup* mac) { setLookup(msg, mac); }
+  //StateMachine(Lookup* msg, Lookup* mac) { setLookup(msg, mac); }
+  // Legacy contructor, takes two Lookup tables and does nothing
+  StateMachine(Lookup* msg, Lookup* mac) {}
   StateMachine() {}
   virtual ~StateMachine() {}
 
@@ -112,23 +81,80 @@ public:
   int macId() const { return _machineId; }
   void setId(int num) { _machineId = num; }
   
-  static void setLookup(Lookup* msg, Lookup* mac){ _msgLookup = msg, _macLookup = mac;}
+  //static void setLookup(Lookup* msg, Lookup* mac) { _msgLookup = msg, _macLookup = mac;}
+  // Legacy function does nothing
+  static void setLookup(Lookup* msg, Lookup* mac) {}
   
-  static int messageToInt(string msg) ;
-  static int machineToInt(string macName) ;
+  static int messageToInt(const string& msg);
+  static int machineToInt(const string& machine_name);
+  static string IntToMessage(int num);
+  static string IntToMachine(int num);
+  /*
   static string IntToMessage(int num) { return _msgLookup->toString(num); }
   static string IntToMachine(int num) { return _macLookup->toString(num); }
+  */
 
 protected:
   MessageTuple* createOutput(MessageTuple* in_msg, int dest, int dest_msg);
   MessageTuple* createOutput(MessageTuple* in_msg, const string& dest_name,
                              const string& dest_msg_name);
-  static Lookup* _msgLookup;
-  static Lookup* _macLookup;
+  //static Lookup* _msgLookup;
+  //static Lookup* _macLookup;
   int _state;
   
 private:
   int _machineId;
 };
+
+class MessageTuple {
+public:
+  MessageTuple(int src, int dest, int srcMsg, int destMsg, int subject)
+  :_src(src), _dest(dest), _srcMsg(srcMsg), _destMsg(destMsg), _subject(subject) {}
+  
+  virtual ~MessageTuple() {}
+  
+  int srcID() {return _src;}
+  int destId() {return _dest;}
+  int srcMsgId() {return _srcMsg;}
+  int destMsgId() {return _destMsg;}
+  int subjectId() {return _subject;}
+
+  virtual size_t numParams() { return 0 ; }
+  virtual int getParam(size_t arg) { return 0 ; }
+  
+  virtual string toString() {
+    stringstream ss;
+    ss << "subject=" << _subject << ":" ;
+    ss << "(" << _src << "?" << _srcMsg << "," << _dest << "!" << _destMsg << ")" ;
+    return ss.str() ;
+  }
+
+  virtual string toReadable() const {
+    stringstream ss;
+    ss << "message " << StateMachine::IntToMessage(_destMsg)
+       << " (" << this->readableParams() << ") "
+       << "from " << StateMachine::IntToMachine(_subject)
+       << " to " << StateMachine::IntToMachine(_dest);
+    return ss.str();
+  }
+
+  virtual string readableParams() const {
+    return "";
+  }
+  
+  virtual MessageTuple* clone() const {return new MessageTuple(*this); }
+  
+  virtual bool operator==(const MessageTuple& rhs) const;
+  virtual bool operator<(const MessageTuple &rhs) const;
+protected:
+  int _src;
+  int _dest;
+  int _srcMsg;
+  int _destMsg;
+  int _subject;
+};
+
+
+
 
 #endif

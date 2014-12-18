@@ -13,12 +13,16 @@ using namespace std;
 
 #pragma warning(disable : 4996)
 
-Parser::Parser() 
-{
-    _messages = new Lookup();
-    _machineNames = new Lookup();
-    _messages->insert("nul");
-    _machineNames->insert("nul");        
+Parser::Parser() {
+  _messages = new Lookup();
+  _machineNames = new Lookup();
+  _messages->insert("nul");
+  _machineNames->insert("nul");        
+}
+
+Parser::~Parser() {
+  delete _messages;
+  delete _machineNames;
 }
 
 // Read in a new line from the file and get rid of the semicolon at the end of line

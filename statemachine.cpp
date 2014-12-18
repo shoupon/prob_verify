@@ -2,8 +2,10 @@
 
 #include "statemachine.h"
 
-Lookup* StateMachine::_msgLookup = 0 ;
-Lookup* StateMachine::_macLookup = 0;
+//Lookup* StateMachine::_msgLookup = 0 ;
+//Lookup* StateMachine::_macLookup = 0;
+Lookup StateMachine::machine_lookup_;
+Lookup StateMachine::message_lookup_;
 
 bool MessageTuple::operator==(const MessageTuple &rhs) const
 {
@@ -54,28 +56,31 @@ MessageTuple* StateMachine::createOutput(MessageTuple* in_msg,
                       machineToInt(dest_name), messageToInt(dest_msg_name));
 }
 
-int StateMachine::messageToInt(string msg) 
-{ 
-    int result = _msgLookup->toInt(msg);
-    if( result != -1 ) {
-        assert( result >= 0 ) ;
-        return result;
-    }
-    else {
-        return _msgLookup->insert(msg) ;       
-    }
+int tableLookup(Lookup& tab, const string& msg) {
+  int result = tab.toInt(msg);
+  if (result != -1) {
+    assert(result >= 0);
+    return result;
+  }
+  else {
+    return tab.insert(msg);
+  }
 }
 
-int StateMachine::machineToInt(string macName) 
-{ 
-    int result = _macLookup->toInt(macName);
-    if( result != -1 ) {
-        assert( result >= 0 ) ;
-        return result;
-    }
-    else {
-        return _macLookup->insert(macName) ;       
-    }
+int StateMachine::messageToInt(const string& msg) {
+  return tableLookup(message_lookup_, msg);
+}
+
+int StateMachine::machineToInt(const string& machine_name) {
+  return tableLookup(machine_lookup_, machine_name);
+}
+
+string StateMachine::IntToMessage(int num) {
+  return message_lookup_.toString(num);
+}
+
+string StateMachine::IntToMachine(int num) {
+  return machine_lookup_.toString(num);
 }
 
 string StateSnapshot::toString()
