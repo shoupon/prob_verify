@@ -80,6 +80,9 @@ public:
   // Provide the criterion on which the program determines to print out the stopping
   // state trace
   void addPrintStop(bool (*printStop)(GlobalState*, GlobalState*) = 0);
+  // the boilerplate to be setup before starting the whole model checking
+  // procedure
+  void initialize();
   // The basic procedure, start when all machines are in its initial state
   void start(int max_class);
   void start(int max_class, int verbose);
@@ -142,6 +145,9 @@ private:
   unordered_set<string> reached_stoppings_;
   unordered_set<string> reached_endings_;
   unordered_map<string, unordered_set<GlobalState*>> leads_to_;
+
+  unique_ptr<GlobalState> start_point_;
+  unique_ptr<StoppingState> default_stopping_;
   // TODO(shoupon): use preprocessor to create if expression that prints
   // depending on verbosity
   int verbosity_;

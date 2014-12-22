@@ -1,4 +1,6 @@
 #include <cassert>
+#include <memory>
+using namespace std;
 
 #include "pverify.h"
 
@@ -32,41 +34,52 @@ void ProbVerifier::addPrintStop(bool (*printStop)(GlobalState *, GlobalState *))
     _printStop = printStop ;
 }
 
+void ProbVerifier::initialize() {
+  start_point_ = unique_ptr<GlobalState>(new GlobalState(getMachinePtrs()));
+  default_stopping_ = unique_ptr<StoppingState>(
+    new StoppingState(start_point_.get()));
+  for (auto ptr : getMachinePtrs())
+    default_stopping_->addAllow(ptr->curState(), ptr->macId() - 1);
+  addSTOP(default_stopping_.get());
+
+#ifdef LOG
+  cout << "Stopping states:" << endl ;
+  for( size_t i = 0 ; i < _stops.size() ; ++i ) {
+    cout << _stops[i]->toString() ;
+  }
+  cout << endl;
+  cout << "Error states:" << endl;
+  for( size_t i = 0 ; i < _errors.size() ; ++i ) {
+    cout << _errors[i]->toString() ;
+  }
+  cout << endl;
+#endif
+
+  classes_.clear();
+  entries_.clear();
+  entries_.resize(1);
+
+  for (auto ptr : _macPtrs)
+    ptr->reset();
+
+  if (_checker)
+    _root = new GlobalState(_macPtrs, _checker->initState());
+  else
+    _root = new GlobalState(_macPtrs);
+
+  entries_[0][_root->toString()] = _root;
+}
+
 void ProbVerifier::start(int max_class) {
   start(max_class, 1);
 }
 
 void ProbVerifier::start(int max_class, int verbose) {
   verbosity_ = verbose;
+  initialize();
+  classes_.resize(max_class + 1, GSClass());
+  entries_.resize(max_class + 1, GSClass());
   try {
-#ifdef LOG
-    cout << "Stopping states:" << endl ;
-    for( size_t i = 0 ; i < _stops.size() ; ++i ) {
-      cout << _stops[i]->toString() ;
-    }
-    cout << endl;
-    cout << "Error states:" << endl;
-    for( size_t i = 0 ; i < _errors.size() ; ++i ) {
-      cout << _errors[i]->toString() ;
-    }
-    cout << endl;
-#endif
-
-    classes_.clear();
-    entries_.clear();
-    classes_.resize(max_class + 1, GSClass());
-    entries_.resize(max_class + 1, GSClass());
-
-    for (auto ptr : _macPtrs)
-      ptr->reset();
-
-    if (_checker)
-      _root = new GlobalState(_macPtrs, _checker->initState());
-    else
-      _root = new GlobalState(_macPtrs);
-
-    entries_[0][_root->toString()] = _root;
-        
     for (int cur_class = 0; cur_class <= max_class; ++cur_class) {
       if (verbosity_) {
         cout << "-------- Start exploring states in class[" << cur_class
@@ -193,7 +206,7 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
              << " Dist = " << child_ptr->getDistance() << endl;
       }
       GlobalState* explored = isMemberOf(child_ptr, classes_[k]);
-      if (explored) {
+      if (explored && !isStopping(child_ptr)) {
         string explored_str = explored->toString();
         for (auto entry_point : leads_to_[explored_str]) {
           for (auto stack_str : dfs_stack_string_)
