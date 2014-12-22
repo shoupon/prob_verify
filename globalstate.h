@@ -33,7 +33,6 @@ class GlobalState {
   // A table stores all of the reachable globalState. Each reachable globalState is
   // unique. The _uniqueTable stores the pointers to each unique GlobalState
   static GlobalState* _root;
-  static set<GlobalState*> _all;
   static Parser* _psrPtr;
   
   vector<GlobalState*> _childs;
@@ -94,11 +93,6 @@ public:
   // Save the current state of machines to _gStates
   void store();
 
-  // This function will start tracing back until root it found. The path will
-  // be saved in arr. This is best used to print out the transitions from the
-  // initial state that lead to deadlock
-  void BFS(vector<GlobalState*>& arr, bool (*stop)(GlobalState*));
-  
   void addOrigin(GlobalState* rootStop);
 
   string toString() const ;
@@ -142,14 +136,6 @@ private:
   bool setActive(int macId, int transId) ;
   void recordProb();
 
-  // Used in breadth-first search
-  static bool removeNode(GlobalState* gs);
-  static bool insertNode(GlobalState* gs);
-  void resetColor();
-  size_t markPath(GlobalState* ptr);
-  //bool rootStop(GlobalState* gsPtr);
-  //bool selfStop(GlobalState* gsPtr);
-  
   static void printSeq(const vector<GlobalState*>& seq);
   
   string msg2str(MessageTuple* msg);

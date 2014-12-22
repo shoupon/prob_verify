@@ -14,7 +14,6 @@ int GlobalState::_nMacs = -1;
 vector<StateMachine*> GlobalState::_machines;
 Service* GlobalState::_service = NULL;
 GlobalState* GlobalState::_root = NULL;
-set<GlobalState*> GlobalState::_all ;
 Parser* GlobalState::_psrPtr = NULL;
 
 GlobalState::GlobalState(GlobalState* gs)
@@ -42,9 +41,6 @@ GlobalState::GlobalState(GlobalState* gs)
     
 #ifdef VERBOSE
     cout << "Create new GlobalState from " << this->toString() << endl;
-#endif
-#ifdef TRACE
-    insertNode(this);
 #endif
 }
 
@@ -81,9 +77,6 @@ GlobalState::GlobalState(vector<StateMachine*> macs, CheckerState* chkState)
     else {
         _checker = chkState->clone() ;
     }
-#ifdef TRACE
-    insertNode(this);
-#endif
 }
 
 GlobalState::GlobalState(vector<StateSnapshot*>& stateVec)
@@ -92,9 +85,6 @@ GlobalState::GlobalState(vector<StateSnapshot*>& stateVec)
   for( size_t i = 0 ; i < stateVec.size() ; ++i ) {
       _gStates[i] = stateVec[i]->clone() ;
   }
-#ifdef TRACE
-  insertNode(this);
-#endif
 }
 
 GlobalState::~GlobalState()
@@ -112,9 +102,6 @@ GlobalState::~GlobalState()
     
     if (_srvcState)
         delete _srvcState;
-#ifdef TRACE
-    removeNode(this);
-#endif
 }
 
 void GlobalState::init()
@@ -538,23 +525,6 @@ bool GlobalState::removeBranch(GlobalState* leaf)
     return ret;
 }
 
-bool GlobalState::removeNode(GlobalState *gs)
-{
-    set<GlobalState*>::iterator it = _all.find(gs) ;
-    if( it != _all.end()) {
-        _all.erase(it) ;
-        return true;
-    }
-    else
-        return false;
-}
-
-bool GlobalState::insertNode(GlobalState *gs)
-{
-    _all.insert(gs);
-    return true ;
-}
-
 void GlobalState::merge(GlobalState *gs)
 {
     this->_visit += gs->_visit ;
@@ -686,76 +656,6 @@ bool selfStop(GlobalState* gsPtr)
         return true ;
     else 
         return false;
-}
-
-void GlobalState::BFS(vector<GlobalState*>& arr, bool (*stop)(GlobalState*)) 
-{
-    resetColor();
-    arr.clear();
-
-    // Reverse breadth-first search until the root is found
-    queue<GlobalState*> unexplored;
-    for( size_t ii = 0 ; ii < _parents.size() ; ++ii ) {      
-        _parents[ii]->markPath(this);
-        unexplored.push(_parents[ii]);
-    }
-    _trace = 0;
-    _trace--;
-
-    while( !unexplored.empty() ) {
-        GlobalState* gs = unexplored.front() ;
-        unexplored.pop();
-        gs->_white = false; // Paint the node black
-
-        if( (*stop)(gs) ) {
-            // root found
-            // Trace back
-            do {
-                arr.push_back(gs);
-                gs = gs->getChild(gs->_trace) ;
-            } while( gs != this );
-        }
-        else {
-            for( size_t ii = 0 ; ii < gs->_parents.size() ; ++ii ) {
-                GlobalState* par = gs->_parents[ii];
-                if( par->_white ) {
-                    par->markPath(gs);
-                    unexplored.push(par);
-                }
-            }
-        } // if
-    }
-}
-
-
-void GlobalState::resetColor()
-{
-    set<GlobalState*>::iterator it = _all.begin() ;
-    for( ; it != _all.end() ; ++ it )
-        (*it)->_white = true;
-    /*
-    for( GSHash::iterator it = _uniqueTable.begin() ; it != _uniqueTable.end() ; ++it ) 
-        (*it).second->_white = true;    
-     */
-}
-
-size_t GlobalState::markPath(GlobalState* ptr)
-{
-    for( size_t ii = 0 ; ii < _childs.size() ; ++ii ) {
-        if( getChild(ii) == ptr ) {
-            _trace = ii;
-            return _trace;
-        }
-    }
-
-    stringstream ss ;
-    ss << "Child " << ptr->toString() 
-       << " in GlobalState " << this->toString() ;
-    throw runtime_error(ss.str());
-
-    size_t ret = 0 ;
-    ret--;
-    return ret;
 }
 
 void GlobalState::printSeq(const vector<GlobalState*>& seq) {
