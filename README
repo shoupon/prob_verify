@@ -1,0 +1,9 @@
+v2.1
+--------
+Compute the number of distinct paths that lead to each entry state
+
+
+
+v2.0
+--------
+Switch to depth-first-search based probabilistic verification
