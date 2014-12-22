@@ -318,7 +318,7 @@ vector<GlobalState*> GlobalState::evaluate()
                 // Another null input transition should be evaluate first
                 stringstream ss ;
                 ss << "No matching transition for message: " << endl
-                   << msg2str(tuple) 
+                   << tuple->toReadable()
                    << "GlobalState = " << this->toString() << endl ;
                 // Print all the task in _fifo
                 ss << "Content in fifo: " << endl ;
