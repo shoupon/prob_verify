@@ -164,9 +164,21 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
         for (auto& state_str : dfs_stack_string_)
           leads_to_[state_str].insert(entry_point);
         if (k) {
+          if (verbosity_ >= 7) {
+            cout << "increase path count of " << entry_point->toString()
+                 << " from " << entry_point->getPathCount();
+          }
           entry_point->increasePathCount(
             dfs_stack_state_.front()->getPathCount());
+          if (verbosity_ >= 7) {
+            cout << " to " << entry_point->getPathCount() << endl;
+          }
         } else {
+          if (verbosity_ >= 7) {
+            cout << "increase path count of " << entry_point->toString()
+                 << " from " << entry_point->getPathCount()
+                 << " to " << entry_point->getPathCount() + 1 << endl;
+          }
           entry_point->increasePathCount(1);
         }
       }
@@ -187,9 +199,21 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
           for (auto stack_str : dfs_stack_string_)
             leads_to_[stack_str].insert(entry_point);
           if (k) {
+            if (verbosity_ >= 7) {
+              cout << "increase path count of " << entry_point->toString()
+                   << " from " << entry_point->getPathCount();
+            }
             entry_point->increasePathCount(
               dfs_stack_state_.front()->getPathCount());
+            if (verbosity_ >= 7) {
+              cout << " to " << entry_point->getPathCount() << endl;
+            }
           } else {
+            if (verbosity_ >= 7) {
+              cout << "increase path count of " << entry_point->toString()
+                   << " from " << entry_point->getPathCount()
+                   << " to " << entry_point->getPathCount() + 1 << endl;
+            }
             entry_point->increasePathCount(1);
           }
         }
