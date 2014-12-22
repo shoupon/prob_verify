@@ -137,12 +137,12 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
   num_transitions_ += childs.size();
 
   for (auto child_ptr : childs) {
-    if (isMemberOfStack(child_ptr)) {
+    int p = child_ptr->getProb() - gs->getProb();
+    if (!p && isMemberOfStack(child_ptr)) {
       // found cycle
       if (!hasProgress(child_ptr))
         reportLivelock(child_ptr);
     }
-    int p = child_ptr->getProb() - gs->getProb();
     if (!isMemberOfClasses(child_ptr)) {
       if (!p) {
         // TODO(shoupon): path count
