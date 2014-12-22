@@ -43,6 +43,16 @@ private:
   string error_msg_;
 };
 
+class UnspecifiedReception : public ProtocolError {
+public:
+  UnspecifiedReception(): ProtocolError("unspecified reception") {}
+  UnspecifiedReception(const MessageTuple* msg)
+      : ProtocolError("unspecified reception of " + msg->toReadable()) {
+    ;
+  }
+  ~UnspecifiedReception() {}
+};
+
 class ProbVerifier {
   typedef unordered_map<string, GlobalState*>      GSClass;
 

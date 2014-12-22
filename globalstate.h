@@ -33,7 +33,6 @@ class GlobalState {
   // A table stores all of the reachable globalState. Each reachable globalState is
   // unique. The _uniqueTable stores the pointers to each unique GlobalState
   static GlobalState* _root;
-  static Parser* _psrPtr;
   
   vector<GlobalState*> _childs;
   vector<GlobalState*> _parents;
@@ -65,16 +64,16 @@ public:
   // GlobalState, such as number of state machines, the pointers to machines, etc.
   GlobalState(vector<StateMachine*> macs, CheckerState* chkState = 0);
   ~GlobalState();
-  
+
   GlobalState* getChild (size_t i);
   int getProb() const { return _depth ; }
   int getVisit() { return _visit ;}
   int getDistance() { return _dist;}
   const vector<StateSnapshot*> getStateVec() const { return _gStates ;}
-  
+
   CheckerState* chkState() { return _checker; }
   const vector<string> getStringVec() const;
-  const size_t size() { return _childs.size() ; }
+  const size_t size() { return _childs.size(); }
   bool hasChild() { return size()!=0; }
   bool isBusy() { return !_fifo.empty();}
 
@@ -83,7 +82,7 @@ public:
   // For each child global states, update their distance from initial state
   // increase the step length from the initial global state for livelock detection
   void updateTrip();
-  void removeParents() { _parents.clear() ; }
+  void removeParents() { _parents.clear(); }
   void updateParents() ;
   static bool removeBranch(GlobalState* leaf) ;
   void merge(GlobalState* gs);
@@ -95,13 +94,12 @@ public:
 
   void addOrigin(GlobalState* rootStop);
 
-  string toString() const ;
+  string toString() const;
 
   void setRoot() { _root = this; }
-  static bool init(GlobalState*) ;
+  static bool init(GlobalState*);
   static void clearAll() ;
-  
-  static void setParser(Parser* ptr) { _psrPtr = ptr ;}
+
   static void setService(Service* srvc);
 
   void setTrail(const vector<GlobalState*>& t) { trail_ = t; }
@@ -112,7 +110,7 @@ public:
 
 protected:
   // Number of machines
-  static int _nMacs ;
+  static int _nMacs;
   // array of ptr to machines
   static vector<StateMachine*> _machines;
   static Service* _service;

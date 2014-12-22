@@ -14,7 +14,6 @@ int GlobalState::_nMacs = -1;
 vector<StateMachine*> GlobalState::_machines;
 Service* GlobalState::_service = NULL;
 GlobalState* GlobalState::_root = NULL;
-Parser* GlobalState::_psrPtr = NULL;
 
 GlobalState::GlobalState(GlobalState* gs)
     : _visit(1), _dist(gs->_dist), _depth(gs->_depth), _white(true),
@@ -673,9 +672,11 @@ void GlobalState::printSeq(const vector<GlobalState*>& seq) {
 string GlobalState::msg2str(MessageTuple *msg)
 {
     stringstream ss;
-    ss << "Source Machine = " << _psrPtr->IntToMachine(msg->subjectId()) << endl
-       << "Destination Machine = " << _psrPtr->IntToMachine(msg->destId()) << endl
-       << "Message = " << _psrPtr->IntToMessage(msg->destMsgId()) << endl ;
+    ss << "Source Machine = " << StateMachine::IntToMachine(msg->subjectId())
+       << endl
+       << "Destination Machine = " << StateMachine::IntToMachine(msg->destId())
+       << endl
+       << "Message = " << StateMachine::IntToMessage(msg->destMsgId()) << endl;
     return ss.str() ;
 }
 
