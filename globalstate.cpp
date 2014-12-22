@@ -17,7 +17,7 @@ GlobalState* GlobalState::_root = NULL;
 
 GlobalState::GlobalState(GlobalState* gs)
     : _visit(1), _dist(gs->_dist), _depth(gs->_depth), _white(true),
-      _origin(gs->_origin), path_count_(0) {
+      _origin(gs->_origin), path_count_(gs->path_count_) {
     // Clone the pending tasks
     // Duplicate the container since the original gs->_fifo cannot be popped
     queue<MessageTuple*> cloneTasks = gs->_fifo ;
@@ -45,7 +45,8 @@ GlobalState::GlobalState(GlobalState* gs)
 
 GlobalState::GlobalState(const GlobalState* gs)
     : _visit(1), _dist(gs->_dist), _depth(gs->_depth),
-      _white(true), _origin(gs->_origin), trail_(gs->trail_), path_count_(0) {
+      _white(true), _origin(gs->_origin), trail_(gs->trail_),
+      path_count_(gs->path_count_) {
   // Copy Snapshots
   for (auto ss : gs->_gStates)
     _gStates.push_back(ss->clone());

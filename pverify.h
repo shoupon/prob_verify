@@ -134,6 +134,7 @@ private:
 
   GlobalState* copyToClass(const GlobalState* gs, int k);
   GlobalState* copyToEntry(const GlobalState* gs, int k);
+  GlobalState* copyToExploredEntry(const GlobalState* gs, int k);
 
   void DFSVisit(GlobalState* gs, int k);
   void stackPush(GlobalState* gs);
@@ -150,6 +151,7 @@ private:
 
   vector<GSClass> classes_;
   vector<GSClass> entries_;
+  vector<GSClass> explored_entries_;
   vector<string> dfs_stack_string_;
   vector<GlobalState*> dfs_stack_state_;
   unordered_set<string> reached_stoppings_;

@@ -67,7 +67,9 @@ void ProbVerifier::initialize() {
   else
     _root = new GlobalState(_macPtrs);
 
-  entries_[0][_root->toString()] = _root;
+  GlobalState* first = copyToEntry(_root, 0);
+  assert(isStopping(first));
+  //entries_[0][_root->toString()] = _root;
 }
 
 void ProbVerifier::start(int max_class) {
@@ -79,6 +81,7 @@ void ProbVerifier::start(int max_class, int verbose) {
   initialize();
   classes_.resize(max_class + 1, GSClass());
   entries_.resize(max_class + 1, GSClass());
+  explored_entries_.resize(max_class + 1, GSClass());
   try {
     for (int cur_class = 0; cur_class <= max_class; ++cur_class) {
       if (verbosity_) {
@@ -96,6 +99,7 @@ void ProbVerifier::start(int max_class, int verbose) {
         } else {
           copyToClass(s, cur_class);
           DFSVisit(s, cur_class);
+          copyToExploredEntry(s, cur_class);
         }
       }
       if (verbosity_) {
@@ -159,7 +163,6 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
     }
     if (!isMemberOfClasses(child_ptr)) {
       if (!p) {
-        // TODO(shoupon): path count
         if (isEnding(child_ptr)) {
           copyToClass(child_ptr, k);
           if (verbosity_ >= 6)
@@ -173,65 +176,22 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
         }
       } else {
         child_ptr->setTrail(dfs_stack_state_);
-        GlobalState* entry_point = copyToEntry(child_ptr, k + p);
-        for (auto& state_str : dfs_stack_string_)
-          leads_to_[state_str].insert(entry_point);
-        if (k) {
-          if (verbosity_ >= 7) {
-            cout << "increase path count of " << entry_point->toString()
-                 << " from " << entry_point->getPathCount();
-          }
-          entry_point->increasePathCount(
-            dfs_stack_state_.front()->getPathCount());
-          if (verbosity_ >= 7) {
-            cout << " to " << entry_point->getPathCount() << endl;
-          }
-        } else {
-          if (verbosity_ >= 7) {
-            cout << "increase path count of " << entry_point->toString()
-                 << " from " << entry_point->getPathCount()
-                 << " to " << entry_point->getPathCount() + 1 << endl;
-          }
-          entry_point->increasePathCount(1);
-        }
-      }
-    } else {
-      // TODO(shoupon): path count
-      if (verbosity_ >= 7) {
-        for (int i = 0; i < dfs_stack_state_.size() + 1; ++i)
-          cout << "  ";
-        cout << dfs_stack_state_.size() + 1;
-        cout << "-> reached already " << child_ptr->toString()
-             << " Prob = " << child_ptr->getProb()
-             << " Dist = " << child_ptr->getDistance() << endl;
-      }
-      GlobalState* explored = isMemberOf(child_ptr, classes_[k]);
-      if (explored && !isStopping(child_ptr)) {
-        string explored_str = explored->toString();
-        for (auto entry_point : leads_to_[explored_str]) {
-          for (auto stack_str : dfs_stack_string_)
-            leads_to_[stack_str].insert(entry_point);
-          if (k) {
-            if (verbosity_ >= 7) {
-              cout << "increase path count of " << entry_point->toString()
-                   << " from " << entry_point->getPathCount();
-            }
-            entry_point->increasePathCount(
-              dfs_stack_state_.front()->getPathCount());
-            if (verbosity_ >= 7) {
-              cout << " to " << entry_point->getPathCount() << endl;
-            }
-          } else {
-            if (verbosity_ >= 7) {
-              cout << "increase path count of " << entry_point->toString()
-                   << " from " << entry_point->getPathCount()
-                   << " to " << entry_point->getPathCount() + 1 << endl;
-            }
-            entry_point->increasePathCount(1);
-          }
-        }
+        copyToEntry(child_ptr, k + p);
       }
     }
+  }
+  int max = 0;
+  int num_low_prob = 0;
+  for (auto child_ptr : childs) {
+    if (child_ptr->getProb() > k)
+      ++num_low_prob;
+    else if (child_ptr->getProb() == k && child_ptr->getPathCount() > max)
+      max = child_ptr->getPathCount();
+  }
+  gs->setPathCount(max + num_low_prob);
+  if (verbosity_ >= 7) {
+    cout << gs->toString() 
+         << " has path count = " << gs->getPathCount() << endl;
   }
   stackPop();
 }
@@ -333,14 +293,13 @@ void ProbVerifier::printStat(int class_k) {
   cout << entries_[class_k].size() << " entry points discovered in entry["
        << class_k << "]" << endl;
   int alpha = 0;
-  if (class_k) {
-    for(auto pr : entries_[class_k]) {
-      GlobalState* gs = pr.second;
-      alpha += gs->getPathCount();
-    }
-    cout << "alpha (sum of path counts of all entry point states) = " << alpha
-         << endl;
+  for(auto pr : explored_entries_[class_k]) {
+    GlobalState* gs = pr.second;
+    if (gs->getPathCount() > alpha)
+      alpha = gs->getPathCount();
   }
+  cout << "alpha (maximum of path counts of all entry point states) = " << alpha
+       << endl;
 }
 
 void ProbVerifier::printStoppings() {
@@ -480,6 +439,10 @@ GlobalState* ProbVerifier::copyToEntry(const GlobalState* gs, int k) {
          << " Prob = " << gs->getProb() << endl;
   }
   return entries_[k][gs->toString()] = new GlobalState(gs);
+}
+
+GlobalState* ProbVerifier::copyToExploredEntry(const GlobalState* gs, int k) {
+  return explored_entries_[k][gs->toString()] = new GlobalState(gs);
 }
 
 void ProbVerifier::stackPush(GlobalState *gs) {
