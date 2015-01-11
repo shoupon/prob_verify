@@ -154,6 +154,8 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
   }
   num_transitions_ += childs.size();
 
+  int max_path_count = 0;
+  int num_low_prob = 0;
   for (auto child_ptr : childs) {
     int p = child_ptr->getProb() - gs->getProb();
     if (!p && isMemberOfStack(child_ptr)) {
@@ -173,22 +175,17 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
         } else {
           DFSVisit(child_ptr, k);
           copyToClass(child_ptr, k);
+          if (child_ptr->getPathCount() > max_path_count)
+            max_path_count = child_ptr->getPathCount();
         }
       } else {
         child_ptr->setTrail(dfs_stack_state_);
         copyToEntry(child_ptr, k + p);
+        ++num_low_prob;
       }
     }
   }
-  int max = 0;
-  int num_low_prob = 0;
-  for (auto child_ptr : childs) {
-    if (child_ptr->getProb() > k)
-      ++num_low_prob;
-    else if (child_ptr->getProb() == k && child_ptr->getPathCount() > max)
-      max = child_ptr->getPathCount();
-  }
-  gs->setPathCount(max + num_low_prob);
+  gs->setPathCount(max_path_count + num_low_prob);
   if (verbosity_ >= 7) {
     cout << gs->toString() 
          << " has path count = " << gs->getPathCount() << endl;
