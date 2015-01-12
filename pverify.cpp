@@ -111,6 +111,19 @@ void ProbVerifier::start(int max_class, int verbose) {
     if (verbosity_) {
       cout << "Model checking procedure completes. Error not found." << endl;
       printStat();
+      for (int k = 1; k <= max_class + 1; ++k) {
+        int alpha = computeBound(k);
+        cout << "Probability of reaching class[" << k << "]"
+             << " from the initial state is ";
+        if (alpha) {
+          cout << "bounded by " << computeBound(k) << "p";
+          if (k - 1)
+            cout << "^" << k;
+          cout << "." << endl;
+        } else {
+          cout << "zero." << endl;
+        }
+      }
     }
     if (verbosity_ >= 2) {
       printStoppings();
