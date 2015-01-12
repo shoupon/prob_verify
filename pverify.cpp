@@ -175,7 +175,8 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
       if (!hasProgress(child_ptr))
         reportLivelock(child_ptr);
     }
-    if (!isMemberOfClasses(child_ptr)) {
+    GlobalState* child = isMemberOfClasses(child_ptr);
+    if (!child) {
       if (!p) {
         if (isEnding(child_ptr)) {
           copyToClass(child_ptr, k);
@@ -194,6 +195,8 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
         copyToEntry(child_ptr, k + p);
         addChild(gs, child_ptr);
       }
+    } else if (gs->getProb() <= child->getProb()) {
+      addChild(gs, child);
     }
   }
   stackPop();
@@ -208,8 +211,9 @@ int ProbVerifier::DFSComputeBound(const string& s, int limit) {
       int child_prob = child->getProb();
       if (child_prob >= limit) {
         ++alpha;
-      } else if (alphas_.find(child_str) == alphas_.end()) {
-        DFSComputeBound(child_str, limit);
+      } else {
+        if (alphas_.find(child_str) == alphas_.end())
+          DFSComputeBound(child_str, limit);
         assert(alphas_.find(child_str) != alphas_.end());
         if (parent_prob == child_prob) {
           if (alphas_[child_str] > alpha)
