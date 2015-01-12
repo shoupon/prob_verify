@@ -205,19 +205,19 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
 int ProbVerifier::DFSComputeBound(const string& s, int limit) {
   int alpha = 0;
   int num_low_prob = 0;
+  int low_prob_alphas = 0;
   int parent_prob = isMemberOfClasses(s)->getProb();
   for (const auto& child_str : leads_to_[s]) {
     auto child = isMemberOfClasses(child_str);
     if (child) {
       int child_prob = child->getProb();
       if (child_prob >= limit) {
-        ++alpha;
         ++num_low_prob;
       } else {
         if (alphas_.find(child_str) == alphas_.end())
           DFSComputeBound(child_str, limit);
         assert(alphas_.find(child_str) != alphas_.end());
-        if (verbosity_) {
+        if (verbosity_ >= 8) {
           cout << child_str << "'s alpha = "
                << alphas_[child_str] << endl;
         }
@@ -225,7 +225,7 @@ int ProbVerifier::DFSComputeBound(const string& s, int limit) {
           if (alphas_[child_str] > alpha)
             alpha = alphas_[child_str];
         } else if (parent_prob < child_prob) {
-          alpha += alphas_[child_str];
+          low_prob_alphas += alphas_[child_str];
         } else {
           // child's prob shouldn't be less than parent's prob. it should not have
           // been added to leads_to_ in the first place
@@ -233,11 +233,11 @@ int ProbVerifier::DFSComputeBound(const string& s, int limit) {
         }
       }
     } else {
-      ++alpha;
       ++num_low_prob;
     }
   }
-  if (verbosity_) {
+  alpha += low_prob_alphas + num_low_prob;
+  if (verbosity_ >= 8) {
     cout << s << " has " << num_low_prob
          << " low prob. transitions" << endl;
     cout << s << "'s alpha = "
