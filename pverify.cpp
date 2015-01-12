@@ -204,6 +204,7 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
 
 int ProbVerifier::DFSComputeBound(const string& s, int limit) {
   int alpha = 0;
+  int num_low_prob = 0;
   int parent_prob = isMemberOfClasses(s)->getProb();
   for (const auto& child_str : leads_to_[s]) {
     auto child = isMemberOfClasses(child_str);
@@ -211,10 +212,15 @@ int ProbVerifier::DFSComputeBound(const string& s, int limit) {
       int child_prob = child->getProb();
       if (child_prob >= limit) {
         ++alpha;
+        ++num_low_prob;
       } else {
         if (alphas_.find(child_str) == alphas_.end())
           DFSComputeBound(child_str, limit);
         assert(alphas_.find(child_str) != alphas_.end());
+        if (verbosity_) {
+          cout << child_str << "'s alpha = "
+               << alphas_[child_str] << endl;
+        }
         if (parent_prob == child_prob) {
           if (alphas_[child_str] > alpha)
             alpha = alphas_[child_str];
@@ -228,7 +234,14 @@ int ProbVerifier::DFSComputeBound(const string& s, int limit) {
       }
     } else {
       ++alpha;
+      ++num_low_prob;
     }
+  }
+  if (verbosity_) {
+    cout << s << " has " << num_low_prob
+         << " low prob. transitions" << endl;
+    cout << s << "'s alpha = "
+         << alpha << endl;
   }
   alphas_[s] = alpha;
   return alpha;
