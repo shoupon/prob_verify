@@ -97,6 +97,7 @@ public:
   void start(int max_class);
   void start(int max_class, int verbose);
   // void start(vector<GlobalState*> initStates);
+  int computeBound(int target_class);
   void clear();
   
   size_t getNumMachines() { return _macPtrs.size(); }
@@ -127,16 +128,23 @@ private:
   void reportError(GlobalState* gs);
 
   bool isMemberOf(const GlobalState* gs, const vector<string>& container);
+  bool isMemberOf(const string& s, const vector<string>& container);
   GlobalState* isMemberOf(const GlobalState* gs, const GSClass& container);
+  GlobalState* isMemberOf(const string& s, const GSClass& container);
   GlobalState* isMemberOf(const GlobalState* gs, const vector<GSClass>& containers);
+  GlobalState* isMemberOf(const string& s, const vector<GSClass>& containers);
   GlobalState* isMemberOfClasses(const GlobalState* gs);
+  GlobalState* isMemberOfClasses(const string& s);
   GlobalState* isMemberOfEntries(const GlobalState* gs);
+  GlobalState* isMemberOfEntries(const string& s);
 
   GlobalState* copyToClass(const GlobalState* gs, int k);
   GlobalState* copyToEntry(const GlobalState* gs, int k);
   GlobalState* copyToExploredEntry(const GlobalState* gs, int k);
 
   void DFSVisit(GlobalState* gs, int k);
+  int DFSComputeBound(const string& s, int limit);
+  void addChild(const GlobalState* par, const GlobalState* child);
   void stackPush(GlobalState* gs);
   void stackPop();
   void stackPrint();
@@ -156,7 +164,8 @@ private:
   vector<GlobalState*> dfs_stack_state_;
   unordered_set<string> reached_stoppings_;
   unordered_set<string> reached_endings_;
-  unordered_map<string, unordered_set<GlobalState*>> leads_to_;
+  unordered_map<string, vector<string>> leads_to_;
+  unordered_map<string, int> alphas_;
 
   unique_ptr<GlobalState> start_point_;
   unique_ptr<StoppingState> default_stopping_;
