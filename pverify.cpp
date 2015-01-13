@@ -216,29 +216,40 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
 }
 
 int ProbVerifier::DFSComputeBound(const string& s, int limit) {
+  if (leads_to_.find(s) == leads_to_.end())
+    return alphas_[s] = 0;
   int alpha = 0;
   int num_low_prob = 0;
   int low_prob_alphas = 0;
+  int even_low_prob = 0;
   int parent_prob = isMemberOfClasses(s)->getProb();
   for (const auto& child_str : leads_to_[s]) {
     auto child = isMemberOfClasses(child_str);
     if (child) {
       int child_prob = child->getProb();
-      if (child_prob >= limit) {
+      if (child_prob == limit) {
         ++num_low_prob;
+      } else if (child_prob > limit) {
+        even_low_prob |= 1;
       } else {
+        int child_alpha = 0;
         if (alphas_.find(child_str) == alphas_.end())
-          DFSComputeBound(child_str, limit);
+          child_alpha = DFSComputeBound(child_str, limit);
+        else
+          child_alpha = alphas_[child_str];
         assert(alphas_.find(child_str) != alphas_.end());
         if (verbosity_ >= 8) {
           cout << child_str << "'s alpha = "
-               << alphas_[child_str] << endl;
+               << child_alpha << endl;
         }
         if (parent_prob == child_prob) {
-          if (alphas_[child_str] > alpha)
-            alpha = alphas_[child_str];
+          if (child_alpha > alpha)
+            alpha = child_alpha;
+        } else if (parent_prob + 1 == child_prob) {
+          low_prob_alphas += child_alpha;
         } else if (parent_prob < child_prob) {
-          low_prob_alphas += alphas_[child_str];
+          if (child_alpha)
+            even_low_prob |= 1;
         } else {
           // child's prob shouldn't be less than parent's prob. it should not have
           // been added to leads_to_ in the first place
@@ -246,18 +257,20 @@ int ProbVerifier::DFSComputeBound(const string& s, int limit) {
         }
       }
     } else {
-      ++num_low_prob;
+      assert(isMemberOfEntries(child_str));
+      even_low_prob |= 1;
     }
   }
-  alpha += low_prob_alphas + num_low_prob;
+  alpha += low_prob_alphas + num_low_prob + even_low_prob;
   if (verbosity_ >= 8) {
+    // TODO(shoupon): change this, as we are treating p low prob. transitions
+    // and p^k low prob. transitions differently.
     cout << s << " has " << num_low_prob
          << " low prob. transitions" << endl;
     cout << s << "'s alpha = "
          << alpha << endl;
   }
-  alphas_[s] = alpha;
-  return alpha;
+  return alphas_[s] = alpha;
 }
 
 void ProbVerifier::addChild(const GlobalState* par, const GlobalState* child) {
