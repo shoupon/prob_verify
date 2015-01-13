@@ -84,7 +84,7 @@ void ProbVerifier::start(int max_class, const GlobalState* init_state,
   entries_.resize(max_class + 10, GSClass());
   explored_entries_.resize(max_class + 1, GSClass());
   try {
-    leads_to_.clear();
+    transitions_.clear();
     for (int cur_class = 0; cur_class <= max_class; ++cur_class) {
       if (verbosity_) {
         cout << "-------- Start exploring states in class[" << cur_class
@@ -117,7 +117,7 @@ void ProbVerifier::start(int max_class, const GlobalState* init_state,
         cout << "Probability of reaching class[" << k << "]"
              << " from the initial state is ";
         if (alpha) {
-          cout << "bounded by " << computeBound(k) << "p";
+          cout << "bounded by " << alpha << "p";
           if (k - 1)
             cout << "^" << k;
           cout << "." << endl;
@@ -149,10 +149,15 @@ int ProbVerifier::computeBound(int target_class) {
   // start from each entry state of class[0] (stopping state/progressive state)
   // and recursively compute the constant alpha from the furthest edge state in
   // equivalent class class[target_class - 1]
+  stack_depth_ = 0;
   int max_alpha = 0;
   alphas_.clear();
   for (auto pair : explored_entries_[0]) {
     int alpha = DFSComputeBound(pair.first, target_class);
+    if (log_alpha_evaluation_) {
+      cout << "bound originated from " << pair.first
+           << " = " << alpha << endl;
+    }
     if (alpha > max_alpha)
       max_alpha = alpha;
   }
@@ -207,31 +212,54 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
       } else {
         child_ptr->setTrail(dfs_stack_state_);
         copyToEntry(child_ptr, k + p);
-        addChild(gs, child_ptr);
+        addChild(gs, child_ptr, p);
       }
-    } else if (gs->getProb() <= child->getProb()) {
-      addChild(gs, child);
+    } else if (p >= 0) {
+      if (!isStopping(child_ptr) && !isMemberOfStack(child_ptr))
+        addChild(gs, child, p);
     }
   }
   stackPop();
 }
 
+void printIndent(int n) {
+  int k = n;
+  while (k--)
+    cout << "  ";
+  cout << n << ": ";
+}
+
 int ProbVerifier::DFSComputeBound(const string& s, int limit) {
-  if (leads_to_.find(s) == leads_to_.end())
+  ++stack_depth_;
+  if (log_alpha_evaluation_) {
+    printIndent(stack_depth_);
+    cout << "evaluating alpha of " << s << endl;
+  }
+  if (transitions_.find(s) == transitions_.end()) {
+    --stack_depth_;
     return alphas_[s] = 0;
+  }
   int alpha = 0;
+  int max_alpha = 0;
   int num_low_prob = 0;
   int low_prob_alphas = 0;
   int even_low_prob = 0;
   int parent_prob = isMemberOfClasses(s)->getProb();
-  for (const auto& child_str : leads_to_[s]) {
+  for (const auto& trans : transitions_[s]) {
+    if (log_alpha_evaluation_) {
+      printIndent(stack_depth_);
+      cout << "evaluating child " << trans.state_str_
+           << " having transition probability " << trans.probability_ << endl;
+    }
+    string child_str = trans.state_str_;
     auto child = isMemberOfClasses(child_str);
     if (child) {
-      int child_prob = child->getProb();
-      if (child_prob == limit) {
-        ++num_low_prob;
-      } else if (child_prob > limit) {
-        even_low_prob |= 1;
+      int child_prob = parent_prob + trans.probability_;
+      if (child_prob >= limit) {
+        if (trans.probability_ == 1)
+          ++num_low_prob;
+        else
+          even_low_prob |= 1;
       } else {
         int child_alpha = 0;
         if (alphas_.find(child_str) == alphas_.end())
@@ -239,16 +267,17 @@ int ProbVerifier::DFSComputeBound(const string& s, int limit) {
         else
           child_alpha = alphas_[child_str];
         assert(alphas_.find(child_str) != alphas_.end());
-        if (verbosity_ >= 8) {
+        if (log_alpha_evaluation_) {
+          printIndent(stack_depth_);
           cout << child_str << "'s alpha = "
                << child_alpha << endl;
         }
-        if (parent_prob == child_prob) {
-          if (child_alpha > alpha)
-            alpha = child_alpha;
-        } else if (parent_prob + 1 == child_prob) {
+        if (!trans.probability_) {
+          if (child_alpha > max_alpha)
+            max_alpha = child_alpha;
+        } else if (trans.probability_ == 1) {
           low_prob_alphas += child_alpha;
-        } else if (parent_prob < child_prob) {
+        } else if (trans.probability_ > 1) {
           if (child_alpha)
             even_low_prob |= 1;
         } else {
@@ -259,27 +288,47 @@ int ProbVerifier::DFSComputeBound(const string& s, int limit) {
       }
     } else {
       assert(isMemberOfEntries(child_str));
-      even_low_prob |= 1;
+      if (trans.probability_ == 1)
+        ++num_low_prob;
+      else
+        even_low_prob |= 1;
     }
   }
-  alpha += low_prob_alphas + num_low_prob + even_low_prob;
-  if (verbosity_ >= 8) {
+  alpha = low_prob_alphas + num_low_prob + even_low_prob + max_alpha;
+  if (log_alpha_evaluation_) {
     // TODO(shoupon): change this, as we are treating p low prob. transitions
     // and p^k low prob. transitions differently.
-    cout << s << " has " << num_low_prob
-         << " low prob. transitions" << endl;
+    printIndent(stack_depth_);
     cout << s << "'s alpha = "
-         << alpha << endl;
+         << alpha << "." << endl;
+    printIndent(stack_depth_);
+    cout << max_alpha << " comes from states within the same class." << endl;
+    printIndent(stack_depth_);
+    cout << low_prob_alphas
+         << " comes from the computed alphas of states one class deeper."
+         << endl;
+    printIndent(stack_depth_);
+    cout << num_low_prob << " comes from the unknown states beyond the limit."
+         << endl;
+    printIndent(stack_depth_);
+    cout << even_low_prob
+         << " comes from states that are more than one class deeper." << endl;
   }
+  --stack_depth_;
   return alphas_[s] = alpha;
 }
 
 void ProbVerifier::addChild(const GlobalState* par, const GlobalState* child) {
+  addChild(par, child, 0);
+}
+
+void ProbVerifier::addChild(const GlobalState* par, const GlobalState* child,
+                            int prob) {
   string p_str = par->toString();
   string c_str = child->toString();
-  if (leads_to_.find(p_str) == leads_to_.end())
-    leads_to_[p_str] = vector<string>();
-  leads_to_[p_str].push_back(c_str);
+  if (transitions_.find(p_str) == transitions_.end())
+    transitions_[p_str] = vector<Transition>();
+  transitions_[p_str].push_back(Transition(c_str, prob));
 }
 
 void ProbVerifier::addSTOP(StoppingState* rs) {
@@ -378,14 +427,6 @@ void ProbVerifier::printStat(int class_k) {
        << class_k << "]" << endl;
   cout << entries_[class_k].size() << " entry points discovered in entry["
        << class_k << "]" << endl;
-  int alpha = 0;
-  for(auto pr : explored_entries_[class_k]) {
-    GlobalState* gs = pr.second;
-    if (gs->getPathCount() > alpha)
-      alpha = gs->getPathCount();
-  }
-  cout << "alpha (maximum of path counts of all entry point states) = " << alpha
-       << endl;
 }
 
 void ProbVerifier::printStoppings() {

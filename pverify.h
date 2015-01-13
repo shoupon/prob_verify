@@ -92,10 +92,12 @@ public:
   void addPrintStop(bool (*printStop)(GlobalState*, GlobalState*) = 0);
   // the boilerplate to be setup before starting the whole model checking
   // procedure
-  void initialize();
+  void initialize(const GlobalState* init_state);
   // The basic procedure, start when all machines are in its initial state
   void start(int max_class);
+  void start(int max_class, const GlobalState* init_state);
   void start(int max_class, int verbose);
+  void start(int max_class, const GlobalState* init_state, int verbose);
   // void start(vector<GlobalState*> initStates);
   int computeBound(int target_class);
   void clear();
@@ -145,6 +147,7 @@ private:
   void DFSVisit(GlobalState* gs, int k);
   int DFSComputeBound(const string& s, int limit);
   void addChild(const GlobalState* par, const GlobalState* child);
+  void addChild(const GlobalState* par, const GlobalState* child, int prob);
   void stackPush(GlobalState* gs);
   void stackPop();
   void stackPrint();
@@ -164,7 +167,12 @@ private:
   vector<GlobalState*> dfs_stack_state_;
   unordered_set<string> reached_stoppings_;
   unordered_set<string> reached_endings_;
-  unordered_map<string, vector<string>> leads_to_;
+  struct Transition {
+    Transition(const string& s, int prob): state_str_(s), probability_(prob) {}
+    string state_str_;
+    int probability_;
+  };
+  unordered_map<string, vector<Transition>> transitions_;
   unordered_map<string, int> alphas_;
 
   unique_ptr<GlobalState> start_point_;
@@ -174,6 +182,9 @@ private:
   int verbosity_;
 
   int num_transitions_;
+  int stack_depth_;
+
+  const bool log_alpha_evaluation_ = false;
 };
 
 
