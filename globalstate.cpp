@@ -694,6 +694,12 @@ void GlobalState::store()
     _srvcState = _service->curState();
 }
 
+void GlobalState::mutateState(const StateSnapshot* snapshot, int mac_id) {
+  delete _gStates[mac_id];
+  _gStates[mac_id] = snapshot->clone();
+  restore();
+}
+
 void GlobalState::printTrail() const {
   if (trail_.size()) {
     trail_.front()->printTrail();

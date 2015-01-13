@@ -91,6 +91,7 @@ public:
   void restore();
   // Save the current state of machines to _gStates
   void store();
+  void mutateState(const StateSnapshot* snapshot, int mac_id);
 
   void addOrigin(GlobalState* rootStop);
 
