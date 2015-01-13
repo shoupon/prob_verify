@@ -34,24 +34,25 @@ void ProbVerifier::addPrintStop(bool (*printStop)(GlobalState *, GlobalState *))
     _printStop = printStop ;
 }
 
-void ProbVerifier::initialize() {
-  start_point_ = unique_ptr<GlobalState>(new GlobalState(getMachinePtrs()));
-  default_stopping_ = unique_ptr<StoppingState>(
-    new StoppingState(start_point_.get()));
-  for (auto ptr : getMachinePtrs())
-    default_stopping_->addAllow(ptr->curState(), ptr->macId() - 1);
-  addSTOP(default_stopping_.get());
-
+void ProbVerifier::initialize(const GlobalState* init_state) {
+  if (init_state) {
+    start_point_ = unique_ptr<GlobalState>(new GlobalState(init_state));
+  } else {
+    start_point_ = unique_ptr<GlobalState>(new GlobalState(getMachinePtrs()));
+    default_stopping_ = unique_ptr<StoppingState>(
+      new StoppingState(start_point_.get()));
+    for (auto ptr : getMachinePtrs())
+      default_stopping_->addAllow(ptr->curState(), ptr->macId() - 1);
+    addSTOP(default_stopping_.get());
+  }
 #ifdef LOG
   cout << "Stopping states:" << endl ;
-  for( size_t i = 0 ; i < _stops.size() ; ++i ) {
+  for (size_t i = 0 ; i < _stops.size() ; ++i)
     cout << _stops[i]->toString() ;
-  }
   cout << endl;
   cout << "Error states:" << endl;
-  for( size_t i = 0 ; i < _errors.size() ; ++i ) {
+  for (size_t i = 0 ; i < _errors.size() ; ++i)
     cout << _errors[i]->toString() ;
-  }
   cout << endl;
 #endif
 
@@ -59,26 +60,26 @@ void ProbVerifier::initialize() {
   entries_.clear();
   entries_.resize(1);
 
-  for (auto ptr : _macPtrs)
-    ptr->reset();
-
-  if (_checker)
-    _root = new GlobalState(_macPtrs, _checker->initState());
-  else
-    _root = new GlobalState(_macPtrs);
-
-  GlobalState* first = copyToEntry(_root, 0);
-  assert(isStopping(first));
-  //entries_[0][_root->toString()] = _root;
+  copyToEntry(start_point_.get(), 0);
+  assert(isStopping(start_point_.get()));
 }
 
 void ProbVerifier::start(int max_class) {
   start(max_class, 1);
 }
 
+void ProbVerifier::start(int max_class, const GlobalState* init_state) {
+  start(max_class, init_state, 1);
+}
+
 void ProbVerifier::start(int max_class, int verbose) {
+  start(max_class, nullptr, verbose);
+}
+
+void ProbVerifier::start(int max_class, const GlobalState* init_state,
+                         int verbose) {
   verbosity_ = verbose;
-  initialize();
+  initialize(init_state);
   classes_.resize(max_class + 1, GSClass());
   entries_.resize(max_class + 10, GSClass());
   explored_entries_.resize(max_class + 1, GSClass());
