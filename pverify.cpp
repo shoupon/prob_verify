@@ -189,33 +189,37 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
 
   for (auto child_ptr : childs) {
     int p = child_ptr->getProb() - gs->getProb();
-    if (!p && isMemberOfStack(child_ptr)) {
-      // found cycle
-      if (!hasProgress(child_ptr))
-        reportLivelock(child_ptr);
-    }
     GlobalState* child = isMemberOfClasses(child_ptr);
-    if (!child) {
-      if (!p) {
-        if (isEnding(child_ptr)) {
-          copyToClass(child_ptr, k);
-          if (verbosity_ >= 6)
-            cout << "Ending state reached. " << endl;
-        } else if (!k && isStopping(child_ptr)) {
-          // discover new stopping state/entry point in probability class[0]
-          copyToEntry(child_ptr, k);
-        } else {
-          DFSVisit(child_ptr, k);
-          copyToClass(child_ptr, k);
-          addChild(gs, child_ptr);
-        }
-      } else {
+    if (p) {
+      if (!child) {
+        // unexplored entry state in higher classes
         child_ptr->setTrail(dfs_stack_state_);
         copyToEntry(child_ptr, k + p);
         addChild(gs, child_ptr, p);
+      } else {
+        // entry state identical to some explored state
       }
-    } else if (p >= 0) {
-      if (!isStopping(child_ptr) && !isMemberOfStack(child_ptr))
+    } else if (isMemberOfStack(child_ptr)) {
+      // found cycle
+      if (!hasProgress(child_ptr))
+        reportLivelock(child_ptr);
+    } else if (!child) {
+      // unexplored state in the same class
+      if (isEnding(child_ptr)) {
+        copyToClass(child_ptr, k);
+        if (verbosity_ >= 6)
+          cout << "Ending state reached. " << endl;
+      } else if (!k && isStopping(child_ptr)) {
+        // discover new stopping state/entry point in probability class[0]
+        copyToEntry(child_ptr, k);
+      } else {
+        DFSVisit(child_ptr, k);
+        copyToClass(child_ptr, k);
+        addChild(gs, child_ptr);
+      }
+    } else if (!p) {
+      // explored state in the same class
+      if (!isStopping(child_ptr))
         addChild(gs, child, p);
     }
   }
