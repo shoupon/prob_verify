@@ -11,6 +11,7 @@
 
 #include "define.h"
 #include "fsm.h"
+#include "indexer.h"
 #include "state.h"
 #include "statemachine.h"
 #include "checker.h"
@@ -54,7 +55,7 @@ public:
 };
 
 class ProbVerifier {
-  typedef unordered_map<string, GlobalState*>      GSClass;
+  typedef unordered_map<int, GlobalState*>      GSClass;
 
   vector<StateMachine*> _macPtrs;
   vector<GSMap> _arrClass;
@@ -129,23 +130,33 @@ private:
   void reportLivelock(GlobalState* gs);
   void reportError(GlobalState* gs);
 
+  int stateToIndex(const string& state_str);
+  int stateToIndex(const GlobalState* gs);
+  string indexToState(int idx);
+
   bool isMemberOf(const GlobalState* gs, const vector<string>& container);
   bool isMemberOf(const string& s, const vector<string>& container);
+  bool isMemberOf(const GlobalState* gs, const vector<int>& container);
+  bool isMemberOf(int state_idx, const vector<int>& container);
   GlobalState* isMemberOf(const GlobalState* gs, const GSClass& container);
   GlobalState* isMemberOf(const string& s, const GSClass& container);
+  GlobalState* isMemberOf(int state_idx, const GSClass& container);
   GlobalState* isMemberOf(const GlobalState* gs, const vector<GSClass>& containers);
   GlobalState* isMemberOf(const string& s, const vector<GSClass>& containers);
+  GlobalState* isMemberOf(int state_idx, const vector<GSClass>& containers);
   GlobalState* isMemberOfClasses(const GlobalState* gs);
   GlobalState* isMemberOfClasses(const string& s);
+  GlobalState* isMemberOfClasses(int state_idx);
   GlobalState* isMemberOfEntries(const GlobalState* gs);
   GlobalState* isMemberOfEntries(const string& s);
+  GlobalState* isMemberOfEntries(int state_idx);
 
   GlobalState* copyToClass(const GlobalState* gs, int k);
   GlobalState* copyToEntry(const GlobalState* gs, int k);
   GlobalState* copyToExploredEntry(const GlobalState* gs, int k);
 
   void DFSVisit(GlobalState* gs, int k);
-  int DFSComputeBound(const string& s, int limit);
+  int DFSComputeBound(int state_idx, int limit);
   void addChild(const GlobalState* par, const GlobalState* child);
   void addChild(const GlobalState* par, const GlobalState* child, int prob);
   void stackPush(GlobalState* gs);
@@ -163,17 +174,19 @@ private:
   vector<GSClass> classes_;
   vector<GSClass> entries_;
   vector<GSClass> explored_entries_;
-  vector<string> dfs_stack_string_;
+  vector<int> dfs_stack_indices_;
   vector<GlobalState*> dfs_stack_state_;
-  unordered_set<string> reached_stoppings_;
-  unordered_set<string> reached_endings_;
+  unordered_set<int> reached_stoppings_;
+  unordered_set<int> reached_endings_;
+  Indexer<string> unique_states_;
   struct Transition {
-    Transition(const string& s, int prob): state_str_(s), probability_(prob) {}
-    string state_str_;
+    Transition(int state_idx, int prob)
+        : state_idx_(state_idx), probability_(prob) {}
+    int state_idx_;
     int probability_;
   };
-  unordered_map<string, vector<Transition>> transitions_;
-  unordered_map<string, int> alphas_;
+  unordered_map<int, vector<Transition>> transitions_;
+  unordered_map<int, int> alphas_;
 
   unique_ptr<GlobalState> start_point_;
   unique_ptr<StoppingState> default_stopping_;

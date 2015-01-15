@@ -233,30 +233,30 @@ void printIndent(int n) {
   cout << n << ": ";
 }
 
-int ProbVerifier::DFSComputeBound(const string& s, int limit) {
+int ProbVerifier::DFSComputeBound(int state_idx, int limit) {
   ++stack_depth_;
   if (log_alpha_evaluation_) {
     printIndent(stack_depth_);
-    cout << "evaluating alpha of " << s << endl;
+    cout << "evaluating alpha of " << indexToState(state_idx) << endl;
   }
-  if (transitions_.find(s) == transitions_.end()) {
+  if (transitions_.find(state_idx) == transitions_.end()) {
     --stack_depth_;
-    return alphas_[s] = 0;
+    return alphas_[state_idx] = 0;
   }
   int alpha = 0;
   int max_alpha = 0;
   int num_low_prob = 0;
   int low_prob_alphas = 0;
   int even_low_prob = 0;
-  int parent_prob = isMemberOfClasses(s)->getProb();
-  for (const auto& trans : transitions_[s]) {
+  int parent_prob = isMemberOfClasses(state_idx)->getProb();
+  for (const auto& trans : transitions_[state_idx]) {
     if (log_alpha_evaluation_) {
       printIndent(stack_depth_);
-      cout << "evaluating child " << trans.state_str_
+      cout << "evaluating child " << indexToState(trans.state_idx_)
            << " having transition probability " << trans.probability_ << endl;
     }
-    string child_str = trans.state_str_;
-    auto child = isMemberOfClasses(child_str);
+    int child_idx = trans.state_idx_;
+    auto child = isMemberOfClasses(child_idx);
     if (child) {
       int child_prob = parent_prob + trans.probability_;
       if (child_prob >= limit) {
@@ -266,14 +266,14 @@ int ProbVerifier::DFSComputeBound(const string& s, int limit) {
           even_low_prob |= 1;
       } else {
         int child_alpha = 0;
-        if (alphas_.find(child_str) == alphas_.end())
-          child_alpha = DFSComputeBound(child_str, limit);
+        if (alphas_.find(child_idx) == alphas_.end())
+          child_alpha = DFSComputeBound(child_idx, limit);
         else
-          child_alpha = alphas_[child_str];
-        assert(alphas_.find(child_str) != alphas_.end());
+          child_alpha = alphas_[child_idx];
+        assert(alphas_.find(child_idx) != alphas_.end());
         if (log_alpha_evaluation_) {
           printIndent(stack_depth_);
-          cout << child_str << "'s alpha = "
+          cout << indexToState(child_idx) << "'s alpha = "
                << child_alpha << endl;
         }
         if (!trans.probability_) {
@@ -291,7 +291,7 @@ int ProbVerifier::DFSComputeBound(const string& s, int limit) {
         }
       }
     } else {
-      assert(isMemberOfEntries(child_str));
+      assert(isMemberOfEntries(child_idx));
       if (trans.probability_ == 1)
         ++num_low_prob;
       else
@@ -300,10 +300,8 @@ int ProbVerifier::DFSComputeBound(const string& s, int limit) {
   }
   alpha = low_prob_alphas + num_low_prob + even_low_prob + max_alpha;
   if (log_alpha_evaluation_) {
-    // TODO(shoupon): change this, as we are treating p low prob. transitions
-    // and p^k low prob. transitions differently.
     printIndent(stack_depth_);
-    cout << s << "'s alpha = "
+    cout << indexToState(state_idx) << "'s alpha = "
          << alpha << "." << endl;
     printIndent(stack_depth_);
     cout << max_alpha << " comes from states within the same class." << endl;
@@ -319,7 +317,7 @@ int ProbVerifier::DFSComputeBound(const string& s, int limit) {
          << " comes from states that are more than one class deeper." << endl;
   }
   --stack_depth_;
-  return alphas_[s] = alpha;
+  return alphas_[state_idx] = alpha;
 }
 
 void ProbVerifier::addChild(const GlobalState* par, const GlobalState* child) {
@@ -328,11 +326,11 @@ void ProbVerifier::addChild(const GlobalState* par, const GlobalState* child) {
 
 void ProbVerifier::addChild(const GlobalState* par, const GlobalState* child,
                             int prob) {
-  string p_str = par->toString();
-  string c_str = child->toString();
-  if (transitions_.find(p_str) == transitions_.end())
-    transitions_[p_str] = vector<Transition>();
-  transitions_[p_str].push_back(Transition(c_str, prob));
+  int p_idx = stateToIndex(par);
+  int c_idx = stateToIndex(child);
+  if (transitions_.find(p_idx) == transitions_.end())
+    transitions_[p_idx] = vector<Transition>();
+  transitions_[p_idx].push_back(Transition(c_idx, prob));
 }
 
 void ProbVerifier::addSTOP(StoppingState* rs) {
@@ -378,14 +376,14 @@ bool ProbVerifier::isError(GlobalState* obj)
 bool ProbVerifier::isStopping(const GlobalState* obj) {
   bool result = findMatch(obj, _stops);
   if (result)
-    reached_stoppings_.insert(obj->toString());
+    reached_stoppings_.insert(stateToIndex(obj));
   return result;
 }
 
 bool ProbVerifier::isEnding(const GlobalState *obj) {
   bool result = findMatch(obj, _ends);
   if (result)
-    reached_endings_.insert(obj->toString());
+    reached_endings_.insert(stateToIndex(obj));
   return result;
 }
 
@@ -521,6 +519,18 @@ void ProbVerifier::reportError(GlobalState* gs) {
   throw ProtocolError::kErrorState;
 }
 
+int ProbVerifier::stateToIndex(const string& state_str) {
+  return unique_states_.insert(state_str);
+}
+
+int ProbVerifier::stateToIndex(const GlobalState* gs) {
+  return stateToIndex(gs->toString());
+}
+
+string ProbVerifier::indexToState(int idx) {
+  return unique_states_.getItem(idx);
+}
+
 bool ProbVerifier::isMemberOf(const GlobalState* gs,
                               const vector<string>& container) {
   return isMemberOf(gs->toString(), container);
@@ -534,14 +544,32 @@ bool ProbVerifier::isMemberOf(const string& s,
   return false;
 }
 
+bool ProbVerifier::isMemberOf(const GlobalState* gs,
+                              const vector<int>& container) {
+  return isMemberOf(stateToIndex(gs), container);
+}
+
+bool ProbVerifier::isMemberOf(int state_idx,
+                              const vector<int>& container) {
+  for (auto i : container)
+    if (i == state_idx)
+      return true;
+  return false;
+}
+
 GlobalState* ProbVerifier::isMemberOf(const GlobalState* gs,
                                       const GSClass& container) {
-  return isMemberOf(gs->toString(), container);
+  return isMemberOf(stateToIndex(gs), container);
 }
 
 GlobalState* ProbVerifier::isMemberOf(const string& s,
                                       const GSClass& container) {
-  auto it = container.find(s);
+  return isMemberOf(stateToIndex(s), container);
+}
+
+GlobalState* ProbVerifier::isMemberOf(int state_idx,
+                                      const GSClass& container) {
+  auto it = container.find(state_idx);
   if (it == container.end())
     return nullptr;
   else
@@ -550,13 +578,18 @@ GlobalState* ProbVerifier::isMemberOf(const string& s,
 
 GlobalState* ProbVerifier::isMemberOf(const GlobalState* gs,
                                       const vector<GSClass>& containers) {
-  return isMemberOf(gs->toString(), containers);
+  return isMemberOf(stateToIndex(gs), containers);
 }
 
 GlobalState* ProbVerifier::isMemberOf(const string& s,
                                       const vector<GSClass>& containers) {
+  return isMemberOf(stateToIndex(s), containers);
+}
+
+GlobalState* ProbVerifier::isMemberOf(int state_idx,
+                                      const vector<GSClass>& containers) {
   for (const auto& c : containers) {
-    auto ret = isMemberOf(s, c);
+    auto ret = isMemberOf(state_idx, c);
     if (ret)
       return ret;
   }
@@ -571,6 +604,10 @@ GlobalState* ProbVerifier::isMemberOfClasses(const string& s) {
   return isMemberOf(s, classes_);
 }
 
+GlobalState* ProbVerifier::isMemberOfClasses(int state_idx) {
+  return isMemberOf(state_idx, classes_);
+}
+
 GlobalState* ProbVerifier::isMemberOfEntries(const GlobalState* gs) {
   return isMemberOf(gs, entries_);
 }
@@ -579,8 +616,12 @@ GlobalState* ProbVerifier::isMemberOfEntries(const string& s) {
   return isMemberOf(s, entries_);
 }
 
+GlobalState* ProbVerifier::isMemberOfEntries(int state_idx) {
+  return isMemberOf(state_idx, entries_);
+}
+
 GlobalState* ProbVerifier::copyToClass(const GlobalState* gs, int k) {
-  return classes_[k][gs->toString()] = new GlobalState(gs);
+  return classes_[k][stateToIndex(gs)] = new GlobalState(gs);
 }
 
 GlobalState* ProbVerifier::copyToEntry(const GlobalState* gs, int k) {
@@ -591,23 +632,23 @@ GlobalState* ProbVerifier::copyToEntry(const GlobalState* gs, int k) {
     cout << "-> entry reached " << gs->toString()
          << " Prob = " << gs->getProb() << endl;
   }
-  return entries_[k][gs->toString()] = new GlobalState(gs);
+  return entries_[k][stateToIndex(gs)] = new GlobalState(gs);
 }
 
 GlobalState* ProbVerifier::copyToExploredEntry(const GlobalState* gs, int k) {
-  return explored_entries_[k][gs->toString()] = new GlobalState(gs);
+  return explored_entries_[k][stateToIndex(gs)] = new GlobalState(gs);
 }
 
 void ProbVerifier::stackPush(GlobalState *gs) {
-  assert(dfs_stack_state_.size() == dfs_stack_string_.size());
+  assert(dfs_stack_state_.size() == dfs_stack_indices_.size());
   dfs_stack_state_.push_back(gs);
-  dfs_stack_string_.push_back(gs->toString());
+  dfs_stack_indices_.push_back(stateToIndex(gs));
 }
 
 void ProbVerifier::stackPop() {
-  assert(dfs_stack_state_.size() == dfs_stack_string_.size());
+  assert(dfs_stack_state_.size() == dfs_stack_indices_.size());
   dfs_stack_state_.pop_back();
-  dfs_stack_string_.pop_back();
+  dfs_stack_indices_.pop_back();
 }
 
 void ProbVerifier::stackPrint() {
@@ -641,5 +682,5 @@ void ProbVerifier::printArrowStateNewline(const GlobalState* gs) {
 }
 
 bool ProbVerifier::isMemberOfStack(const GlobalState* gs) {
-  return isMemberOf(gs, dfs_stack_string_);
+  return isMemberOf(gs, dfs_stack_indices_);
 }
