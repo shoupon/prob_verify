@@ -98,7 +98,8 @@ void ProbVerifier::start(int max_class, const GlobalState* init_state,
         if (isMemberOfClasses(s)) {
           delete s;
         } else {
-          copyToClass(s, cur_class);
+          s = copyToClass(s, cur_class);
+          s->setProb(cur_class);
           DFSVisit(s, cur_class);
           copyToExploredEntry(s, cur_class);
         }
@@ -163,7 +164,7 @@ int ProbVerifier::computeBound(int target_class) {
   }
   return max_alpha;
 }
-          
+
 void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
   stackPush(gs);
   if (verbosity_ >= 5) {
@@ -207,6 +208,7 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
       // unexplored state in the same class
       if (isEnding(child_ptr)) {
         copyToClass(child_ptr, k);
+        child_ptr->setProb(k);
         if (verbosity_ >= 6)
           cout << "Ending state reached. " << endl;
       } else if (!k && isStopping(child_ptr)) {
@@ -214,7 +216,8 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
         copyToEntry(child_ptr, k);
       } else {
         DFSVisit(child_ptr, k);
-        copyToClass(child_ptr, k);
+        child_ptr = copyToClass(child_ptr, k);
+        child_ptr->setProb(k);
         addChild(gs, child_ptr);
       }
     } else if (!p) {
@@ -250,17 +253,18 @@ int ProbVerifier::DFSComputeBound(int state_idx, int limit) {
   int even_low_prob = 0;
   int parent_prob = isMemberOfClasses(state_idx)->getProb();
   for (const auto& trans : transitions_[state_idx]) {
+    int child_idx = trans.state_idx_;
+    auto child = isMemberOfClasses(child_idx);
+    int child_prob = child->getProb();
+    int p = child_prob - parent_prob;
     if (log_alpha_evaluation_) {
       printIndent(stack_depth_);
       cout << "evaluating child " << indexToState(trans.state_idx_)
-           << " having transition probability " << trans.probability_ << endl;
+           << " having transition probability " << p << endl;
     }
-    int child_idx = trans.state_idx_;
-    auto child = isMemberOfClasses(child_idx);
     if (child) {
-      int child_prob = parent_prob + trans.probability_;
       if (child_prob >= limit) {
-        if (trans.probability_ == 1)
+        if (p == 1)
           ++num_low_prob;
         else
           even_low_prob |= 1;
@@ -276,23 +280,19 @@ int ProbVerifier::DFSComputeBound(int state_idx, int limit) {
           cout << indexToState(child_idx) << "'s alpha = "
                << child_alpha << endl;
         }
-        if (!trans.probability_) {
+        if (!p) {
           if (child_alpha > max_alpha)
             max_alpha = child_alpha;
-        } else if (trans.probability_ == 1) {
+        } else if (p == 1) {
           low_prob_alphas += child_alpha;
-        } else if (trans.probability_ > 1) {
+        } else if (p > 1) {
           if (child_alpha)
             even_low_prob |= 1;
-        } else {
-          // child's prob shouldn't be less than parent's prob. it should not have
-          // been added to leads_to_ in the first place
-          assert(false);
         }
       }
     } else {
       assert(isMemberOfEntries(child_idx));
-      if (trans.probability_ == 1)
+      if (p == 1)
         ++num_low_prob;
       else
         even_low_prob |= 1;
@@ -435,7 +435,7 @@ void ProbVerifier::printStat() {
 }
 
 void ProbVerifier::printStat(int class_k) {
-  cout << classes_[class_k].size() << " reachable states in class[" 
+  cout << classes_[class_k].size() << " reachable states in class["
        << class_k << "]" << endl;
   if (verbosity_ >= 4) {
     cout << "The states in class[" << class_k << "] are: " << endl;
