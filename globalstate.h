@@ -66,7 +66,8 @@ public:
   ~GlobalState();
 
   GlobalState* getChild (size_t i);
-  int getProb() const { return _depth ; }
+  int getProb() const { return _depth; }
+  void setProb(int p) { _depth = p; }
   int getVisit() { return _visit ;}
   int getDistance() { return _dist;}
   const vector<StateSnapshot*> getStateVec() const { return _gStates ;}
