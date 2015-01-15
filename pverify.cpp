@@ -413,6 +413,16 @@ void ProbVerifier::resetStat() {
   num_transitions_ = 0;
 }
 
+void ProbVerifier::printContent(const vector<GSClass>& containers) {
+  for (const auto& c : containers)
+    printContent(c);
+}
+
+void ProbVerifier::printContent(const GSClass& container) {
+  for (const auto& p : container)
+    cout << "  " << indexToState(p.first) << endl;
+}
+
 void ProbVerifier::printStat() {
   int n = 0;
   for (const auto& c : classes_)
@@ -427,8 +437,16 @@ void ProbVerifier::printStat() {
 void ProbVerifier::printStat(int class_k) {
   cout << classes_[class_k].size() << " reachable states in class[" 
        << class_k << "]" << endl;
+  if (verbosity_ >= 4) {
+    cout << "The states in class[" << class_k << "] are: " << endl;
+    printContent(classes_[class_k]);
+  }
   cout << entries_[class_k].size() << " entry points discovered in entry["
        << class_k << "]" << endl;
+  if (verbosity_ >= 4) {
+    cout << "The states in entry[" << class_k << "] are: " << endl;
+    printContent(entries_[class_k]);
+  }
 }
 
 void ProbVerifier::printStoppings() {

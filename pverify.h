@@ -119,6 +119,8 @@ private:
   void printStep(GlobalState* obj) ;
 
   void resetStat();
+  void printContent(const vector<GSClass>& containers);
+  void printContent(const GSClass& container);
   void printStat();
   void printStat(int class_k);
   void printStoppings();
