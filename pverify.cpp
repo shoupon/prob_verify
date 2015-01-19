@@ -253,49 +253,55 @@ int ProbVerifier::DFSComputeBound(int state_idx, int limit) {
   int even_low_prob = 0;
   int parent_prob = isMemberOfClasses(state_idx)->getProb();
   for (const auto& trans : transitions_[state_idx]) {
+    int p = trans.probability_;
     int child_idx = trans.state_idx_;
     auto child = isMemberOfClasses(child_idx);
-    int child_prob = child->getProb();
-    int p = child_prob - parent_prob;
+    int child_prob = 0;
+    if (child)
+      child_prob = child->getProb();
     if (log_alpha_evaluation_) {
       printIndent(stack_depth_);
       cout << "evaluating child " << indexToState(trans.state_idx_)
            << " having transition probability " << p << endl;
     }
-    if (child) {
-      if (child_prob >= limit) {
-        if (p == 1)
-          ++num_low_prob;
-        else
-          even_low_prob |= 1;
-      } else {
-        int child_alpha = 0;
+    
+    if (!child ||
+        (child_prob >= limit && child_prob == parent_prob + p)) {
+      if (p == 1)
+        ++num_low_prob;
+      else
+        even_low_prob |= 1;
+    } else {
+      int child_alpha = 0;
+      if ((!p && child_prob == parent_prob) ||
+          (p && child_prob == parent_prob + p)) {
         if (alphas_.find(child_idx) == alphas_.end())
           child_alpha = DFSComputeBound(child_idx, limit);
         else
           child_alpha = alphas_[child_idx];
-        assert(alphas_.find(child_idx) != alphas_.end());
         if (log_alpha_evaluation_) {
           printIndent(stack_depth_);
           cout << indexToState(child_idx) << "'s alpha = "
                << child_alpha << endl;
         }
-        if (!p) {
+      }
+      if (!p) {
+        if (child_prob == parent_prob) {
           if (child_alpha > max_alpha)
             max_alpha = child_alpha;
-        } else if (p == 1) {
+        } else if (child_prob > parent_prob)
+          assert(false);
+      } else if (p == 1) {
+        if (child_prob == parent_prob + 1)
           low_prob_alphas += child_alpha;
-        } else if (p > 1) {
-          if (child_alpha)
-            even_low_prob |= 1;
-        }
+        else if (child_prob > parent_prob + 1)
+          assert(false);
+        else if (child_alpha)
+          even_low_prob |= 1;
+      } else if (p > 1) {
+        if (child_alpha)
+          even_low_prob |= 1;
       }
-    } else {
-      assert(isMemberOfEntries(child_idx));
-      if (p == 1)
-        ++num_low_prob;
-      else
-        even_low_prob |= 1;
     }
   }
   alpha = low_prob_alphas + num_low_prob + even_low_prob + max_alpha;
