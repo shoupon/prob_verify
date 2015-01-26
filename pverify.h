@@ -181,10 +181,6 @@ private:
   unordered_set<int> reached_stoppings_;
   unordered_set<int> reached_endings_;
   Indexer<string> unique_states_;
-  // TODO(shoupon): now that the prob. class is stored in GlobalState, we can at
-  // least get rid of Transition::probability_. Later, we can store the
-  // successors in GlobalState, since we now use indices to identify states
-  // rather than strings
   struct Transition {
     Transition(int state_idx, int prob)
         : state_idx_(state_idx), probability_(prob) {}
