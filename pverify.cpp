@@ -83,6 +83,7 @@ void ProbVerifier::start(int max_class, const GlobalState* init_state,
   classes_.resize(max_class + 1, GSClass());
   entries_.resize(max_class + 10, GSClass());
   explored_entries_.resize(max_class + 1, GSClass());
+  double inverse_p = 1000;
   try {
     transitions_.clear();
     for (int cur_class = 0; cur_class <= max_class; ++cur_class) {
@@ -114,7 +115,7 @@ void ProbVerifier::start(int max_class, const GlobalState* init_state,
       cout << "Model checking procedure completes. Error not found." << endl;
       printStat();
       for (int k = 1; k <= max_class + 1; ++k) {
-        int alpha = computeBound(k);
+        int alpha = computeBound(k, inverse_p);
         cout << "Probability of reaching class[" << k << "]"
              << " from the initial state is ";
         if (alpha) {
@@ -146,10 +147,14 @@ void ProbVerifier::start(int max_class, const GlobalState* init_state,
   }
 }
 
-int ProbVerifier::computeBound(int target_class) {
+int ProbVerifier::computeBound(int target_class, double inverse_p) {
   // start from each entry state of class[0] (stopping state/progressive state)
   // and recursively compute the constant alpha from the furthest edge state in
   // equivalent class class[target_class - 1]
+  double ipk = 1.0;
+  for (int i = 0; i < target_class; ++i)
+    inverse_ps_.push_back(ipk *= inverse_p);
+
   stack_depth_ = 0;
   int max_alpha = 0;
   alphas_.clear();
@@ -250,6 +255,7 @@ int ProbVerifier::DFSComputeBound(int state_idx, int limit) {
   int max_alpha = 0;
   int num_low_prob = 0;
   int low_prob_alphas = 0;
+  //double even_low_prob = 0;
   int even_low_prob = 0;
   int parent_prob = isMemberOfClasses(state_idx)->getProb();
   for (const auto& trans : transitions_[state_idx]) {
@@ -267,10 +273,15 @@ int ProbVerifier::DFSComputeBound(int state_idx, int limit) {
     
     if (!child ||
         (child_prob >= limit && child_prob == parent_prob + p)) {
-      if (p == 1)
+      if (p == 1) {
         ++num_low_prob;
-      else
+      } else {
+        /*
+        if (alphas_.find(child_idx) != alphas_.end())
+          even_low_prob += (1.0 / inverse_ps_[p - 2]);
+          */
         even_low_prob |= 1;
+      }
     } else {
       int child_alpha = 0;
       if ((!p && child_prob == parent_prob) ||
@@ -284,23 +295,20 @@ int ProbVerifier::DFSComputeBound(int state_idx, int limit) {
           cout << indexToState(child_idx) << "'s alpha = "
                << child_alpha << endl;
         }
-      }
-      if (!p) {
-        if (child_prob == parent_prob) {
-          if (child_alpha > max_alpha)
-            max_alpha = child_alpha;
-        } else if (child_prob > parent_prob)
-          assert(false);
-      } else if (p == 1) {
-        if (child_prob == parent_prob + 1)
-          low_prob_alphas += child_alpha;
-        else if (child_prob > parent_prob + 1)
-          assert(false);
-        else if (child_alpha)
-          even_low_prob |= 1;
-      } else if (p > 1) {
-        if (child_alpha)
-          even_low_prob |= 1;
+        if (!p) {
+          if (child_prob == parent_prob) {
+            if (child_alpha > max_alpha)
+              max_alpha = child_alpha;
+          } else if (child_prob > parent_prob)
+            assert(false);
+        } else {
+          if (child_prob == parent_prob + p)
+            low_prob_alphas += child_alpha;
+          else if (child_prob > parent_prob + p)
+            assert(false);
+          else if (child_alpha)
+            even_low_prob |= 1;
+        }
       }
     }
   }

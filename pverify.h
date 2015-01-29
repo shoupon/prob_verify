@@ -100,7 +100,7 @@ public:
   void start(int max_class, int verbose);
   void start(int max_class, const GlobalState* init_state, int verbose);
   // void start(vector<GlobalState*> initStates);
-  int computeBound(int target_class);
+  int computeBound(int target_class, double inverse_p);
   void clear();
   
   size_t getNumMachines() { return _macPtrs.size(); }
@@ -189,6 +189,7 @@ private:
   };
   unordered_map<int, vector<Transition>> transitions_;
   unordered_map<int, int> alphas_;
+  vector<double> inverse_ps_;
 
   unique_ptr<GlobalState> start_point_;
   unique_ptr<StoppingState> default_stopping_;
