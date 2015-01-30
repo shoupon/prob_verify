@@ -152,20 +152,31 @@ int ProbVerifier::computeBound(int target_class, double inverse_p) {
   // and recursively compute the constant alpha from the furthest edge state in
   // equivalent class class[target_class - 1]
   double ipk = 1.0;
+  inverse_ps_.clear();
   for (int i = 0; i < target_class; ++i)
     inverse_ps_.push_back(ipk *= inverse_p);
 
   stack_depth_ = 0;
   int max_alpha = 0;
   alphas_.clear();
-  for (auto pair : explored_entries_[0]) {
-    int alpha = DFSComputeBound(pair.first, target_class);
-    if (log_alpha_evaluation_) {
-      cout << "bound originated from " << pair.first
-           << " = " << alpha << endl;
+  int num_iterations = 0;
+  do {
+    alpha_modified_ = false;
+    for (auto pair : explored_entries_[0]) {
+      int alpha = DFSComputeBound(pair.first, target_class);
+      if (log_alpha_evaluation_) {
+        cout << "bound originated from " << pair.first
+             << " = " << alpha << endl;
+      }
+      if (alpha > max_alpha)
+        max_alpha = alpha;
     }
-    if (alpha > max_alpha)
-      max_alpha = alpha;
+    num_iterations++;
+  } while (alpha_modified_);
+
+  if (verbosity_) {
+    cout << num_iterations << " iterations needed for bound convergence."
+         << endl;
   }
   return max_alpha;
 }
@@ -201,16 +212,16 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
         // unexplored entry state in higher classes
         child_ptr->setTrail(dfs_stack_state_);
         copyToEntry(child_ptr, k + p);
-        addChild(gs, child_ptr, p);
       } else {
-        // entry state identical to some explored state
+        // low probability successor identical to some explored state
       }
+      addChild(gs, child_ptr, p);
     } else if (isMemberOfStack(child_ptr)) {
       // found cycle
       if (!hasProgress(child_ptr))
         reportLivelock(child_ptr);
     } else if (!child) {
-      // unexplored state in the same class
+      // high probability successor is an unexplored state
       if (isEnding(child_ptr)) {
         copyToClass(child_ptr, k);
         child_ptr->setProb(k);
@@ -225,10 +236,10 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
         child_ptr->setProb(k);
         addChild(gs, child_ptr);
       }
-    } else if (!p) {
-      // explored state in the same class
+    } else {
+      // high probability successor is an explored state
       if (!isStopping(child_ptr))
-        addChild(gs, child, p);
+        addChild(gs, child);
     }
   }
   stackPop();
@@ -255,8 +266,7 @@ int ProbVerifier::DFSComputeBound(int state_idx, int limit) {
   int max_alpha = 0;
   int num_low_prob = 0;
   int low_prob_alphas = 0;
-  //double even_low_prob = 0;
-  int even_low_prob = 0;
+  double even_low_prob = 0;
   int parent_prob = isMemberOfClasses(state_idx)->getProb();
   for (const auto& trans : transitions_[state_idx]) {
     int p = trans.probability_;
@@ -276,20 +286,18 @@ int ProbVerifier::DFSComputeBound(int state_idx, int limit) {
       if (p == 1) {
         ++num_low_prob;
       } else {
-        /*
         if (alphas_.find(child_idx) != alphas_.end())
           even_low_prob += (1.0 / inverse_ps_[p - 2]);
-          */
-        even_low_prob |= 1;
       }
     } else {
       int child_alpha = 0;
+      if (alphas_.find(child_idx) != alphas_.end())
+        child_alpha = alphas_[child_idx];
+
       if ((!p && child_prob == parent_prob) ||
           (p && child_prob == parent_prob + p)) {
-        if (alphas_.find(child_idx) == alphas_.end())
+        if (!child_alpha)
           child_alpha = DFSComputeBound(child_idx, limit);
-        else
-          child_alpha = alphas_[child_idx];
         if (log_alpha_evaluation_) {
           printIndent(stack_depth_);
           cout << indexToState(child_idx) << "'s alpha = "
@@ -302,17 +310,24 @@ int ProbVerifier::DFSComputeBound(int state_idx, int limit) {
           } else if (child_prob > parent_prob)
             assert(false);
         } else {
-          if (child_prob == parent_prob + p)
+          if (child_prob == parent_prob + p) {
             low_prob_alphas += child_alpha;
-          else if (child_prob > parent_prob + p)
+          } else if (child_prob > parent_prob + p) {
             assert(false);
-          else if (child_alpha)
-            even_low_prob |= 1;
+          }
         }
+      } else {
+        if (child_alpha)
+          even_low_prob +=
+              (child_alpha / inverse_ps_[parent_prob - child_prob + p - 1]);
       }
     }
   }
-  alpha = low_prob_alphas + num_low_prob + even_low_prob + max_alpha;
+  if (even_low_prob > 0.0)
+    alpha = low_prob_alphas + num_low_prob + (int)even_low_prob + max_alpha +1;
+  else
+    alpha = low_prob_alphas + num_low_prob + (int)even_low_prob + max_alpha;
+
   if (log_alpha_evaluation_) {
     printIndent(stack_depth_);
     cout << indexToState(state_idx) << "'s alpha = "
@@ -331,6 +346,10 @@ int ProbVerifier::DFSComputeBound(int state_idx, int limit) {
          << " comes from states that are more than one class deeper." << endl;
   }
   --stack_depth_;
+  if (!alpha_modified_ &&
+      (alphas_.find(state_idx) == alphas_.end() ||
+       alphas_[state_idx] != alpha))
+    alpha_modified_ = true;
   return alphas_[state_idx] = alpha;
 }
 

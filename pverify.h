@@ -189,7 +189,9 @@ private:
   };
   unordered_map<int, vector<Transition>> transitions_;
   unordered_map<int, int> alphas_;
+  unordered_set<int> visited_;
   vector<double> inverse_ps_;
+  bool alpha_modified_;
 
   unique_ptr<GlobalState> start_point_;
   unique_ptr<StoppingState> default_stopping_;
