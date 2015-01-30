@@ -101,6 +101,7 @@ public:
   void start(int max_class, const GlobalState* init_state, int verbose);
   // void start(vector<GlobalState*> initStates);
   int computeBound(int target_class, double inverse_p);
+  bool findCycle();
   void clear();
   
   size_t getNumMachines() { return _macPtrs.size(); }
@@ -159,6 +160,7 @@ private:
 
   void DFSVisit(GlobalState* gs, int k);
   int DFSComputeBound(int state_idx, int limit);
+  bool DFSFindCycle(int state_idx);
   void addChild(const GlobalState* par, const GlobalState* child);
   void addChild(const GlobalState* par, const GlobalState* child, int prob);
   void stackPush(GlobalState* gs);

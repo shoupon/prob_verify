@@ -114,6 +114,8 @@ void ProbVerifier::start(int max_class, const GlobalState* init_state,
     if (verbosity_) {
       cout << "Model checking procedure completes. Error not found." << endl;
       printStat();
+      if (findCycle())
+        cout << "Cycle found in transition system. Bound may diverge." << endl;
       for (int k = 1; k <= max_class + 1; ++k) {
         int alpha = computeBound(k, inverse_p);
         cout << "Probability of reaching class[" << k << "]"
@@ -179,6 +181,17 @@ int ProbVerifier::computeBound(int target_class, double inverse_p) {
          << endl;
   }
   return max_alpha;
+}
+
+bool ProbVerifier::findCycle() {
+  for (auto& pair : explored_entries_[0]) {
+    dfs_stack_indices_.clear();
+    visited_.clear();
+    if (DFSFindCycle(pair.first))
+      return true;
+    assert(dfs_stack_indices_.empty());
+  }
+  return false;
 }
 
 void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
@@ -351,6 +364,22 @@ int ProbVerifier::DFSComputeBound(int state_idx, int limit) {
        alphas_[state_idx] != alpha))
     alpha_modified_ = true;
   return alphas_[state_idx] = alpha;
+}
+
+bool ProbVerifier::DFSFindCycle(int state_idx) {
+  dfs_stack_indices_.push_back(state_idx);
+  if (transitions_.find(state_idx) != transitions_.end()) {
+    for (const auto& t : transitions_[state_idx]) {
+      if (isMemberOf(t.state_idx_, dfs_stack_indices_))
+        return true;
+      if (visited_.find(t.state_idx_) == visited_.end()) {
+        if (DFSFindCycle(t.state_idx_))
+          return true;
+      }
+    }
+  }
+  dfs_stack_indices_.pop_back();
+  return false;
 }
 
 void ProbVerifier::addChild(const GlobalState* par, const GlobalState* child) {
