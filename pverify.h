@@ -54,6 +54,20 @@ public:
   ~UnspecifiedReception() {}
 };
 
+class ProbVerifier;
+
+class ProbVerifierConfig {
+public:
+  friend ProbVerifier;
+
+  ProbVerifierConfig();
+  void setLowProbBound(double p);
+
+private:
+  double low_p_bound_;
+  double low_p_bound_inverse_;
+};
+
 class ProbVerifier {
   typedef unordered_map<int, GlobalState*>      GSClass;
 
@@ -91,6 +105,7 @@ public:
   // Provide the criterion on which the program determines to print out the stopping
   // state trace
   void addPrintStop(bool (*printStop)(GlobalState*, GlobalState*) = 0);
+  void configure(const ProbVerifierConfig& cfg) { config_ = cfg; }
   // the boilerplate to be setup before starting the whole model checking
   // procedure
   void initialize(const GlobalState* init_state);
@@ -100,7 +115,7 @@ public:
   void start(int max_class, int verbose);
   void start(int max_class, const GlobalState* init_state, int verbose);
   // void start(vector<GlobalState*> initStates);
-  int computeBound(int target_class, double inverse_p);
+  int computeBound(int target_class);
   bool findCycle();
   void clear();
   
@@ -175,6 +190,8 @@ private:
   void printArrowStateNewline(const GlobalState* gs);
   bool isMemberOfStack(const GlobalState* gs);
 
+  ProbVerifierConfig config_;
+
   vector<GSClass> classes_;
   vector<GSClass> entries_;
   vector<GSClass> explored_entries_;
@@ -193,7 +210,7 @@ private:
   unordered_map<int, int> alphas_;
   unordered_set<int> visited_;
   vector<double> inverse_ps_;
-  bool alpha_modified_;
+  long long alpha_diff_;
 
   unique_ptr<GlobalState> start_point_;
   unique_ptr<StoppingState> default_stopping_;

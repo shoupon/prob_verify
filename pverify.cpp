@@ -20,6 +20,15 @@ const ProtocolError ProtocolError::kLivelock("livelock");
 const ProtocolError ProtocolError::kErrorState("error_state");
 const ProtocolError ProtocolError::kCheckerError("checker_error");
 
+ProbVerifierConfig::ProbVerifierConfig()
+    : low_p_bound_(1000.0), low_p_bound_inverse_(1.0/low_p_bound_) {
+}
+
+void ProbVerifierConfig::setLowProbBound(double p) {
+  low_p_bound_ = p;
+  low_p_bound_inverse_ = 1.0 / p;
+}
+
 void ProbVerifier::addError(StoppingState *es) {
   if( es->getStateVec().size() != _macPtrs.size() ) {
     cerr << "The size of the ErrorState does not match the number of machines"
@@ -83,7 +92,6 @@ void ProbVerifier::start(int max_class, const GlobalState* init_state,
   classes_.resize(max_class + 1, GSClass());
   entries_.resize(max_class + 10, GSClass());
   explored_entries_.resize(max_class + 1, GSClass());
-  double inverse_p = 1000;
   try {
     transitions_.clear();
     for (int cur_class = 0; cur_class <= max_class; ++cur_class) {
@@ -117,7 +125,7 @@ void ProbVerifier::start(int max_class, const GlobalState* init_state,
       if (findCycle())
         cout << "Cycle found in transition system. Bound may diverge." << endl;
       for (int k = 1; k <= max_class + 1; ++k) {
-        int alpha = computeBound(k, inverse_p);
+        int alpha = computeBound(k);
         cout << "Probability of reaching class[" << k << "]"
              << " from the initial state is ";
         if (alpha) {
@@ -149,21 +157,21 @@ void ProbVerifier::start(int max_class, const GlobalState* init_state,
   }
 }
 
-int ProbVerifier::computeBound(int target_class, double inverse_p) {
+int ProbVerifier::computeBound(int target_class) {
   // start from each entry state of class[0] (stopping state/progressive state)
   // and recursively compute the constant alpha from the furthest edge state in
   // equivalent class class[target_class - 1]
   double ipk = 1.0;
   inverse_ps_.clear();
   for (int i = 0; i < target_class; ++i)
-    inverse_ps_.push_back(ipk *= inverse_p);
+    inverse_ps_.push_back(ipk *= config_.low_p_bound_inverse_);
 
   stack_depth_ = 0;
   int max_alpha = 0;
   alphas_.clear();
   int num_iterations = 0;
   do {
-    alpha_modified_ = false;
+    alpha_diff_ = 0;
     for (auto pair : explored_entries_[0]) {
       assert(visited_.empty());
       int alpha = DFSComputeBound(pair.first, target_class);
@@ -177,7 +185,11 @@ int ProbVerifier::computeBound(int target_class, double inverse_p) {
         max_alpha = alpha;
     }
     num_iterations++;
-  } while (alpha_modified_);
+    if (verbosity_) {
+      cout << "Iteration " << num_iterations << ": "
+           << "total alpha increases by " << alpha_diff_ << endl;
+    }
+  } while (alpha_diff_);
 
   if (verbosity_) {
     cout << num_iterations << " iterations needed for bound convergence."
@@ -366,10 +378,15 @@ int ProbVerifier::DFSComputeBound(int state_idx, int limit) {
          << " comes from states that are more than one class deeper." << endl;
   }
   --stack_depth_;
-  if (!alpha_modified_ &&
-      (alphas_.find(state_idx) == alphas_.end() ||
-       alphas_[state_idx] != alpha))
-    alpha_modified_ = true;
+  if (alphas_.find(state_idx) == alphas_.end()) {
+    alpha_diff_ += alpha;
+  } else {
+    int old_alpha = alphas_[state_idx];
+    if (old_alpha != alpha) {
+      assert(old_alpha < alpha);
+      alpha_diff_ += (alpha - old_alpha);
+    }
+  }
   return alphas_[state_idx] = alpha;
 }
 
