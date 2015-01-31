@@ -165,7 +165,10 @@ int ProbVerifier::computeBound(int target_class, double inverse_p) {
   do {
     alpha_modified_ = false;
     for (auto pair : explored_entries_[0]) {
+      assert(visited_.empty());
       int alpha = DFSComputeBound(pair.first, target_class);
+      visited_.clear();
+
       if (log_alpha_evaluation_) {
         cout << "bound originated from " << pair.first
              << " = " << alpha << endl;
@@ -303,14 +306,16 @@ int ProbVerifier::DFSComputeBound(int state_idx, int limit) {
           even_low_prob += (1.0 / inverse_ps_[p - 2]);
       }
     } else {
-      int child_alpha = 0;
-      if (alphas_.find(child_idx) != alphas_.end())
-        child_alpha = alphas_[child_idx];
-
       if ((!p && child_prob == parent_prob) ||
           (p && child_prob == parent_prob + p)) {
-        if (!child_alpha)
+        int child_alpha;
+        if (visited_.find(child_idx) == visited_.end()) {
           child_alpha = DFSComputeBound(child_idx, limit);
+          visited_.insert(child_idx);
+        } else {
+          child_alpha = alphas_[child_idx];
+        }
+
         if (log_alpha_evaluation_) {
           printIndent(stack_depth_);
           cout << indexToState(child_idx) << "'s alpha = "
@@ -330,9 +335,11 @@ int ProbVerifier::DFSComputeBound(int state_idx, int limit) {
           }
         }
       } else {
-        if (child_alpha)
+        if (alphas_.find(child_idx) != alphas_.end()) {
+          int child_alpha = alphas_[child_idx];
           even_low_prob +=
               (child_alpha / inverse_ps_[parent_prob - child_prob + p - 1]);
+        }
       }
     }
   }
