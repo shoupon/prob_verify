@@ -101,6 +101,7 @@ public:
   void start(int max_class, const GlobalState* init_state, int verbose);
   // void start(vector<GlobalState*> initStates);
   int computeBound(int target_class, double inverse_p);
+  int computeBound(int target_class, double inverse_p, bool dfs);
   bool findCycle();
   void clear();
   
