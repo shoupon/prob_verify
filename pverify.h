@@ -160,6 +160,7 @@ private:
 
   void DFSVisit(GlobalState* gs, int k);
   int DFSComputeBound(int state_idx, int limit);
+  int treeComputeBound(int state_idx, int depth, int limit);
   bool DFSFindCycle(int state_idx);
   void addChild(const GlobalState* par, const GlobalState* child);
   void addChild(const GlobalState* par, const GlobalState* child, int prob);

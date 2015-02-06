@@ -373,6 +373,32 @@ int ProbVerifier::DFSComputeBound(int state_idx, int limit) {
   return alphas_[state_idx] = alpha;
 }
 
+int ProbVerifier::treeComputeBound(int state_idx, int depth, int limit) {
+  assert(depth < limit);
+
+  int alpha = 0;
+  int max_alpha = 0;
+  int num_low_prob = 0;
+  double even_low_prob = 0;
+
+  for (const auto& trans : transitions_[state_idx]) {
+    int p = trans.probability_;
+    int child_idx = trans.state_idx_;
+
+    if (depth + p >= limit) {
+      if (p == 1)
+        ++num_low_prob;
+      else
+        even_low_prob += (1.0 / inverse_ps_[p - 2]);
+    } else {
+      if (!p) {
+      } else if (p == 1) {
+      } else if (p > 1) {
+      }
+    }
+  }
+}
+
 bool ProbVerifier::DFSFindCycle(int state_idx) {
   dfs_stack_indices_.push_back(state_idx);
   if (transitions_.find(state_idx) != transitions_.end()) {
