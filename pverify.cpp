@@ -155,6 +155,7 @@ int ProbVerifier::computeBound(int target_class, double inverse_p) {
 
 int ProbVerifier::computeBound(int target_class, double inverse_p,
                                bool dfs) {
+  clock_t start_time = clock();
   // start from each entry state of class[0] (stopping state/progressive state)
   // and recursively compute the constant alpha from the furthest edge state in
   // equivalent class class[target_class - 1]
@@ -193,6 +194,9 @@ int ProbVerifier::computeBound(int target_class, double inverse_p,
     cout << num_iterations << " iterations needed for bound convergence."
          << endl;
   }
+  clock_t end_time = clock();
+  cout << "Running time of bound computation: ";
+  cout << (double)(end_time - start_time) / CLOCKS_PER_SEC << " secs" << endl;
   return max_alpha;
 }
 
