@@ -125,7 +125,7 @@ void ProbVerifier::start(int max_class, const GlobalState* init_state,
       if (findCycle())
         cout << "Cycle found in transition system. Bound may diverge." << endl;
       for (int k = 1; k <= max_class + 1; ++k) {
-        int alpha = computeBound(k);
+        int alpha = computeBound(k, inverse_p, false);
         cout << "Probability of reaching class[" << k << "]"
              << " from the initial state is ";
         if (alpha) {
@@ -157,7 +157,13 @@ void ProbVerifier::start(int max_class, const GlobalState* init_state,
   }
 }
 
-int ProbVerifier::computeBound(int target_class) {
+int ProbVerifier::computeBound(int target_class, double inverse_p) {
+  computeBound(target_class, inverse_p, true);
+}
+
+int ProbVerifier::computeBound(int target_class, double inverse_p,
+                               bool dfs) {
+  clock_t start_time = clock();
   // start from each entry state of class[0] (stopping state/progressive state)
   // and recursively compute the constant alpha from the furthest edge state in
   // equivalent class class[target_class - 1]
@@ -174,7 +180,12 @@ int ProbVerifier::computeBound(int target_class) {
     alpha_diff_ = 0;
     for (auto pair : explored_entries_[0]) {
       assert(visited_.empty());
-      int alpha = DFSComputeBound(pair.first, target_class);
+      int alpha = 0;
+      if (dfs)
+        alpha = DFSComputeBound(pair.first, target_class);
+      else
+        alpha = treeComputeBound(pair.first, 0, target_class);
+
       visited_.clear();
 
       if (log_alpha_evaluation_) {
@@ -195,6 +206,9 @@ int ProbVerifier::computeBound(int target_class) {
     cout << num_iterations << " iterations needed for bound convergence."
          << endl;
   }
+  clock_t end_time = clock();
+  cout << "Running time of bound computation: ";
+  cout << (double)(end_time - start_time) / CLOCKS_PER_SEC << " secs" << endl;
   return max_alpha;
 }
 
@@ -355,10 +369,9 @@ int ProbVerifier::DFSComputeBound(int state_idx, int limit) {
       }
     }
   }
+  alpha = low_prob_alphas + num_low_prob + max_alpha;
   if (even_low_prob > 0.0)
-    alpha = low_prob_alphas + num_low_prob + (int)even_low_prob + max_alpha +1;
-  else
-    alpha = low_prob_alphas + num_low_prob + (int)even_low_prob + max_alpha;
+    alpha += (int)even_low_prob + 1;
 
   if (log_alpha_evaluation_) {
     printIndent(stack_depth_);
@@ -388,6 +401,43 @@ int ProbVerifier::DFSComputeBound(int state_idx, int limit) {
     }
   }
   return alphas_[state_idx] = alpha;
+}
+
+int ProbVerifier::treeComputeBound(int state_idx, int depth, int limit) {
+  assert(depth < limit);
+
+  int alpha = 0;
+  int max_alpha = 0;
+  int num_low_prob = 0;
+  int low_prob_alphas = 0;
+  double even_low_prob = 0;
+
+  for (const auto& trans : transitions_[state_idx]) {
+    int p = trans.probability_;
+    int child_idx = trans.state_idx_;
+
+    if (depth + p >= limit) {
+      if (p == 1)
+        ++num_low_prob;
+      else
+        even_low_prob += (1.0 / inverse_ps_[p - 2]);
+    } else {
+      int a = treeComputeBound(child_idx, depth + p, limit);
+      if (!p) {
+        if (a > max_alpha)
+          max_alpha = a;
+      } else if (p == 1) {
+        low_prob_alphas += a;
+      } else if (p > 1) {
+        even_low_prob += ((double)a) / inverse_ps_[p - 2] ;
+      }
+    }
+  }
+
+  alpha = low_prob_alphas + num_low_prob + max_alpha;
+  if (even_low_prob > 0.0)
+    alpha += (int)even_low_prob + 1;
+  return alpha;
 }
 
 bool ProbVerifier::DFSFindCycle(int state_idx) {

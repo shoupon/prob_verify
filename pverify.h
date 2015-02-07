@@ -115,7 +115,8 @@ public:
   void start(int max_class, int verbose);
   void start(int max_class, const GlobalState* init_state, int verbose);
   // void start(vector<GlobalState*> initStates);
-  int computeBound(int target_class);
+  int computeBound(int target_class, double inverse_p);
+  int computeBound(int target_class, double inverse_p, bool dfs);
   bool findCycle();
   void clear();
   
@@ -175,6 +176,7 @@ private:
 
   void DFSVisit(GlobalState* gs, int k);
   int DFSComputeBound(int state_idx, int limit);
+  int treeComputeBound(int state_idx, int depth, int limit);
   bool DFSFindCycle(int state_idx);
   void addChild(const GlobalState* par, const GlobalState* child);
   void addChild(const GlobalState* par, const GlobalState* child, int prob);
