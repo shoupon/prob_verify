@@ -233,7 +233,7 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
     for (int i = 0; i < dfs_stack_state_.size(); ++i)
       cout << "  ";
     cout << dfs_stack_state_.size();
-    cout << "-> " << gs->toString()
+    cout << "-> " << gs->toReadable()
          << " Prob = " << gs->getProb()
          << " Dist = " << gs->getDistance() << endl;
   }

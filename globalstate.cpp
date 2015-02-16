@@ -574,6 +574,20 @@ string GlobalState::toString() const
 
     return ss.str();
 }
+
+string GlobalState::toReadable() {
+  string ret;
+  ret += "[";
+  int k = 0;
+  for (auto g : _gStates) {
+    if (k++)
+      ret += ",";
+    ret += g->toReadable();
+  }
+  ret += "]";
+  return ret;
+}
+
 /*
 void GlobalState::trim()
 {

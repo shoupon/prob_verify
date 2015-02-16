@@ -27,6 +27,7 @@ public:
   // Returns the name of current state as specified in the input file. Used to identify
   // states in the set STATET, STATETABLE, RS
   virtual string toString();
+  virtual string toReadable() { return this->toString(); }
   // Cast the Snapshot into a integer. Used in HashTable
   virtual int toInt() {return _ss_state;}
   virtual StateSnapshot* clone() const { return new StateSnapshot(*this); }
