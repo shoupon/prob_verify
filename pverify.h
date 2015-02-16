@@ -10,7 +10,6 @@
 #include <unordered_set>
 
 #include "define.h"
-#include "fsm.h"
 #include "indexer.h"
 #include "state.h"
 #include "statemachine.h"

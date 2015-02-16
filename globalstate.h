@@ -9,20 +9,14 @@
 #include <list>
 #include <unordered_set>
 
-#include "fsm.h"
 #include "state.h"
 #include "statemachine.h"
 #include "checker.h"
-#include "myHash.h"
-#include "parser.h"
 #include "service.h"
 
 class GlobalStateHashKey;
 class GSVecHashKey;
 class GlobalState;
-
-typedef Hash<GlobalStateHashKey, GlobalState*> GSHash;
-typedef Hash<GSVecHashKey, vector<string> > GSVecHash;
 
 // A vector of int defines the states of machines in this global state using state number
 // An integer represents the probability class of global state transition
@@ -142,67 +136,4 @@ private:
   vector<GlobalState*> trail_;
   int path_count_;
 };
-
-class GlobalStateHashKey
-{
-public:
-    GlobalStateHashKey(const GlobalState* gs)
-        : _stateStr( gs->toString() )
-    {
-        vector<StateSnapshot*> mirror = gs->getStateVec() ;
-        
-        _sum = 0 ;
-        for( size_t m = 0 ; m < mirror.size() ; ++m ) {
-            _sum += mirror[m]->toInt() ;
-        }
-    }
-
-    size_t operator() () const { return (_sum); }
-    bool operator == (const GlobalStateHashKey& k) 
-    {
-        if( _stateStr != k._stateStr )
-            return false ;
-
-        return true;
-    }
- 
-private:
-    int _sum;
-    string _stateStr;
-};
-
-class GSVecHashKey
-{
-public:
-    GSVecHashKey(const vector<StateSnapshot*>& vec)
-    {
-        _sum = 0 ;
-        _arrStr.resize(vec.size());
-        for( size_t ii = 0 ; ii < vec.size() ; ++ii ) {
-            _arrStr[ii] = vec[ii]->toString();
-            _sum += vec[ii]->toInt() ;
-        }
-    }
-    
-    size_t operator() () const { return (_sum); }
-    bool operator == (const GSVecHashKey& k)
-    {
-        assert(_arrStr.size() == k._arrStr.size() );
-        for( size_t ii = 0 ; ii < _arrStr.size() ; ++ii ) {
-            if( _arrStr[ii] != k._arrStr[ii] )
-                return false ;
-        }
-        
-        return true;
-    }
-    
-private:
-    vector<string> _arrStr;
-    int _sum ;
-};
-
-
-
-
-
 #endif
