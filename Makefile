@@ -16,7 +16,7 @@ LDFLAGS = -g
 # -lm for the math library
 LDLIBS = -L. 
 
-SOURCES=parser.cpp globalstate.cpp pverify.cpp statemachine.cpp state.cpp stoppingstate.cpp errorstate.cpp sync.cpp cycle.cpp transition.cpp service.cpp lookup.h myHash.h
+SOURCES=globalstate.cpp pverify.cpp statemachine.cpp state.cpp stoppingstate.cpp errorstate.cpp sync.cpp cycle.cpp transition.cpp service.cpp lookup.h myHash.h
 
 OBJECTS=$(SOURCES:.cpp=.o)
 
