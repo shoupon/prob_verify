@@ -56,16 +56,20 @@ public:
 
 class ProbVerifier;
 
+#define DFS_BOUND 0
+#define TREE_BOUND 1
 class ProbVerifierConfig {
 public:
   friend ProbVerifier;
 
   ProbVerifierConfig();
   void setLowProbBound(double p);
+  void setBoundMethod(int method);
 
 private:
   double low_p_bound_;
   double low_p_bound_inverse_;
+  int bound_method_;
 };
 
 class ProbVerifier {
@@ -115,8 +119,7 @@ public:
   void start(int max_class, int verbose);
   void start(int max_class, const GlobalState* init_state, int verbose);
   // void start(vector<GlobalState*> initStates);
-  int computeBound(int target_class, double inverse_p);
-  int computeBound(int target_class, double inverse_p, bool dfs);
+  int computeBound(int target_class);
   bool findCycle();
   void clear();
   

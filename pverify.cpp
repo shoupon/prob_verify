@@ -21,12 +21,17 @@ const ProtocolError ProtocolError::kErrorState("error_state");
 const ProtocolError ProtocolError::kCheckerError("checker_error");
 
 ProbVerifierConfig::ProbVerifierConfig()
-    : low_p_bound_(1000.0), low_p_bound_inverse_(1.0/low_p_bound_) {
+    : low_p_bound_(1000.0), low_p_bound_inverse_(1.0/low_p_bound_),
+      bound_method_(DFS_BOUND) {
 }
 
 void ProbVerifierConfig::setLowProbBound(double p) {
   low_p_bound_ = p;
   low_p_bound_inverse_ = 1.0 / p;
+}
+
+void ProbVerifierConfig::setBoundMethod(int method) {
+  bound_method_ = method;
 }
 
 void ProbVerifier::addError(StoppingState *es) {
@@ -125,7 +130,7 @@ void ProbVerifier::start(int max_class, const GlobalState* init_state,
       if (findCycle())
         cout << "Cycle found in transition system. Bound may diverge." << endl;
       for (int k = 1; k <= max_class + 1; ++k) {
-        int alpha = computeBound(k, inverse_p, false);
+        int alpha = computeBound(k);
         cout << "Probability of reaching class[" << k << "]"
              << " from the initial state is ";
         if (alpha) {
@@ -157,12 +162,7 @@ void ProbVerifier::start(int max_class, const GlobalState* init_state,
   }
 }
 
-int ProbVerifier::computeBound(int target_class, double inverse_p) {
-  computeBound(target_class, inverse_p, true);
-}
-
-int ProbVerifier::computeBound(int target_class, double inverse_p,
-                               bool dfs) {
+int ProbVerifier::computeBound(int target_class) {
   clock_t start_time = clock();
   // start from each entry state of class[0] (stopping state/progressive state)
   // and recursively compute the constant alpha from the furthest edge state in
@@ -181,10 +181,14 @@ int ProbVerifier::computeBound(int target_class, double inverse_p,
     for (auto pair : explored_entries_[0]) {
       assert(visited_.empty());
       int alpha = 0;
-      if (dfs)
+      if (config_.bound_method_ == DFS_BOUND) {
         alpha = DFSComputeBound(pair.first, target_class);
-      else
+      } else if(config_.bound_method_ == TREE_BOUND) {
         alpha = treeComputeBound(pair.first, 0, target_class);
+      } else {
+        cerr << "Bounding method undefined. Aborting." << endl;
+        return -1;
+      }
 
       visited_.clear();
 
@@ -467,6 +471,15 @@ void ProbVerifier::addChild(const GlobalState* par, const GlobalState* child,
   if (transitions_.find(p_idx) == transitions_.end())
     transitions_[p_idx] = vector<Transition>();
   transitions_[p_idx].push_back(Transition(c_idx, prob));
+}
+
+void ProbVerifier::addMachine(StateMachine* machine) {
+  int mac_id = StateMachine::machineToInt(machine->getName());
+  if (mac_id > _macPtrs.size())
+    _macPtrs.resize(mac_id);
+  _macPtrs[mac_id - 1] = machine;
+  cout << "Machine " << machine->getName() << " is added at index "
+       << mac_id - 1 << endl;
 }
 
 void ProbVerifier::addSTOP(StoppingState* rs) {
