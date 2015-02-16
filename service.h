@@ -36,6 +36,7 @@ public:
         _state = snapshot->_ss_state;
     }
     virtual ServiceSnapshot* curState() { return new ServiceSnapshot(_state);}
+    string getName() const { return "service"; }
 
     void addInterface(MessageTuple *input) {_interface.insert(input->clone());}
     virtual void putMsg(MessageTuple *msg);
