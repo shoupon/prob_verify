@@ -3,6 +3,7 @@
 
 #include <cassert>
 
+#include <iostream>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -56,6 +57,12 @@ public:
     }*/
     else
       return _list[key];
+  }
+
+  void dump() const {
+    int k = 0;
+    for (auto& s : _list)
+      cout << s << " at index " << k++ << endl;
   }
 
 private:

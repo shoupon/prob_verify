@@ -28,6 +28,7 @@ public:
     virtual ~StoppingState();
     
     void addAllow(StateSnapshot* criterion, int mac);
+    void addAllow(const StateSnapshot* criterion, const string& machine_name);
     void addProhibit(StateSnapshot* criterion, int mac);
     virtual bool match(const GlobalState* gs);
     

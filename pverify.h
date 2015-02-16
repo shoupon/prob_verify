@@ -89,16 +89,14 @@ class ProbVerifier {
   
   GSVecSet _reachable;
   
-  GlobalState* _root ;
   int _maxClass;
   int _curClass;
-  int _max ; // Used to check livelock
   Checker* _checker;
     
 public:
-  ProbVerifier():_curClass(0), _max(0) {}
+  ProbVerifier():_curClass(0) {}
   
-  void addMachine(StateMachine* machine) { _macPtrs.push_back(machine); }
+  void addMachine(StateMachine* machine);
   //void setRS(vector<GlobalState*> rs);
   void addSTOP(StoppingState* rs);
   void addEND(StoppingState* end);
