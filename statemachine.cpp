@@ -83,6 +83,10 @@ string StateMachine::IntToMachine(int num) {
   return machine_lookup_.toString(num);
 }
 
+void StateMachine::dumpMachineTable() {
+  machine_lookup_.dump();
+}
+
 string StateSnapshot::toString()
 {
     stringstream ss;

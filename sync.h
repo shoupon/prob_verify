@@ -49,6 +49,7 @@ public:
     void restore(const StateSnapshot* snapshot);
     StateSnapshot* curState() ;
     virtual void reset() ;
+    string getName() const { return "sync"; }
     
     void setMaster(const StateMachine* master) ;
     void addMachine(const StateMachine* mac) ;

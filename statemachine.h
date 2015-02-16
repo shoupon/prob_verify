@@ -77,6 +77,7 @@ public:
   virtual StateSnapshot* curState() { return new StateSnapshot(_state); }
   // Reset the machine to initial state
   virtual void reset() { _state = 0 ; }
+  virtual string getName() const = 0;
   
   int macId() const { return _machineId; }
   void setId(int num) { _machineId = num; }
@@ -89,6 +90,7 @@ public:
   static int machineToInt(const string& machine_name);
   static string IntToMessage(int num);
   static string IntToMachine(int num);
+  static void dumpMachineTable();
   /*
   static string IntToMessage(int num) { return _msgLookup->toString(num); }
   static string IntToMachine(int num) { return _macLookup->toString(num); }
