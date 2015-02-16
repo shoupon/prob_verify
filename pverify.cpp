@@ -169,7 +169,7 @@ int ProbVerifier::computeBound(int target_class) {
   // equivalent class class[target_class - 1]
   double ipk = 1.0;
   inverse_ps_.clear();
-  for (int i = 0; i < target_class; ++i)
+  for (int i = 0; i < target_class + 10; ++i)
     inverse_ps_.push_back(ipk *= config_.low_p_bound_inverse_);
 
   stack_depth_ = 0;
