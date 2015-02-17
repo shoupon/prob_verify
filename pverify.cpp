@@ -34,8 +34,10 @@ void ProbVerifierConfig::setBoundMethod(int method) {
   bound_method_ = method;
 }
 
+vector<StateMachine*> ProbVerifier::machine_ptrs_;
+
 void ProbVerifier::addError(StoppingState *es) {
-  if( es->getStateVec().size() != _macPtrs.size() ) {
+  if (es->getStateVec().size() != machine_ptrs_.size()) {
     cerr << "The size of the ErrorState does not match the number of machines"
          << endl;
     return ;
@@ -46,6 +48,10 @@ void ProbVerifier::addError(StoppingState *es) {
 void ProbVerifier::addPrintStop(bool (*printStop)(GlobalState *, GlobalState *))
 {
     _printStop = printStop ;
+}
+
+StateMachine* ProbVerifier::getMachine(const string& machine_name) {
+  return machine_ptrs_[StateMachine::machineToInt(machine_name) - 1];
 }
 
 void ProbVerifier::initialize(const GlobalState* init_state) {
@@ -475,9 +481,9 @@ void ProbVerifier::addChild(const GlobalState* par, const GlobalState* child,
 
 void ProbVerifier::addMachine(StateMachine* machine) {
   int mac_id = StateMachine::machineToInt(machine->getName());
-  if (mac_id > _macPtrs.size())
-    _macPtrs.resize(mac_id);
-  _macPtrs[mac_id - 1] = machine;
+  if (mac_id > machine_ptrs_.size())
+    machine_ptrs_.resize(mac_id);
+  machine_ptrs_[mac_id - 1] = machine;
   cout << "Machine " << machine->getName() << " is added at index "
        << mac_id - 1 << endl;
 }
@@ -630,13 +636,8 @@ void ProbVerifier::clear()
     }
 }
 
-vector<StateMachine*> ProbVerifier::getMachinePtrs() const
-{
-    vector<StateMachine*> ret(_macPtrs.size());
-    for( size_t i = 0 ; i < _macPtrs.size() ; ++i ) {
-        ret[i] = _macPtrs[i] ;
-    }
-    return ret;
+vector<StateMachine*> ProbVerifier::getMachinePtrs() const {
+  return machine_ptrs_;
 }
 
 bool ProbVerifier::hasProgress(GlobalState* gs) {

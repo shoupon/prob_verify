@@ -74,7 +74,8 @@ private:
 class ProbVerifier {
   typedef unordered_map<int, GlobalState*>      GSClass;
 
-  vector<StateMachine*> _macPtrs;
+  static vector<StateMachine*> machine_ptrs_;
+
   vector<GSMap> _arrClass;
   vector<GSMap> _all;
   
@@ -106,6 +107,7 @@ public:
   // Provide the criterion on which the program determines to print out the stopping
   // state trace
   void addPrintStop(bool (*printStop)(GlobalState*, GlobalState*) = 0);
+  static StateMachine* getMachine(const string& machine_name);
   void configure(const ProbVerifierConfig& cfg) { config_ = cfg; }
   // the boilerplate to be setup before starting the whole model checking
   // procedure
@@ -120,7 +122,7 @@ public:
   bool findCycle();
   void clear();
   
-  size_t getNumMachines() { return _macPtrs.size(); }
+  static size_t getNumMachines() { return machine_ptrs_.size(); }
   vector<StateMachine*> getMachinePtrs() const ;
     
 private:
