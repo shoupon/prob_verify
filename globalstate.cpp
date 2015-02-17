@@ -575,7 +575,7 @@ string GlobalState::toString() const
     return ss.str();
 }
 
-string GlobalState::toReadable() {
+string GlobalState::toReadable() const {
   string ret;
   ret += "[";
   int k = 0;
@@ -723,6 +723,6 @@ void GlobalState::printTrail() const {
     assert(getProb() == 0);
   }
   for (const auto s : trail_) {
-    cout << "-> " << s->toString() << endl;
+    cout << "-> " << s->toReadable() << endl;
   }
 }

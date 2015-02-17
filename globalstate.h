@@ -91,7 +91,7 @@ public:
   void addOrigin(GlobalState* rootStop);
 
   string toString() const;
-  string toReadable();
+  string toReadable() const;
 
   void setRoot() { _root = this; }
   static bool init(GlobalState*);

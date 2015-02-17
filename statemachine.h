@@ -26,8 +26,8 @@ public:
   virtual int curStateId() const { return _ss_state; }
   // Returns the name of current state as specified in the input file. Used to identify
   // states in the set STATET, STATETABLE, RS
-  virtual string toString();
-  virtual string toReadable() { return this->toString(); }
+  virtual string toString() const;
+  virtual string toReadable() const { return this->toString(); }
   // Cast the Snapshot into a integer. Used in HashTable
   virtual int toInt() {return _ss_state;}
   virtual StateSnapshot* clone() const { return new StateSnapshot(*this); }
@@ -125,7 +125,7 @@ public:
   virtual size_t numParams() { return 0 ; }
   virtual int getParam(size_t arg) { return 0 ; }
   
-  virtual string toString() {
+  virtual string toString() const {
     stringstream ss;
     ss << "subject=" << _subject << ":" ;
     ss << "(" << _src << "?" << _srcMsg << "," << _dest << "!" << _destMsg << ")" ;

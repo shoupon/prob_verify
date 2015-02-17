@@ -87,9 +87,8 @@ void StateMachine::dumpMachineTable() {
   machine_lookup_.dump();
 }
 
-string StateSnapshot::toString()
-{
-    stringstream ss;
-    ss << _ss_state ;
-    return ss.str() ;
+string StateSnapshot::toString() const {
+  stringstream ss;
+  ss << _ss_state ;
+  return ss.str() ;
 }

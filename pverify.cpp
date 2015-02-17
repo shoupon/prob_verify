@@ -672,7 +672,7 @@ void ProbVerifier::reportLivelock(GlobalState* gs) {
   stackPrintUntil(gs->toString());
   cout << "entering cycle:" << endl;
   stackPrintFrom(gs->toString());
-  cout << "-> " << gs->toString() << endl;
+  cout << "-> " << gs->toReadable() << endl;
 #endif
   throw ProtocolError::kLivelock;
 }
@@ -846,7 +846,7 @@ void ProbVerifier::stackPrintUntil(const string& until) {
 }
 
 void ProbVerifier::printArrowStateNewline(const GlobalState* gs) {
-  cout << "-> " << gs->toString() << endl;
+  cout << "-> " << gs->toReadable() << endl;
 }
 
 bool ProbVerifier::isMemberOfStack(const GlobalState* gs) {
