@@ -12,11 +12,14 @@ using namespace std ;
 
 #include "sync.h"
 
+#define SYNC_NAME "sync"
+
 int Sync::recurring_ = 0;
 
 Sync::Sync( int numDeadline, Lookup* msg, Lookup* mac)
 : StateMachine(msg,mac), _numDl(numDeadline) {
-  setId(machineToInt("sync"));
+  setId(machineToInt(SYNC_NAME));
+  machine_name_ = SYNC_NAME;
   reset() ;
 }
 

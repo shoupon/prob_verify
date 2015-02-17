@@ -78,7 +78,7 @@ public:
   virtual StateSnapshot* curState() { return new StateSnapshot(_state); }
   // Reset the machine to initial state
   virtual void reset() { _state = 0 ; }
-  virtual string getName() const = 0;
+  virtual string getName() const { return machine_name_; }
   
   int macId() const { return _machineId; }
   void setId(int num) { _machineId = num; }
@@ -104,6 +104,7 @@ protected:
   //static Lookup* _msgLookup;
   //static Lookup* _macLookup;
   int _state;
+  string machine_name_;
   
 private:
   int _machineId;
