@@ -42,14 +42,10 @@ class StateMachine
   static Lookup machine_lookup_;
   static Lookup message_lookup_;
 public:
-  // When the class is constructed, a lookup function should be provided to the
-  // StateMachine, so the StateMachine can convert a string of an input or an output
-  // label into id (integer). A pointer to Parser should be provided to the StateMachine.
-  // The Parser class contains the necessary look up function that StateMachine needs
-  //StateMachine(Lookup* msg, Lookup* mac) { setLookup(msg, mac); }
-  // Legacy contructor, takes two Lookup tables and does nothing
-  StateMachine(Lookup* msg, Lookup* mac) {}
   StateMachine() {}
+
+  // Legacy contructor, takes two Lookup tables and does nothing; obsolete
+  StateMachine(Lookup* msg, Lookup* mac) {} 
   virtual ~StateMachine() {}
 
   // Simulate message reception
@@ -65,10 +61,17 @@ public:
   // Cloning tasks avoids dereference of deallocated objects when the same tasks are
   // being evaluated in multiple childs
   virtual int transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
-                         bool& high_prob, int startIdx = 0) = 0;
+                      bool& high_prob, int startIdx = 0) { return -1; }
+  virtual int transit(MessageTuple* in_msg, vector<MessageTuple*>& out_msgs,
+                      int& prob_level, int start_idx);
+  int transit(MessageTuple* in_msg, vector<MessageTuple*>& out_msgs,
+              int& prob_level);
   // Returns the identifier of current state
   virtual int nullInputTrans(vector<MessageTuple*>& outMsgs,
-                                bool& high_prob, int startIdx = 0) = 0;
+                             bool& high_prob, int startIdx = 0) { return -1; }
+  virtual int nullInputTrans(vector<MessageTuple*>& out_msgs,
+                             int& prob_level, int start_idx);
+  int nullInputTrans(vector<MessageTuple*>& out_msgs, int& prob_level);
   // Restore the state of a StateMachine back to a previous point which can be
   // completely specified by a StateSnapshot
   virtual void restore(const StateSnapshot* snapshot) { _state = snapshot->curStateId(); }

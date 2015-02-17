@@ -183,7 +183,7 @@ void GlobalState::findSucc()
     try {
         vector<vector<MessageTuple*> > arrOutMsgs;
         vector<StateSnapshot*> statuses;
-        bool high_prob;
+        int prob_level;
         vector<bool> probs;
         // Execute each null input transition 
         for( size_t m = 0 ; m < _machines.size() ; ++m ) {
@@ -199,8 +199,8 @@ void GlobalState::findSucc()
             do {
                 restore();
                 pendingTasks.clear();
-                idx = _machines[m]->nullInputTrans(pendingTasks, high_prob, idx);
-                if( idx < 0 ) {
+                idx = _machines[m]->nullInputTrans(pendingTasks, prob_level, idx);
+                if (idx < 0) {
                     // No null transition is found for machines[m]
                     break;
                 }
@@ -213,9 +213,7 @@ void GlobalState::findSucc()
                     cc->_srvcState = _service->curState();
                     // Push tasks to be evaluated onto the queue
                     cc->addTask( pendingTasks );
-                    // Record the probability
-                    if( !high_prob )
-                        cc->_depth++;
+                    cc->_depth += prob_level;
                     // Store the newly created child GlobalState
                     _childs.push_back(cc);
                 }
@@ -295,8 +293,8 @@ vector<GlobalState*> GlobalState::evaluate()
 #endif
         
         int idx = 0;
-        bool high_prob ;
         int macNum = tuple->destId();
+        int prob_level;
         vector<MessageTuple*> pending;
         
         if( tuple->destId() > 0 ) {
@@ -309,7 +307,7 @@ vector<GlobalState*> GlobalState::evaluate()
             this->restore();
             pending.clear();
             // The destined machine processes the tuple
-            idx = _machines[macNum-1]->transit(tuple, pending, high_prob, 0);
+            idx = _machines[macNum-1]->transit(tuple, pending, prob_level);
             // Let the Service model process the MessageTuple
             if (_service)
                 _service->putMsg(tuple);
@@ -352,8 +350,7 @@ vector<GlobalState*> GlobalState::evaluate()
                     creation->_gStates[macNum-1] = _machines[macNum-1]->curState();
                     creation->_srvcState = _service->curState();
                     creation->addTask(pending);
-                    if( !high_prob )
-                        creation->_depth++;
+                    creation->_depth += prob_level;
                     ret.push_back(creation);                                                            
 #ifdef VERBOSE_EVAL
                     queue<MessageTuple*> dupFifo = creation->_fifo ;
@@ -366,11 +363,12 @@ vector<GlobalState*> GlobalState::evaluate()
 #endif
                     this->restore();
                     pending.clear();
-                    idx = _machines[macNum-1]->transit(tuple, pending, high_prob, idx);
+                    idx = _machines[macNum-1]->transit(tuple, pending,
+                                                       prob_level, idx);
                     // Let the Service model process the MessageTuple
                     if (_service)
                         _service->putMsg(tuple);
-                } while( idx > 0 );
+                } while (idx > 0);
             } // Matching transition(s) found
             
             if( ret.size() == 1 ) {

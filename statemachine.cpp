@@ -2,10 +2,41 @@
 
 #include "statemachine.h"
 
-//Lookup* StateMachine::_msgLookup = 0 ;
-//Lookup* StateMachine::_macLookup = 0;
 Lookup StateMachine::machine_lookup_;
 Lookup StateMachine::message_lookup_;
+
+int StateMachine::transit(MessageTuple* in_msg,
+                          vector<MessageTuple*>& out_msgs,
+                          int& prob_level, int start_idx) {
+  bool high_prob;
+  int ret = this->transit(in_msg, out_msgs, high_prob, start_idx);
+  if (high_prob)
+    prob_level = 0;
+  else
+    prob_level = 1;
+  return ret;
+}
+
+int StateMachine::transit(MessageTuple* in_msg,
+                          vector<MessageTuple*>& out_msgs, int& prob_level) {
+  return this->transit(in_msg, out_msgs, prob_level, 0);
+}
+
+int StateMachine::nullInputTrans(vector<MessageTuple*>& out_msgs,
+                                 int& prob_level, int start_idx) {
+  bool high_prob;
+  int ret = this->nullInputTrans(out_msgs, high_prob, start_idx);
+  if (high_prob)
+    prob_level = 0;
+  else
+    prob_level = 1;
+  return ret;
+}
+
+int StateMachine::nullInputTrans(vector<MessageTuple*>& out_msgs,
+                                 int& prob_level) {
+  return this->nullInputTrans(out_msgs, prob_level, 0);
+}
 
 bool MessageTuple::operator==(const MessageTuple &rhs) const
 {
