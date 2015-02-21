@@ -26,39 +26,40 @@ class SyncMessage;
 class Sync: public StateMachine {
   static int recurring_;
 public:
-    struct MachineHandle
-    {
-        bool _normal;
-        const StateMachine* _mac;
-        const StateMachine* operator->() const { return _mac; }
-    };
+  struct MachineHandle
+  {
+      bool _normal;
+      const StateMachine* _mac;
+      const StateMachine* operator->() const { return _mac; }
+  };
 
-    struct FailureGroup
-    {
-        bool _normal;
-        vector<const StateMachine*> _machines;
-    };
+  struct FailureGroup
+  {
+      bool _normal;
+      vector<const StateMachine*> _machines;
+  };
 
-    Sync( int numDeadline, Lookup* msg, Lookup* mac ) ;
-    ~Sync() { }
-    
-    int transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
-                bool& high_prob, int startIdx);
-    int nullInputTrans(vector<MessageTuple*>& outMsgs,
-                       bool& high_prob, int startIdx ) ;
-    void restore(const StateSnapshot* snapshot);
-    StateSnapshot* curState() ;
-    virtual void reset() ;
-    string getName() const { return "sync"; }
-    
-    void setMaster(const StateMachine* master) ;
-    void addMachine(const StateMachine* mac) ;
-    void addFailureGroup(const vector<const StateMachine*>& machines);
-    
-    static SyncMessage* setDeadline(MessageTuple* inMsg, int macid, int did);
-    static SyncMessage* revokeDeadline(MessageTuple* inMsg, int macid, int did);
-    
-    static void setRecurring(int flag) { recurring_ = flag; }
+  Sync( int numDeadline, Lookup* msg, Lookup* mac ) ;
+  ~Sync() { }
+  int transit(MessageTuple* in_msg, vector<MessageTuple*>& out_msgs,
+              int& prob_level, int start_idx);
+  int nullInputTrans(vector<MessageTuple*>& out_msgs,
+                     int& prob_level, int start_idx);
+  void restore(const StateSnapshot* snapshot);
+  StateSnapshot* curState() ;
+  virtual void reset() ;
+  string getName() const { return "sync"; }
+  
+  void setMaster(const StateMachine* master) ;
+  void addMachine(const StateMachine* mac) ;
+  void addFailureGroup(const vector<const StateMachine*>& machines);
+  
+  static SyncMessage* setDeadline(MessageTuple* inMsg, int macid, int did);
+  static SyncMessage* revokeDeadline(MessageTuple* inMsg, int macid, int did);
+  
+  static void setRecurring(int flag) { recurring_ = flag; }
+
+  bool isAvailable(int deadline_id);
 protected:
     vector<int> _actives;
     // A vector indicates that which deadlines are active.
@@ -76,7 +77,8 @@ protected:
     vector<FailureGroup> _failureGroups;
     
     int getNextActive();
-    void failureEvent(size_t groupIdx, vector<MessageTuple*>& outMsgs);
+    void failureEvent(size_t group_idx, vector<MessageTuple*>& outMsgs);
+    void failureEventFatal(size_t group_idx);
     MessageTuple* generateMsg(const StateMachine *machine, const string& msg, bool isSet, int did);
 };
 
@@ -105,8 +107,7 @@ public:
     int getParam(size_t arg) ;
     
     string toString() const;
-    string toReadable() const { return toString(); }
-    
+    string toReadable() const;    
     SyncMessage* clone() const { return new SyncMessage(*this) ; }
     
     // Produces the identifier of a received deadline, especially in the case when
@@ -122,24 +123,25 @@ class SyncSnapshot: public StateSnapshot
 {
     friend class Sync;
 public:
-    SyncSnapshot() {}
-    SyncSnapshot( const SyncSnapshot& item );
-    SyncSnapshot( const vector<int>& active, const int next, const vector<Sync::FailureGroup>& groups, const vector<Sync::MachineHandle>& handles, int time) ;
-    ~SyncSnapshot() { }
-    int curStateId() const ;
-    string toString() const;
-    string toReadable() const { return toString(); }
-    int toInt() ;
-    SyncSnapshot* clone() const { return new SyncSnapshot(*this) ; }
+  SyncSnapshot() {}
+  SyncSnapshot( const SyncSnapshot& item );
+  SyncSnapshot(const vector<int>& active, const int next,
+               const vector<Sync::FailureGroup>& groups,
+               const vector<Sync::MachineHandle>& handles, int time);
+  ~SyncSnapshot() { }
+  int curStateId() const ;
+  string toString() const;
+  string toReadable() const { return toString(); }
+  int toInt() ;
+  SyncSnapshot* clone() const { return new SyncSnapshot(*this) ; }
 
-    int time() { return _ss_time; }
-
+  int time() { return _ss_time; }
 private:
-    vector<int> _ss_act;
-    int _ss_next ; 
-    int _ss_time ;
-    vector<bool> _ss_group_status;
-    vector<bool> _ss_machine_status;
+  vector<int> _ss_act;
+  int _ss_next ; 
+  int _ss_time ;
+  vector<bool> _ss_group_status;
+  vector<bool> _ss_machine_status;
 };
 
 #endif

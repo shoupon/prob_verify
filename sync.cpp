@@ -23,19 +23,18 @@ Sync::Sync( int numDeadline, Lookup* msg, Lookup* mac)
   reset() ;
 }
 
-int Sync::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
-                  bool& high_prob, int startIdx)
-{
-    assert( typeid(*inMsg) == typeid(SyncMessage)) ;
-    outMsgs.clear();
-    high_prob = true ;
+int Sync::transit(MessageTuple* in_msg, vector<MessageTuple*>& out_msgs,
+                  int& prob_level, int start_idx) {
+    assert( typeid(*in_msg) == typeid(SyncMessage)) ;
+    out_msgs.clear();
+    prob_level = 0;
     
-    int d = inMsg->getParam(1);
+    int d = in_msg->getParam(1);
     assert( d <= _numDl ) ;
     
-    bool set = inMsg->getParam(0) ;
-    if( set ) {  // "SET"
-        if( startIdx == 0 ) {
+    bool set = in_msg->getParam(0) ;
+    if (set) {  // "SET"
+        if (!start_idx) {
             // Block setting deadline 0 if the last sequence hasn't finished
             if (d == 0 && _nextDl != -1)
                 return -1;
@@ -49,7 +48,7 @@ int Sync::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
         }
     }
     else {      // "REVOKE"
-        if( startIdx == 0 ) {
+        if (!start_idx) {
             _actives[d] = 0 ;  // cancel deadline d
             _nextDl = getNextActive();
             return 3;
@@ -58,47 +57,48 @@ int Sync::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,
     }
 }
 
-int Sync::nullInputTrans(vector<MessageTuple*>& outMsgs, bool& high_prob, int startIdx)
-{
-    high_prob = true ;
-    outMsgs.clear() ;
-    
-    if (startIdx <= _failureGroups.size()) {
-        int countDown = startIdx;
-        // Clock failure events
-        for (size_t gidx = 0; gidx < _failureGroups.size(); gidx++) {
-            if (_failureGroups[gidx]._normal) {
-                if (countDown == 0) {
-                    failureEvent(gidx, outMsgs);
-                    high_prob = false;
-                    return startIdx + 1;
-                }
-                else {
-                    countDown--;
-                    continue;
-                }
-            }
+int Sync::nullInputTrans(vector<MessageTuple*>& out_msgs,
+                         int& prob_level, int start_idx) {
+  prob_level = 0;
+  out_msgs.clear() ;
+  
+  if (start_idx <= _failureGroups.size()) {
+    int countDown = start_idx;
+    // Clock failure events
+    for (size_t gidx = 0; gidx < _failureGroups.size(); gidx++) {
+      if (_failureGroups[gidx]._normal) {
+        if (countDown == 0) {
+          failureEvent(gidx, out_msgs);
+          prob_level = 3;
+          return start_idx + 1;
         }
-        // Deadline expiry events
-        if (_nextDl != -1) {
-            assert( _actives[_nextDl] == 1);
-            // Generate deadline message
-            for( int ii = 0 ; ii < _allMacs.size() ; ++ii ) {
-                if (_allMacs[ii]._normal)
-                    outMsgs.push_back(generateMsg(_allMacs[ii]._mac, DEADLINE, false, _nextDl)); 
-            }
-            if (!recurring_) {
-              _actives[_nextDl] = 0 ;
-              _time++ ;
-            }
-            getNextActive() ;
-            return _failureGroups.size()+1;
+        else {
+          countDown--;
+          continue;
         }
-        else 
-            return -1;
+      }
     }
-    else
+    // Deadline expiry events
+    if (_nextDl != -1) {
+      assert( _actives[_nextDl] == 1);
+      // Generate deadline message
+      for (int ii = 0 ; ii < _allMacs.size() ; ++ii) {
+        if (_allMacs[ii]._normal)
+          out_msgs.push_back(generateMsg(_allMacs[ii]._mac, DEADLINE,
+                                         false, _nextDl)); 
+      }
+      if (!recurring_) {
+        _actives[_nextDl] = 0 ;
+        _time++ ;
+      }
+      getNextActive() ;
+      return _failureGroups.size()+1;
+    }
+    else 
         return -1;
+  } else {
+    return -1;
+  }
 }
 
 
@@ -188,6 +188,10 @@ SyncMessage* Sync::revokeDeadline(MessageTuple *inMsg, int macid, int did)
                                macid, false, did);
 }
 
+bool Sync::isAvailable(int deadline_id) {
+  return !_actives[deadline_id];
+}
+
 int Sync::getNextActive() {
   for( int ai = 0 ; ai < (int)_actives.size() ; ++ai ) {
     if( _actives[ai] == 1 ) {
@@ -201,24 +205,38 @@ int Sync::getNextActive() {
     return _nextDl = -1;
 }
 
-void Sync::failureEvent(size_t groupIdx, vector<MessageTuple*> &outMsgs)
+void Sync::failureEvent(size_t group_idx, vector<MessageTuple*> &outMsgs)
 {
-    assert(_failureGroups[groupIdx]._normal);
-    for (size_t midx = 0; midx < _failureGroups[groupIdx]._machines.size(); midx++) {
-        const StateMachine* dest = _failureGroups[groupIdx]._machines[midx];
-        outMsgs.push_back(generateMsg(dest, CLOCKFAIL,
-                                      false, -1));
+    assert(_failureGroups[group_idx]._normal);
+    for (const auto dest : _failureGroups[group_idx]._machines) {
+        outMsgs.push_back(generateMsg(dest, CLOCKFAIL, false, -1));
         bool found = false;
-        for (size_t hidx = 0; hidx < _allMacs.size(); hidx++) {
-            if (_allMacs[hidx]._mac == dest) {
-                _allMacs[hidx]._normal = false;
-                found = true;
-                break;
-            }
+        for (auto machine : _allMacs) {
+          if (machine._mac == dest) {
+            machine._normal = false;
+            found = true;
+            break;
+          }
         }
         assert(found);
     }
-    _failureGroups[groupIdx]._normal = false;
+    _failureGroups[group_idx]._normal = false;
+}
+
+void Sync::failureEventFatal(size_t group_idx) {
+    assert(_failureGroups[group_idx]._normal);
+    for (const auto dest : _failureGroups[group_idx]._machines) {
+        bool found = false;
+        for (auto machine : _allMacs) {
+          if (machine._mac == dest) {
+            machine._normal = false;
+            found = true;
+            break;
+          }
+        }
+        assert(found);
+    }
+    _failureGroups[group_idx]._normal = false;
 }
 
 MessageTuple* Sync::generateMsg(const StateMachine *machine,
@@ -251,8 +269,15 @@ int SyncMessage::getParam(size_t arg)
 
 string SyncMessage::toString() const {
   stringstream ss;
-  ss << MessageTuple::toString() ;
-  ss << "(" << _isSet << "," << _deadlineId << ")" ;
+  ss << MessageTuple::toString();
+  ss << "(" << _isSet << "," << _deadlineId << ")";
+  return ss.str();
+}
+
+string SyncMessage::toReadable() const {
+  stringstream ss;
+  ss << MessageTuple::toReadable();
+  ss << "(" << _isSet << "," << _deadlineId << ")";
   return ss.str();
 }
 
