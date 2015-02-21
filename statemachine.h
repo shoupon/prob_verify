@@ -85,6 +85,7 @@ public:
   
   int macId() const { return _machineId; }
   void setId(int num) { _machineId = num; }
+  int getState() const { return _state; }
   
   //static void setLookup(Lookup* msg, Lookup* mac) { _msgLookup = msg, _macLookup = mac;}
   // Legacy function does nothing
