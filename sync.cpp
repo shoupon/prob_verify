@@ -211,7 +211,7 @@ void Sync::failureEvent(size_t group_idx, vector<MessageTuple*> &outMsgs)
     for (const auto dest : _failureGroups[group_idx]._machines) {
         outMsgs.push_back(generateMsg(dest, CLOCKFAIL, false, -1));
         bool found = false;
-        for (auto machine : _allMacs) {
+        for (auto& machine : _allMacs) {
           if (machine._mac == dest) {
             machine._normal = false;
             found = true;
