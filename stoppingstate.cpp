@@ -25,7 +25,7 @@ void StoppingState::addAllow(StateSnapshot* criterion, int mac)
     _aSets.push_back( criterion->clone() );
     _allows.push_back(mac);
     assert(_aSets.size() == _allows.size());
-    cout << "Adding criterion of machine " << mac;
+    cout << "Adding criterion of machine " << mac << endl;
 }
 
 void StoppingState::addAllow(const StateSnapshot* criterion,
