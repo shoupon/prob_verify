@@ -249,12 +249,11 @@ int SyncMessage::getParam(size_t arg)
     else return -1;
 }
 
-string SyncMessage::toString()
-{
-    stringstream ss;
-    ss << MessageTuple::toString() ;
-    ss << "(" << _isSet << "," << _deadlineId << ")" ;
-    return ss.str();
+string SyncMessage::toString() const {
+  stringstream ss;
+  ss << MessageTuple::toString() ;
+  ss << "(" << _isSet << "," << _deadlineId << ")" ;
+  return ss.str();
 }
 
 /*
@@ -286,20 +285,19 @@ int SyncSnapshot::curStateId() const
     return 0 ;
 }
 
-string SyncSnapshot::toString()
-{
-    stringstream ss ;
-    ss << "(" ;
-    for( size_t ii = 0 ; ii < _ss_act.size() ; ++ii )
-        ss << _ss_act[ii] ;
-    ss << "," ;
-    for (size_t ii = 0; ii < _ss_group_status.size(); ++ii) 
-        ss << _ss_group_status[ii];
-    ss << ",";
-    for (size_t ii = 0; ii < _ss_machine_status.size(); ++ii)
-        ss << _ss_machine_status[ii];
-    ss << "," << _ss_next << ")" ;
-    return ss.str() ;
+string SyncSnapshot::toString() const {
+  stringstream ss ;
+  ss << "(" ;
+  for( size_t ii = 0 ; ii < _ss_act.size() ; ++ii )
+      ss << _ss_act[ii] ;
+  ss << "," ;
+  for (size_t ii = 0; ii < _ss_group_status.size(); ++ii) 
+      ss << _ss_group_status[ii];
+  ss << ",";
+  for (size_t ii = 0; ii < _ss_machine_status.size(); ++ii)
+    ss << _ss_machine_status[ii];
+  ss << "," << _ss_next << ")" ;
+  return ss.str() ;
 }
 
 int SyncSnapshot::toInt()

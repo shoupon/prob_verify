@@ -104,7 +104,8 @@ public:
     size_t numParams() { return 2; }
     int getParam(size_t arg) ;
     
-    string toString() ;
+    string toString() const;
+    string toReadable() const { return toString(); }
     
     SyncMessage* clone() const { return new SyncMessage(*this) ; }
     
@@ -126,7 +127,8 @@ public:
     SyncSnapshot( const vector<int>& active, const int next, const vector<Sync::FailureGroup>& groups, const vector<Sync::MachineHandle>& handles, int time) ;
     ~SyncSnapshot() { }
     int curStateId() const ;
-    string toString() ;
+    string toString() const;
+    string toReadable() const { return toString(); }
     int toInt() ;
     SyncSnapshot* clone() const { return new SyncSnapshot(*this) ; }
 
