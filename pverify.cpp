@@ -654,7 +654,7 @@ bool ProbVerifier::hasProgress(GlobalState* gs) {
 }
 
 void ProbVerifier::reportDeadlock(GlobalState* gs) {
-  cout << "Deadlock found." << endl ;
+  cout << "Deadlock found: " << gs->toReadableMachineName() << endl ;
   printStat() ;
 #ifdef TRACE
   dfs_stack_state_.front()->printTrail();
@@ -678,7 +678,7 @@ void ProbVerifier::reportLivelock(GlobalState* gs) {
 }
 
 void ProbVerifier::reportError(GlobalState* gs) {
-  cout << "Error state found: " << gs->toString() << endl;
+  cout << "Error state found: " << gs->toReadableMachineName() << endl;
   printStat() ;
 #ifdef TRACE
   dfs_stack_state_.front()->printTrail();

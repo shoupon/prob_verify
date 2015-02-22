@@ -92,6 +92,7 @@ public:
 
   string toString() const;
   string toReadable() const;
+  string toReadableMachineName() const;
 
   void setRoot() { _root = this; }
   static bool init(GlobalState*);

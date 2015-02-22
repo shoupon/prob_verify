@@ -586,6 +586,22 @@ string GlobalState::toReadable() const {
   return ret;
 }
 
+string GlobalState::toReadableMachineName() const {
+  string ret;
+  ret += "[";
+  int k = 0;
+  int j = _gStates.size();
+  for (auto g : _gStates) {
+    ret += _machines[k++]->getName() + ": ";
+    ret += g->toReadable();
+    if (--j)
+      ret += ",";
+    ret += "\n";
+  }
+  ret += "]";
+  return ret;
+}
+
 /*
 void GlobalState::trim()
 {
@@ -721,6 +737,6 @@ void GlobalState::printTrail() const {
     assert(getProb() == 0);
   }
   for (const auto s : trail_) {
-    cout << "-> " << s->toReadable() << endl;
+    cout << "-> " << s->toString() << endl;
   }
 }
