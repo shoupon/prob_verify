@@ -16,11 +16,22 @@ using namespace std ;
 
 int Sync::recurring_ = 0;
 
-Sync::Sync( int numDeadline, Lookup* msg, Lookup* mac)
-: StateMachine(msg,mac), _numDl(numDeadline) {
+Sync::Sync(int numDeadline)
+    : _numDl(numDeadline), detectable_failure_prob_(3),
+      fatal_failure_prob_(6) {
   setId(machineToInt(SYNC_NAME));
   machine_name_ = SYNC_NAME;
   reset() ;
+}
+
+Sync::Sync(int num_deadlines,
+           int detectable_failure_prob, int fatal_failure_prob)
+    : _numDl(num_deadlines),
+      detectable_failure_prob_(detectable_failure_prob),
+      fatal_failure_prob_(fatal_failure_prob) {
+  setId(machineToInt(SYNC_NAME));
+  machine_name_ = SYNC_NAME;
+  reset();
 }
 
 int Sync::transit(MessageTuple* in_msg, vector<MessageTuple*>& out_msgs,
@@ -62,14 +73,18 @@ int Sync::nullInputTrans(vector<MessageTuple*>& out_msgs,
   prob_level = 0;
   out_msgs.clear() ;
   
-  if (start_idx <= _failureGroups.size()) {
-    int countDown = start_idx;
+  if (start_idx <= _failureGroups.size() << 1) {
+    int countDown = start_idx >> 1;
     // Clock failure events
     for (size_t gidx = 0; gidx < _failureGroups.size(); gidx++) {
       if (_failureGroups[gidx]._normal) {
-        if (countDown == 0) {
+        if (countDown == 0 && (start_idx & 1) == 0) {
           failureEvent(gidx, out_msgs);
-          prob_level = 3;
+          prob_level = detectable_failure_prob_;
+          return start_idx + 1;
+        } else if (countDown == 0 && (start_idx & 1)) {
+          failureEventFatal(gidx);
+          prob_level = fatal_failure_prob_;
           return start_idx + 1;
         }
         else {
@@ -92,7 +107,7 @@ int Sync::nullInputTrans(vector<MessageTuple*>& out_msgs,
         _time++ ;
       }
       getNextActive() ;
-      return _failureGroups.size()+1;
+      return (_failureGroups.size() + 1) << 1;
     }
     else 
         return -1;
@@ -205,29 +220,18 @@ int Sync::getNextActive() {
     return _nextDl = -1;
 }
 
-void Sync::failureEvent(size_t group_idx, vector<MessageTuple*> &outMsgs)
-{
-    assert(_failureGroups[group_idx]._normal);
-    for (const auto dest : _failureGroups[group_idx]._machines) {
-        outMsgs.push_back(generateMsg(dest, CLOCKFAIL, false, -1));
-        bool found = false;
-        for (auto& machine : _allMacs) {
-          if (machine._mac == dest) {
-            machine._normal = false;
-            found = true;
-            break;
-          }
-        }
-        assert(found);
-    }
-    _failureGroups[group_idx]._normal = false;
+void Sync::failureEvent(size_t group_idx, vector<MessageTuple*> &outMsgs) {
+  assert(_failureGroups[group_idx]._normal);
+  for (const auto dest : _failureGroups[group_idx]._machines)
+    outMsgs.push_back(generateMsg(dest, CLOCKFAIL, false, -1));
+  failureEventFatal(group_idx);
 }
 
 void Sync::failureEventFatal(size_t group_idx) {
     assert(_failureGroups[group_idx]._normal);
     for (const auto dest : _failureGroups[group_idx]._machines) {
         bool found = false;
-        for (auto machine : _allMacs) {
+        for (auto& machine : _allMacs) {
           if (machine._mac == dest) {
             machine._normal = false;
             found = true;

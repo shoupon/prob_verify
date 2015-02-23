@@ -20,7 +20,7 @@ class SyncSnapshot;
 class Cycle: public Sync
 {
 public:
-    Cycle( int numDeadline, Lookup* msg, Lookup* mac ) ;
+    Cycle(int numDeadline);
     ~Cycle() { }
     
     int transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,

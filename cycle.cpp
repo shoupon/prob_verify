@@ -8,13 +8,12 @@
 
 #include "cycle.h"
 
-Cycle::Cycle( int numDeadline, Lookup* msg, Lookup* mac)
-: Sync(numDeadline, msg, mac)
-{
-    setId(machineToInt("sync"));
-    reset() ;
-    _actives.resize(numDeadline, true);
-    _nextDl = 0 ;
+Cycle::Cycle(int numDeadline)
+    : Sync(numDeadline) {
+  setId(machineToInt("sync"));
+  reset() ;
+  _actives.resize(numDeadline, true);
+  _nextDl = 0 ;
 }
 
 int Cycle::transit(MessageTuple* inMsg, vector<MessageTuple*>& outMsgs,

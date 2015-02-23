@@ -39,7 +39,8 @@ public:
       vector<const StateMachine*> _machines;
   };
 
-  Sync( int numDeadline, Lookup* msg, Lookup* mac ) ;
+  Sync(int numDeadline);
+  Sync(int num_deadlines, int detectable_failure_prob, int fatal_failure_prob);
   ~Sync() { }
   int transit(MessageTuple* in_msg, vector<MessageTuple*>& out_msgs,
               int& prob_level, int start_idx);
@@ -61,25 +62,28 @@ public:
 
   bool isAvailable(int deadline_id);
 protected:
-    vector<int> _actives;
-    // A vector indicates that which deadlines are active.
-    // _ss_act[i] = 1 means that deadline i is active
-    //              0                          inactive
-    int _nextDl ;
-    // The identifier of the deadline that is going to fire next
-    // -1 indicates there is no deadline that will fire (no active deadline)
-    int _time;
-    // obsolete
-    
-    const int _numDl; // Total number of deadlines that will be used throughout the system
-    const StateMachine* _masterPtr ;
-    vector<MachineHandle> _allMacs;
-    vector<FailureGroup> _failureGroups;
-    
-    int getNextActive();
-    void failureEvent(size_t group_idx, vector<MessageTuple*>& outMsgs);
-    void failureEventFatal(size_t group_idx);
-    MessageTuple* generateMsg(const StateMachine *machine, const string& msg, bool isSet, int did);
+  int getNextActive();
+  void failureEvent(size_t group_idx, vector<MessageTuple*>& outMsgs);
+  void failureEventFatal(size_t group_idx);
+  MessageTuple* generateMsg(
+    const StateMachine *machine, const string& msg, bool isSet, int did);
+
+  vector<int> _actives;
+  // A vector indicates that which deadlines are active.
+  // _ss_act[i] = 1 means that deadline i is active
+  //              0                          inactive
+  int _nextDl ;
+  // The identifier of the deadline that is going to fire next
+  // -1 indicates there is no deadline that will fire (no active deadline)
+  int _time;
+  // obsolete
+  const int _numDl; // Total number of deadlines that will be used throughout the system
+  const StateMachine* _masterPtr ;
+  vector<MachineHandle> _allMacs;
+  vector<FailureGroup> _failureGroups;
+
+  const int detectable_failure_prob_;
+  const int fatal_failure_prob_;
 };
 
 class SyncMessage : public MessageTuple
