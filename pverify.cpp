@@ -281,6 +281,7 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
           cout << "Ending state reached. " << endl;
       } else if (!k && isStopping(child_ptr)) {
         // discover new stopping state/entry point in probability class[0]
+        child_ptr->setTrail(dfs_stack_state_);
         copyToEntry(child_ptr, k);
       } else {
         DFSVisit(child_ptr, k);
