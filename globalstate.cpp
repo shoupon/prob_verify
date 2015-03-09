@@ -246,7 +246,7 @@ void GlobalState::findSucc()
               _childs.erase(_childs.begin()+cidx);
               // Continue on evaluating other children
               cout << "REMOVE global state." << endl;
-              cout << "CONTINUE exploring " << toReadable() << endl;
+              cout << "CONTINUE exploring " << toReadableMachineName() << endl;
               continue ;
             } catch (string str) {
                 // This catch phrase should only be reached when no matching transition
