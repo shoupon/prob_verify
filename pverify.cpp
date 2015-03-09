@@ -270,8 +270,10 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
       addChild(gs, child_ptr, p);
     } else if (isMemberOfStack(child_ptr)) {
       // found cycle
-      if (!hasProgress(child_ptr))
-        reportLivelock(child_ptr);
+      if (!hasProgress(child_ptr)) {
+        if (!isStopping(child_ptr))
+          reportLivelock(child_ptr);
+      }
     } else if (!child) {
       // high probability successor is an unexplored state
       if (isEnding(child_ptr)) {
@@ -334,13 +336,17 @@ int ProbVerifier::DFSComputeBound(int state_idx, int limit) {
            << " having transition probability " << p << endl;
     }
     
-    if (!child ||
-        (child_prob >= limit && child_prob == parent_prob + p)) {
-      if (p == 1) {
+    if (!child) {
+      if (parent_prob + p == limit) {
         ++num_low_prob;
       } else {
-        if (alphas_.find(child_idx) != alphas_.end())
-          even_low_prob += (1.0 / inverse_ps_[p - 2]);
+        even_low_prob += (1.0 / inverse_ps_[p - 2]);
+      }
+    } else if (child_prob >= limit) {
+      if (parent_prob + p == limit && child_prob == limit) {
+        ++num_low_prob;
+      } else {
+        even_low_prob += (1.0 / inverse_ps_[p - 2]);
       }
     } else {
       if ((!p && child_prob == parent_prob) ||
@@ -673,7 +679,7 @@ void ProbVerifier::reportLivelock(GlobalState* gs) {
   stackPrintUntil(gs->toString());
   cout << "entering cycle:" << endl;
   stackPrintFrom(gs->toString());
-  cout << "-> " << gs->toReadable() << endl;
+  cout << "-> " << gs->toReadableMachineName() << endl;
 #endif
   throw ProtocolError::kLivelock;
 }
