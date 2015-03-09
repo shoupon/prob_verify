@@ -61,6 +61,7 @@ public:
   static void setRecurring(int flag) { recurring_ = flag; }
 
   bool isAvailable(int deadline_id);
+  bool hasFailed(int mac_id);
 protected:
   int getNextActive();
   void failureEvent(size_t group_idx, vector<MessageTuple*>& outMsgs);
