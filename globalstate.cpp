@@ -289,6 +289,11 @@ void GlobalState::findSucc(vector<GlobalState*>& successors) {
   successors = _childs;
 }
 
+void GlobalState::clearSucc() {
+  for (auto c : _childs)
+    delete c;
+}
+
 vector<GlobalState*> GlobalState::evaluate() 
 {
 #ifdef VERBOSE_EVAL

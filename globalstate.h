@@ -76,6 +76,7 @@ public:
 
   void findSucc();
   void findSucc(vector<GlobalState*>& successors);
+  void clearSucc();
   // For each child global states, update their distance from initial state
   // increase the step length from the initial global state for livelock detection
   void updateTrip();

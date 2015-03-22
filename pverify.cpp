@@ -298,7 +298,8 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
       if (!isStopping(child_ptr))
         addChild(gs, child);
     }
-  }
+  } // end for
+  gs->clearSucc();
   stackPop();
 }
 
