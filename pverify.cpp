@@ -22,7 +22,7 @@ const ProtocolError ProtocolError::kCheckerError("checker_error");
 
 ProbVerifierConfig::ProbVerifierConfig()
     : low_p_bound_(1000.0), low_p_bound_inverse_(1.0/low_p_bound_),
-      bound_method_(DFS_BOUND) {
+      bound_method_(DFS_BOUND), trace_back_(1) {
 }
 
 void ProbVerifierConfig::setLowProbBound(double p) {
@@ -262,7 +262,8 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
     if (p) {
       if (!child) {
         // unexplored entry state in higher classes
-        child_ptr->setTrail(dfs_stack_state_);
+        if (config_.trace_back_)
+          child_ptr->setTrail(dfs_stack_state_);
         copyToEntry(child_ptr, k + p);
       } else {
         // low probability successor identical to some explored state
@@ -283,7 +284,8 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
           cout << "Ending state reached. " << endl;
       } else if (!k && isStopping(child_ptr)) {
         // discover new stopping state/entry point in probability class[0]
-        child_ptr->setTrail(dfs_stack_state_);
+        if (config_.trace_back_)
+          child_ptr->setTrail(dfs_stack_state_);
         copyToEntry(child_ptr, k);
       } else {
         DFSVisit(child_ptr, k);
@@ -585,15 +587,47 @@ void ProbVerifier::printContent(const GSClass& container) {
     cout << "  " << indexToState(p.first) << endl;
 }
 
+int sumTrailTotal(const GSClass& container) {
+  int sum = 0;
+  for (auto entry : container)
+    sum += entry.second->getTrailSize();
+  return sum;
+}
+    
 void ProbVerifier::printStat() {
   int n = 0;
-  for (const auto& c : classes_)
+  int snapshot_bytes = 0;
+  for (const auto& c : classes_) {
     n += c.size();
+    for (const auto state : c)
+      snapshot_bytes += state.second->getBytes();
+  }
+
   cout << n << " reachable states found." << endl ;
-  n = 0;
   cout << reached_stoppings_.size() << " stopping states discovered." << endl;
   cout << reached_endings_.size() << " ending states discovered." << endl;
   cout << num_transitions_ << " transitions taken." << endl;
+
+  size_t total_trail_size = 0;
+  for (const auto& c : entries_)
+    total_trail_size += sumTrailTotal(c);
+  cout << total_trail_size
+       << " states accrued in trails for obtaining witness/counterexamples."
+       << endl;
+  cout << snapshot_bytes << " bytes are used to store snapshots of FSMs"
+       << " in each global state/composite state." << endl;
+  cout << "Sample size of a global state/composite state: "
+       << classes_[0].begin()->second->getBytes() << " bytes" << endl;
+
+  size_t transitions_bytes = sizeof(unordered_map<int, vector<Transition>>);
+  cout << "size of unordered_map = "
+       << sizeof(unordered_map<int, vector<Transition>>) << " bytes." << endl;
+  for (auto t : transitions_)
+    transitions_bytes += t.second.size() * sizeof(Transition);
+  cout << transitions_bytes
+       << " bytes are used to store the structure of the graph." << endl;
+  cout << unique_states_.getBytes() << " bytes are used to store the string "
+       << "representations and their corresponding indices." << endl;
 }
 
 void ProbVerifier::printStat(int class_k) {
@@ -605,6 +639,9 @@ void ProbVerifier::printStat(int class_k) {
   }
   cout << entries_[class_k].size() << " entry points discovered in entry["
        << class_k << "]" << endl;
+  cout << sumTrailTotal(entries_[class_k])
+       << " states accrued for trails for obtaining witness/counterexamples"
+       << " in entry[" << class_k << "]." << endl;
   if (verbosity_ >= 4) {
     cout << "The states in entry[" << class_k << "] are: " << endl;
     printContent(entries_[class_k]);
@@ -663,10 +700,10 @@ bool ProbVerifier::hasProgress(GlobalState* gs) {
 void ProbVerifier::reportDeadlock(GlobalState* gs) {
   cout << "Deadlock found: " << gs->toReadableMachineName() << endl ;
   printStat() ;
-#ifdef TRACE
-  dfs_stack_state_.front()->printTrail();
-  stackPrint();
-#endif
+  if (config_.trace_back_) {
+    dfs_stack_state_.front()->printTrail();
+    stackPrint();
+  }
   throw ProtocolError::kDeadLock;
 }
 
@@ -674,23 +711,23 @@ void ProbVerifier::reportLivelock(GlobalState* gs) {
   cout << "Livelock found after " << gs->getProb()
        << " low probability transitions" << endl ;
   printStat();
-#ifdef TRACE
-  dfs_stack_state_.front()->printTrail();
-  stackPrintUntil(gs->toString());
-  cout << "entering cycle:" << endl;
-  stackPrintFrom(gs->toString());
-  cout << "-> " << gs->toReadableMachineName() << endl;
-#endif
+  if (config_.trace_back_) {
+    dfs_stack_state_.front()->printTrail();
+    stackPrintUntil(gs->toString());
+    cout << "entering cycle:" << endl;
+    stackPrintFrom(gs->toString());
+    cout << "-> " << gs->toReadableMachineName() << endl;
+  }
   throw ProtocolError::kLivelock;
 }
 
 void ProbVerifier::reportError(GlobalState* gs) {
   cout << "Error state found: " << gs->toReadableMachineName() << endl;
   printStat() ;
-#ifdef TRACE
-  dfs_stack_state_.front()->printTrail();
-  stackPrint();
-#endif
+  if (config_.trace_back_) {
+    dfs_stack_state_.front()->printTrail();
+    stackPrint();
+  }
   throw ProtocolError::kErrorState;
 }
 

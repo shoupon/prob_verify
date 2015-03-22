@@ -135,6 +135,7 @@ public:
                const vector<Sync::MachineHandle>& handles, int time);
   ~SyncSnapshot() { }
   int curStateId() const ;
+  size_t getBytes() const;
   string toString() const;
   string toReadable() const { return toString(); }
   int toInt() ;

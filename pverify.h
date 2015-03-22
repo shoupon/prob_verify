@@ -24,7 +24,7 @@ typedef map<GlobalState*, int>::iterator         GSMapIter;
 typedef map<GlobalState*, int>::const_iterator   GSMapConstIter;
 typedef map<string, GlobalState*>                UniqueMap;
 typedef pair<string, GlobalState*>               UniqueMapPair;
-
+typedef unordered_map<int, GlobalState*>         GSClass;
 
 typedef map<string, int>          GSVecMap;
 typedef pair<string, int>         GSVecMapPair;
@@ -64,16 +64,17 @@ public:
   ProbVerifierConfig();
   void setLowProbBound(double p);
   void setBoundMethod(int method);
+  void enableTraceback() { trace_back_ = 1; }
+  void disableTraceback() { trace_back_ = 0; }
 
 private:
   double low_p_bound_;
   double low_p_bound_inverse_;
   int bound_method_;
+  int trace_back_;
 };
 
 class ProbVerifier {
-  typedef unordered_map<int, GlobalState*>      GSClass;
-
   static vector<StateMachine*> machine_ptrs_;
 
   vector<GSMap> _arrClass;

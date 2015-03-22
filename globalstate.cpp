@@ -178,6 +178,17 @@ const vector<string> GlobalState::getStringVec() const
     return ret;
 }
 
+size_t GlobalState::snapshotSize() const {
+  size_t sum = 0;
+  for (auto p : _gStates)
+    sum += p->getBytes();
+  return sum;
+}
+
+size_t GlobalState::getBytes() const {
+  return sizeof(GlobalState) + snapshotSize();
+}
+
 void GlobalState::findSucc()
 {     
     try {

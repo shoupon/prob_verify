@@ -314,6 +314,15 @@ int SyncSnapshot::curStateId() const
     return 0 ;
 }
 
+size_t SyncSnapshot::getBytes() const {
+  size_t sz = sizeof(int) * 2 + sizeof(_ss_act) + sizeof(_ss_group_status)
+      + sizeof(_ss_machine_status);
+  sz += sizeof(int) * _ss_act.size();
+  sz += sizeof(bool) * _ss_group_status.size();
+  sz += sizeof(bool) * _ss_machine_status.size();
+  return sz;
+}
+
 string SyncSnapshot::toString() const {
   stringstream ss ;
   ss << "(" ;

@@ -3,6 +3,7 @@
 
 #include <cassert>
 
+#include <iostream>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -52,6 +53,15 @@ public:
     }
     else
       return _list[idx];
+  }
+
+  size_t getBytes() const {
+    int sz = 0;
+    for (auto& s : _list)
+      sz = s.size();
+    for (auto& p : _tree)
+      sz += sizeof(int) + p.first.size();
+    return sz;
   }
 
 private:

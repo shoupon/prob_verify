@@ -32,6 +32,7 @@ public:
   virtual int toInt() {return _ss_state;}
   virtual StateSnapshot* clone() const { return new StateSnapshot(*this); }
   virtual bool match(StateSnapshot* other) { return toString() == other->toString(); }
+  virtual size_t getBytes() const { return sizeof(int); }
   
 protected:
   int _ss_state;
@@ -129,6 +130,7 @@ public:
 
   virtual size_t numParams() { return 0 ; }
   virtual int getParam(size_t arg) { return 0 ; }
+  virtual size_t getBytes() const { return sizeof(int) * 5; }
   
   virtual string toString() const {
     stringstream ss;

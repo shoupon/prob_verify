@@ -69,6 +69,8 @@ public:
   CheckerState* chkState() { return _checker; }
   const vector<string> getStringVec() const;
   const size_t size() { return _childs.size(); }
+  size_t snapshotSize() const;
+  size_t getBytes() const;
   bool hasChild() { return size()!=0; }
   bool isBusy() { return !_fifo.empty();}
 
@@ -101,6 +103,7 @@ public:
   static void setService(Service* srvc);
 
   void setTrail(const vector<GlobalState*>& t) { trail_ = t; }
+  int getTrailSize() const { return trail_.size(); }
   void printTrail() const;
   void setPathCount(int c) { path_count_ = c; }
   void increasePathCount(int increment) { path_count_ += increment; }
