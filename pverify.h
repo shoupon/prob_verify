@@ -2,6 +2,7 @@
 #define PROB_VERIFY_H
 
 #include <cassert>
+#include <cmath>
 
 #include <vector>
 #include <map>
@@ -119,7 +120,7 @@ public:
   void start(int max_class, int verbose);
   void start(int max_class, const GlobalState* init_state, int verbose);
   // void start(vector<GlobalState*> initStates);
-  int computeBound(int target_class);
+  double computeBound(int target_class);
   bool findCycle();
   void clear();
   
@@ -178,7 +179,7 @@ private:
   GlobalState* copyToExploredEntry(const GlobalState* gs, int k);
 
   void DFSVisit(GlobalState* gs, int k);
-  int DFSComputeBound(int state_idx, int limit);
+  double DFSComputeBound(int state_idx, int limit);
   int treeComputeBound(int state_idx, int depth, int limit);
   bool DFSFindCycle(int state_idx);
   void addChild(const GlobalState* par, const GlobalState* child);
@@ -212,10 +213,10 @@ private:
     int probability_;
   };
   unordered_map<int, vector<Transition>> transitions_;
-  unordered_map<int, int> alphas_;
+  unordered_map<int, double> alphas_;
   unordered_set<int> visited_;
   vector<double> inverse_ps_;
-  long long alpha_diff_;
+  double alpha_diff_;
 
   unique_ptr<GlobalState> start_point_;
   unique_ptr<StoppingState> default_stopping_;

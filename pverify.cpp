@@ -136,7 +136,7 @@ void ProbVerifier::start(int max_class, const GlobalState* init_state,
       if (findCycle())
         cout << "Cycle found in transition system. Bound may diverge." << endl;
       for (int k = 1; k <= max_class + 1; ++k) {
-        int alpha = computeBound(k);
+        double alpha = computeBound(k);
         cout << "Probability of reaching class[" << k << "]"
              << " from the initial state is ";
         if (alpha) {
@@ -168,7 +168,7 @@ void ProbVerifier::start(int max_class, const GlobalState* init_state,
   }
 }
 
-int ProbVerifier::computeBound(int target_class) {
+double ProbVerifier::computeBound(int target_class) {
   clock_t start_time = clock();
   // start from each entry state of class[0] (stopping state/progressive state)
   // and recursively compute the constant alpha from the furthest edge state in
@@ -179,14 +179,14 @@ int ProbVerifier::computeBound(int target_class) {
     inverse_ps_.push_back(ipk *= config_.low_p_bound_inverse_);
 
   stack_depth_ = 0;
-  int max_alpha = 0;
+  double max_alpha = 0.0;
   alphas_.clear();
   int num_iterations = 0;
   do {
     alpha_diff_ = 0;
     for (auto pair : explored_entries_[0]) {
       assert(visited_.empty());
-      int alpha = 0;
+      double alpha = 0;
       if (config_.bound_method_ == DFS_BOUND) {
         alpha = DFSComputeBound(pair.first, target_class);
       } else if(config_.bound_method_ == TREE_BOUND) {
@@ -210,7 +210,8 @@ int ProbVerifier::computeBound(int target_class) {
       cout << "Iteration " << num_iterations << ": "
            << "total alpha increases by " << alpha_diff_ << endl;
     }
-  } while (alpha_diff_);
+  } while (alpha_diff_ > config_.low_p_bound_ ||
+           alpha_diff_ < -config_.low_p_bound_);
 
   if (verbosity_) {
     cout << num_iterations << " iterations needed for bound convergence."
@@ -309,7 +310,7 @@ void printIndent(int n) {
   cout << n << ": ";
 }
 
-int ProbVerifier::DFSComputeBound(int state_idx, int limit) {
+double ProbVerifier::DFSComputeBound(int state_idx, int limit) {
   ++stack_depth_;
   if (log_alpha_evaluation_) {
     printIndent(stack_depth_);
@@ -319,10 +320,10 @@ int ProbVerifier::DFSComputeBound(int state_idx, int limit) {
     --stack_depth_;
     return alphas_[state_idx] = 0;
   }
-  int alpha = 0;
-  int max_alpha = 0;
+  double alpha = 0;
+  double max_alpha = 0;
   int num_low_prob = 0;
-  int low_prob_alphas = 0;
+  double low_prob_alphas = 0;
   double even_low_prob = 0;
   int parent_prob = isMemberOfClasses(state_idx)->getProb();
   for (const auto& trans : transitions_[state_idx]) {
@@ -353,7 +354,7 @@ int ProbVerifier::DFSComputeBound(int state_idx, int limit) {
     } else {
       if ((!p && child_prob == parent_prob) ||
           (p && child_prob == parent_prob + p)) {
-        int child_alpha;
+        double child_alpha;
         if (visited_.find(child_idx) == visited_.end()) {
           child_alpha = DFSComputeBound(child_idx, limit);
           visited_.insert(child_idx);
@@ -381,7 +382,7 @@ int ProbVerifier::DFSComputeBound(int state_idx, int limit) {
         }
       } else {
         if (alphas_.find(child_idx) != alphas_.end()) {
-          int child_alpha = alphas_[child_idx];
+          double child_alpha = alphas_[child_idx];
           even_low_prob +=
               (child_alpha / inverse_ps_[parent_prob - child_prob + p - 1]);
         }
@@ -389,8 +390,9 @@ int ProbVerifier::DFSComputeBound(int state_idx, int limit) {
     }
   }
   alpha = low_prob_alphas + num_low_prob + max_alpha;
-  if (even_low_prob > 0.0)
-    alpha += (int)even_low_prob + 1;
+  even_low_prob =
+      ceil(even_low_prob * config_.low_p_bound_inverse_) * config_.low_p_bound_;
+  alpha += even_low_prob;
 
   if (log_alpha_evaluation_) {
     printIndent(stack_depth_);
@@ -413,7 +415,7 @@ int ProbVerifier::DFSComputeBound(int state_idx, int limit) {
   if (alphas_.find(state_idx) == alphas_.end()) {
     alpha_diff_ += alpha;
   } else {
-    int old_alpha = alphas_[state_idx];
+    double old_alpha = alphas_[state_idx];
     if (old_alpha != alpha) {
       assert(old_alpha < alpha);
       alpha_diff_ += (alpha - old_alpha);
