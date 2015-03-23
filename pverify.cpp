@@ -76,8 +76,11 @@ void ProbVerifier::initialize(const GlobalState* init_state) {
     start_point_ = unique_ptr<GlobalState>(new GlobalState(getMachinePtrs()));
     default_stopping_ = unique_ptr<StoppingState>(
       new StoppingState(start_point_.get()));
-    for (auto ptr : getMachinePtrs())
-      default_stopping_->addAllow(ptr->curState(), ptr->macId() - 1);
+    for (auto ptr : getMachinePtrs()) {
+      StateSnapshot *snapshot = ptr->curState();
+      default_stopping_->addAllow(snapshot, ptr->macId() - 1);
+      delete snapshot;
+    }
     addSTOP(default_stopping_.get());
   }
 #ifdef LOG

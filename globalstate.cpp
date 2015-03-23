@@ -87,21 +87,18 @@ GlobalState::GlobalState(vector<StateSnapshot*>& stateVec)
   }
 }
 
-GlobalState::~GlobalState()
-{
-    // Release the StateSnapshot's stored in _gStates
-    for( size_t i = 0 ; i < _gStates.size() ; ++i ) {
-        delete _gStates[i];
-    }
-    
-    while( !_fifo.empty() ) {
-        MessageTuple* task = _fifo.front() ;
-        delete task ;
-        _fifo.pop();
-    }
-    
-    if (_srvcState)
-        delete _srvcState;
+GlobalState::~GlobalState() {
+  // Release the StateSnapshot's stored in _gStates
+  for (auto ss : _gStates)
+    delete ss;
+  while (!_fifo.empty()) {
+    MessageTuple* task = _fifo.front() ;
+    delete task ;
+    _fifo.pop();
+  }
+  if (_srvcState)
+    delete _srvcState;
+  delete _checker;
 }
 
 void GlobalState::init()
@@ -222,6 +219,7 @@ void GlobalState::findSucc()
                     // Execute state transition
                     delete cc->_gStates[m];
                     cc->_gStates[m] = _machines[m]->curState();
+                    delete cc->_srvcState;
                     cc->_srvcState = _service->curState();
                     // Push tasks to be evaluated onto the queue
                     cc->addTask( pendingTasks );
@@ -277,7 +275,7 @@ void GlobalState::findSucc()
 
         }
                
-    } catch ( exception& e ) {
+    } catch (exception& e) {
         cerr << e.what() << endl ;
     } catch (...) {
         cerr << "When finding successors (findSucc) " << this->toString() << endl ;
@@ -364,6 +362,7 @@ vector<GlobalState*> GlobalState::evaluate()
                     // before, but this time operate on the created child
                     delete creation->_gStates[macNum-1];
                     creation->_gStates[macNum-1] = _machines[macNum-1]->curState();
+                    delete creation->_srvcState;
                     creation->_srvcState = _service->curState();
                     creation->addTask(pending);
                     creation->_depth += prob_level;

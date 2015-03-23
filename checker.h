@@ -17,21 +17,22 @@ using namespace std;
 
 class Checker;
 
-class CheckerState
-{
-    friend Checker;
+class CheckerState {
+  friend Checker;
 public:
-    CheckerState() {}
-    virtual CheckerState* clone()  { return new CheckerState();  }
+  CheckerState() {}
+  virtual ~CheckerState() {}
+  virtual CheckerState* clone() { return new CheckerState(); }
 };
 
 class Checker
 {
 public:
-    Checker() {}
-    virtual bool check( CheckerState* cstate, const vector<StateSnapshot*>& mstate )
-    { return true; }
-    virtual CheckerState* initState() { return 0; }
+  Checker() {}
+  virtual ~Checker() {}
+  virtual bool check(CheckerState* cstate,
+                     const vector<StateSnapshot*>& mstate) { return true; }
+  virtual CheckerState* initState() { return 0; }
 };
 
 
