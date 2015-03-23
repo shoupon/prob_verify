@@ -220,6 +220,7 @@ void GlobalState::findSucc()
                     // Create a clone of current global state
                     GlobalState* cc = new GlobalState(this);
                     // Execute state transition
+                    delete cc->_gStates[m];
                     cc->_gStates[m] = _machines[m]->curState();
                     cc->_srvcState = _service->curState();
                     // Push tasks to be evaluated onto the queue
@@ -292,6 +293,7 @@ void GlobalState::findSucc(vector<GlobalState*>& successors) {
 void GlobalState::clearSucc() {
   for (auto c : _childs)
     delete c;
+  _childs.clear();
 }
 
 vector<GlobalState*> GlobalState::evaluate() 
@@ -345,10 +347,8 @@ vector<GlobalState*> GlobalState::evaluate()
                         << " Message ID = " << content->destMsgId() << endl ;
                     delete content;
                 }
-                _fifo.push(tuple);
-                    
-#ifndef ALLOW_UNMATCHED
                 delete tuple;
+#ifndef ALLOW_UNMATCHED
                 throw ss.str();
 #else
                 cout << ss.str() ;
@@ -367,7 +367,7 @@ vector<GlobalState*> GlobalState::evaluate()
                     creation->_srvcState = _service->curState();
                     creation->addTask(pending);
                     creation->_depth += prob_level;
-                    ret.push_back(creation);                                                            
+                    ret.push_back(creation);
 #ifdef VERBOSE_EVAL
                     queue<MessageTuple*> dupFifo = creation->_fifo ;
                     cout << "Pending tasks in the new child: " << endl ;
@@ -398,8 +398,10 @@ vector<GlobalState*> GlobalState::evaluate()
                 // Save the pending tasks and the states of the only child
                 // (TODO: optimize this section)
                 for( size_t m = 0 ; m < _gStates.size() ; ++m ) {
+                    delete _gStates[m];
                     _gStates[m] = only->_gStates[m]->clone() ;
                 }
+                delete _srvcState;
                 _srvcState = only->_srvcState->clone();
 #ifdef VERBOSE_EVAL
                 cout << "Move the pending tasks from the only child to its parent. " << endl;
@@ -661,6 +663,7 @@ void GlobalState::addParents(const vector<GlobalState*>& arr)
 void GlobalState::eraseChild(size_t idx)
 {
     assert(idx < _childs.size()) ;
+    delete _childs[idx];
     for( size_t ii = idx ; ii < _childs.size()-1 ; ++ii ) {
         _childs[ii] = _childs[ii+1] ;
     }
