@@ -36,6 +36,21 @@ void ProbVerifierConfig::setBoundMethod(int method) {
 
 vector<StateMachine*> ProbVerifier::machine_ptrs_;
 
+ProbVerifier::~ProbVerifier() {
+  for (auto& container : classes_) {
+    for (auto& g : container)
+      delete g.second;
+  }
+  for (auto& container : entries_) {
+    for (auto& g : container)
+      delete g.second;
+  }
+  for (auto& container : explored_entries_) {
+    for (auto& g : container)
+      delete g.second;
+  }
+}
+
 void ProbVerifier::addError(StoppingState *es) {
   if (es->getStateVec().size() != machine_ptrs_.size()) {
     cerr << "The size of the ErrorState does not match the number of machines"
@@ -118,7 +133,9 @@ void ProbVerifier::start(int max_class, const GlobalState* init_state,
         if (isMemberOfClasses(s)) {
           delete s;
         } else {
+          GlobalState *old_s_ptr = s;
           s = copyToClass(s, cur_class);
+          delete old_s_ptr;
           s->setProb(cur_class);
           DFSVisit(s, cur_class);
           copyToExploredEntry(s, cur_class);

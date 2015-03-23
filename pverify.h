@@ -96,6 +96,7 @@ class ProbVerifier {
     
 public:
   ProbVerifier():_curClass(0) {}
+  ~ProbVerifier();
   
   void addMachine(StateMachine* machine);
   //void setRS(vector<GlobalState*> rs);
