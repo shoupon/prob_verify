@@ -129,17 +129,15 @@ void ProbVerifier::start(int max_class, const GlobalState* init_state,
       while (entries_[cur_class].size()) {
         auto it = entries_[cur_class].begin();
         GlobalState* s = it->second;
+        GlobalState *old_s_ptr = s;
         entries_[cur_class].erase(it);
-        if (isMemberOfClasses(s)) {
-          delete s;
-        } else {
-          GlobalState *old_s_ptr = s;
+        if (!isMemberOfClasses(s)) {
           s = copyToClass(s, cur_class);
-          delete old_s_ptr;
           s->setProb(cur_class);
           DFSVisit(s, cur_class);
           copyToExploredEntry(s, cur_class);
         }
+        delete old_s_ptr;
       }
       if (verbosity_) {
         cout << "-------- Complete exploring states in class[" << cur_class
@@ -851,18 +849,27 @@ GlobalState* ProbVerifier::isMemberOfEntries(int state_idx) {
 }
 
 GlobalState* ProbVerifier::copyToClass(const GlobalState* gs, int k) {
-  return classes_[k][stateToIndex(gs)] = new GlobalState(gs);
+  int idx = stateToIndex(gs);
+  if (classes_[k].find(idx) != end(classes_[k]))
+    return classes_[k][idx];
+  else
+    return classes_[k][idx] = new GlobalState(gs);
 }
 
 GlobalState* ProbVerifier::copyToEntry(const GlobalState* gs, int k) {
-  if (verbosity_ >= 7) {
-    for (int i = 0; i < dfs_stack_state_.size() + 1; ++i)
-      cout << "  ";
-    cout << dfs_stack_state_.size() + 1;
-    cout << "-> entry reached " << gs->toString()
-         << " Prob = " << gs->getProb() << endl;
+  int idx = stateToIndex(gs);
+  if (entries_[k].find(idx) != end(entries_[k])) {
+    return entries_[k][idx];
+  } else {
+    if (verbosity_ >= 7) {
+      for (int i = 0; i < dfs_stack_state_.size() + 1; ++i)
+        cout << "  ";
+      cout << dfs_stack_state_.size() + 1;
+      cout << "-> entry reached " << gs->toString()
+           << " Prob = " << gs->getProb() << endl;
+    }
+    return entries_[k][idx] = new GlobalState(gs);
   }
-  return entries_[k][stateToIndex(gs)] = new GlobalState(gs);
 }
 
 GlobalState* ProbVerifier::copyToExploredEntry(const GlobalState* gs, int k) {
