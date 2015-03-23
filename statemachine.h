@@ -118,24 +118,28 @@ private:
 class MessageTuple {
 public:
   MessageTuple(int src, int dest, int srcMsg, int destMsg, int subject)
-  :_src(src), _dest(dest), _srcMsg(srcMsg), _destMsg(destMsg), _subject(subject) {}
+      : _dest(dest), _destMsg(destMsg), _subject(subject) {}
+  MessageTuple(int dest, int destMsg, int subject)
+      : _dest(dest), _destMsg(destMsg), _subject(subject) {}
   
   virtual ~MessageTuple() {}
   
-  int srcID() {return _src;}
   int destId() {return _dest;}
-  int srcMsgId() {return _srcMsg;}
   int destMsgId() {return _destMsg;}
   int subjectId() {return _subject;}
 
+  // Deprecated
+  int srcID() {return -1;}
+  int srcMsgId() {return -1;}
+
   virtual size_t numParams() { return 0 ; }
   virtual int getParam(size_t arg) { return 0 ; }
-  virtual size_t getBytes() const { return sizeof(int) * 5; }
+  virtual size_t getBytes() const { return sizeof(int) * 3; }
   
   virtual string toString() const {
     stringstream ss;
-    ss << "subject=" << _subject << ":" ;
-    ss << "(" << _src << "?" << _srcMsg << "," << _dest << "!" << _destMsg << ")" ;
+    ss << _subject << ":" ;
+    ss << "(" << _dest << "!" << _destMsg << ")" ;
     return ss.str() ;
   }
 
@@ -157,9 +161,7 @@ public:
   virtual bool operator==(const MessageTuple& rhs) const;
   virtual bool operator<(const MessageTuple &rhs) const;
 protected:
-  int _src;
   int _dest;
-  int _srcMsg;
   int _destMsg;
   int _subject;
 };

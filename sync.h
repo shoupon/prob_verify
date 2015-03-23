@@ -99,12 +99,14 @@ public:
        d: the identifier of the deadline to which this SyncMessage is associated
      **/
     
-    SyncMessage(int src, int dest, int srcMsg, int destMsg, int subject, bool set, int d)
-    :MessageTuple(src, dest, srcMsg, destMsg, subject), _isSet(set), _deadlineId(d) {}
+    SyncMessage(int src, int dest, int srcMsg, int destMsg, int subject,
+                bool set, int d)
+        : MessageTuple(src, dest, srcMsg, destMsg, subject),
+          _isSet(set), _deadlineId(d) {}
 
-    SyncMessage( const SyncMessage& msg )
-    :MessageTuple(msg._src, msg._dest, msg._srcMsg, msg._destMsg, msg._subject)
-    , _isSet(msg._isSet), _deadlineId(msg._deadlineId) {}
+    SyncMessage(const SyncMessage& msg)
+        : MessageTuple(msg._dest, msg._destMsg, msg._subject),
+          _isSet(msg._isSet), _deadlineId(msg._deadlineId) {}
     
     ~SyncMessage() {}
     

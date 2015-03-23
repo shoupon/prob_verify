@@ -40,8 +40,8 @@ int StateMachine::nullInputTrans(vector<MessageTuple*>& out_msgs,
 
 bool MessageTuple::operator==(const MessageTuple &rhs) const
 {
-    if (_src==rhs._src && _dest==rhs._dest &&
-        _srcMsg==rhs._srcMsg && _destMsg==rhs._destMsg && _subject==rhs._subject)
+    if (_dest==rhs._dest &&
+        _destMsg==rhs._destMsg && _subject==rhs._subject)
         return true;
     else
         return false;
@@ -49,17 +49,9 @@ bool MessageTuple::operator==(const MessageTuple &rhs) const
 
 bool MessageTuple::operator<(const MessageTuple &rhs) const
 {
-    if (_src < rhs._src)
-        return true;
-    else if(_src > rhs._src)
-        return false;
     if (_dest < rhs._dest)
         return true;
     else if(_dest > rhs._dest)
-        return false;
-    if (_srcMsg < rhs._srcMsg)
-        return true;
-    else if(_srcMsg > rhs._srcMsg)
         return false;
     if (_destMsg < rhs._destMsg)
         return true;
