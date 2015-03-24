@@ -29,24 +29,14 @@ class GlobalState {
   static GlobalState* _root;
   
   vector<GlobalState*> _childs;
-  vector<GlobalState*> _parents;
   queue<MessageTuple*> _fifo;
 
-  int _visit;
   int _dist ;
   int _depth;
-  
-  // Used in breadth-first search
-  bool _white;
-  size_t _trace;
-  
-  // Used when determine transitions between stopping states
-  vector<GlobalState*> _origin;
-  
 public:
   // Default constructor creates a global state with all its machine set to initial
   // state 0.
-  GlobalState():_visit(1),_dist(0), _white(true) { init(); }
+  GlobalState() : _dist(0) { init(); }
   // This copy constructor is used to create childs, 
   // it will automatically increase the distance of childs
   GlobalState(GlobalState* gs);
@@ -62,7 +52,6 @@ public:
   GlobalState* getChild (size_t i);
   int getProb() const { return _depth; }
   void setProb(int p) { _depth = p; }
-  int getVisit() { return _visit ;}
   int getDistance() { return _dist;}
   const vector<StateSnapshot*> getStateVec() const { return _gStates ;}
 
@@ -80,18 +69,12 @@ public:
   // For each child global states, update their distance from initial state
   // increase the step length from the initial global state for livelock detection
   void updateTrip();
-  void removeParents() { _parents.clear(); }
-  void updateParents() ;
-  static bool removeBranch(GlobalState* leaf) ;
-  void merge(GlobalState* gs);
 
   // Take the states of machines as stored in _gStates
   void restore();
   // Save the current state of machines to _gStates
   void store();
   void mutateState(const StateSnapshot* snapshot, int mac_id);
-
-  void addOrigin(GlobalState* rootStop);
 
   string toString() const;
   string toReadable() const;

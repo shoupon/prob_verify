@@ -16,8 +16,8 @@ Service* GlobalState::_service = NULL;
 GlobalState* GlobalState::_root = NULL;
 
 GlobalState::GlobalState(GlobalState* gs)
-    : _visit(1), _dist(gs->_dist), _depth(gs->_depth), _white(true),
-      _origin(gs->_origin), path_count_(gs->path_count_) {
+    : _dist(gs->_dist), _depth(gs->_depth),
+      path_count_(gs->path_count_) {
     // Clone the pending tasks
     // Duplicate the container since the original gs->_fifo cannot be popped
     queue<MessageTuple*> cloneTasks = gs->_fifo ;
@@ -44,8 +44,7 @@ GlobalState::GlobalState(GlobalState* gs)
 }
 
 GlobalState::GlobalState(const GlobalState* gs)
-    : _visit(1), _dist(gs->_dist), _depth(gs->_depth),
-      _white(true), _origin(gs->_origin), trail_(gs->trail_),
+    : _dist(gs->_dist), _depth(gs->_depth), trail_(gs->trail_),
       path_count_(gs->path_count_) {
   // Copy Snapshots
   for (auto ss : gs->_gStates)
@@ -57,7 +56,7 @@ GlobalState::GlobalState(const GlobalState* gs)
 }
 
 GlobalState::GlobalState(vector<StateMachine*> macs, CheckerState* chkState)
-    :_visit(1), _dist(0), _white(true), path_count_(0) {
+    : _dist(0), path_count_(0) {
   if (_nMacs < 0) {
     _nMacs = (int)macs.size();
   }
@@ -80,7 +79,7 @@ GlobalState::GlobalState(vector<StateMachine*> macs, CheckerState* chkState)
 }
 
 GlobalState::GlobalState(vector<StateSnapshot*>& stateVec)
-    : _visit(1),_dist(0), _white(true), path_count_(0) {
+    : _dist(0), path_count_(0) {
   assert(stateVec.size() == _machines.size());
   for( size_t i = 0 ; i < stateVec.size() ; ++i ) {
       _gStates[i] = stateVec[i]->clone() ;
@@ -121,42 +120,6 @@ void GlobalState::init()
     _srvcState = _service->curState();
      */
 }       
-
-/*
-// Return if there's any activated transition in this global state
-bool GlobalState::active()
-{
-    for( size_t m = 0 ; m < _machines.size() ; ++m ) {
-        if( _actives[m].size() > 0 )
-            return true ;
-    }
-    return false ;
-}
-
-Transition* GlobalState::getActive(int& macId, int& transId)
-{
-    macId = transId = -1;
-    for( size_t m = 0 ; m < _machines.size() ; ++m ) {
-        for( size_t t = 0 ; t < _actives[m].size() ; ++t ) {
-            macId = m ;
-            transId = _actives[m].back() ;
-            _actives[m].pop_back();
-            return &(_machines[m]->getState(_gStates[m])->getTrans(transId)) ;
-        }
-    }
-    return 0;
-}*/
-/*
-// TODO
-void GlobalState::explore(int subject)
-{    
-    while( !_fifo.empty() ) {
-        Matching toExec = _fifo.front();
-        _fifo.pop();
-        execute(subject, &toExec);  // CHANGE, this may return plural triggered edges
-        // create childs if needed
-    }
-}*/
 
 GlobalState* GlobalState::getChild(size_t i)
 {
@@ -498,85 +461,10 @@ void GlobalState::updateTrip()
     }
 }
 
-void GlobalState::updateParents()
-{
-    vector<GlobalState*>::iterator it;
-    for( it = _childs.begin() ; it != _childs.end() ; ++it ) {
-        assert( (*it)->_parents.size() == 0 );
-        (*it)->_parents.push_back(this);
-    }
-}
-
-// This function removes the leafy GlobalState if it has no successor
-// If removing such leaf also turns its parent a leaf, recursively remove its leafy parent
-// Return true if its parent turned leafy and is removed;
-// return false if only leaf is removed
-bool GlobalState::removeBranch(GlobalState* leaf)
-{
-    if( leaf == _root )
-        return false ;
-    
-    assert(leaf->_parents.size() == 1) ;
-    
-    GlobalState* par = leaf->_parents.front() ;
-    vector<GlobalState*>::iterator it = par->_childs.begin() ;
-    bool found = false;
-    for( ; it != par->_childs.end() ; ++it ) {
-        if( (*it) == leaf ) {
-            par->_childs.erase(it);
-            found = true ;
-            break ;
-        }
-    }
-
-    assert(found);
-    
-    bool ret = false;
-    if( par->_childs.size() == 0 ) {
-        removeBranch(par) ;
-        ret = true ;
-    }
-    delete leaf ;
-    return ret;
-}
-
-void GlobalState::merge(GlobalState *gs)
-{
-    this->_visit += gs->_visit ;
-    
-    // Take care of the _childs vector of parents of gs
-    for( size_t i = 0 ; i < gs->_parents.size() ; i++ ) {
-        GlobalState* par = gs->_parents[i];
-        vector<GlobalState*>::iterator it = par->_childs.begin() ;
-        for( ; it != par->_childs.end() ; ++it ) {
-            if( (*it) == gs ) {
-                (*it) = this ;
-                break ;
-            }
-        }
-        assert( it != par->_childs.end() );
-    }
-
-    this->addParents(gs->_parents);
-    
-    delete gs;
-}
-   
 bool GlobalState::init(GlobalState* s)
 {
     _root = s;
     return true;
-}
-
-void GlobalState::addOrigin(GlobalState* rootStop)
-{
-    for( size_t i = 0 ; i < _origin.size() ; ++i ) {
-        if( _origin[i]->toString() == rootStop->toString() ) {
-            if( _origin[i]->_depth == rootStop->_depth )
-                return ;
-        }
-    }
-    _origin.push_back(rootStop);
 }
 
 string GlobalState::toString() const
@@ -617,46 +505,6 @@ string GlobalState::toReadableMachineName() const {
   }
   ret += "]";
   return ret;
-}
-
-/*
-void GlobalState::trim()
-{
-    for( size_t ii = 0 ; ii < _childs.size() ; ++ii ) {
-        // If the newly created global state is already in _uniqueTable, link the global state
-        // If not, add such global state to _uniqueTable    
-        GSHash::iterator it = _uniqueTable.find( GlobalStateHashKey(_childs[ii]) );
-        
-        if( it != _uniqueTable.end() ) {
-            // Such GlobalState with the same state vector and of the same class 
-            // has already been created
-            GlobalState* dup = _childs[ii];
-            
-            _childs[ii] = (*it).second;        
-            _childs[ii]->increaseVisit(this->_countVisit);             
-            _childs[ii]->addParents(dup->_parents);
-            
-            delete dup;
-        }
-        else {
-            _uniqueTable.insert( GlobalStateHashKey(_childs[ii]), _childs[ii] ) ;
-        }
-    }
-}*/
-
-void GlobalState::addParents(const vector<GlobalState*>& arr)
-{
-    for( size_t ii = 0 ; ii < arr.size(); ++ii ) {
-        bool exist = false ;
-        for( size_t jj = 0 ; jj < this->_parents.size() ; ++jj ) {
-            if( _parents[jj] == arr[ii] )
-                exist = true;
-        }
-
-        if( !exist ) {
-            _parents.push_back(arr[ii]);
-        }
-    }
 }
 
 void GlobalState::eraseChild(size_t idx)
