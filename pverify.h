@@ -24,8 +24,10 @@ typedef pair<GlobalState*, int>                  GSMapPair;
 typedef map<GlobalState*, int>::iterator         GSMapIter;
 typedef map<GlobalState*, int>::const_iterator   GSMapConstIter;
 typedef map<string, GlobalState*>                UniqueMap;
+typedef set<string>                              UniqueSet;
 typedef pair<string, GlobalState*>               UniqueMapPair;
-typedef unordered_map<int, GlobalState*>         GSClass;
+typedef unordered_set<int>                       GSClass;
+typedef unordered_map<int, GlobalState *>        GSEntry;
 
 typedef map<string, int>          GSVecMap;
 typedef pair<string, int>         GSVecMapPair;
@@ -143,6 +145,8 @@ private:
   void resetStat();
   void printContent(const vector<GSClass>& containers);
   void printContent(const GSClass& container);
+  void printContent(const vector<GSEntry>& containers);
+  void printContent(const GSEntry& container);
   void printStat();
   void printStat(int class_k);
   void printStoppings();
@@ -162,22 +166,28 @@ private:
   bool isMemberOf(const string& s, const vector<string>& container);
   bool isMemberOf(const GlobalState* gs, const vector<int>& container);
   bool isMemberOf(int state_idx, const vector<int>& container);
-  GlobalState* isMemberOf(const GlobalState* gs, const GSClass& container);
-  GlobalState* isMemberOf(const string& s, const GSClass& container);
-  GlobalState* isMemberOf(int state_idx, const GSClass& container);
-  GlobalState* isMemberOf(const GlobalState* gs, const vector<GSClass>& containers);
-  GlobalState* isMemberOf(const string& s, const vector<GSClass>& containers);
-  GlobalState* isMemberOf(int state_idx, const vector<GSClass>& containers);
-  GlobalState* isMemberOfClasses(const GlobalState* gs);
-  GlobalState* isMemberOfClasses(const string& s);
-  GlobalState* isMemberOfClasses(int state_idx);
-  GlobalState* isMemberOfEntries(const GlobalState* gs);
-  GlobalState* isMemberOfEntries(const string& s);
-  GlobalState* isMemberOfEntries(int state_idx);
+  bool isMemberOf(const GlobalState* gs, const GSClass& container);
+  bool isMemberOf(const string& s, const GSClass& container);
+  bool isMemberOf(int state_idx, const GSClass& container);
+  bool isMemberOf(const GlobalState* gs, const GSEntry& container);
+  bool isMemberOf(const string& s, const GSEntry& container);
+  bool isMemberOf(int state_idx, const GSEntry& container);
+  int isMemberOf(const GlobalState* gs, const vector<GSClass>& containers);
+  int isMemberOf(const string& s, const vector<GSClass>& containers);
+  int isMemberOf(int state_idx, const vector<GSClass>& containers);
+  int isMemberOf(const GlobalState* gs, const vector<GSEntry>& containers);
+  int isMemberOf(const string& s, const vector<GSEntry>& containers);
+  int isMemberOf(int state_idx, const vector<GSEntry>& containers);
+  int isMemberOfClasses(const GlobalState* gs);
+  int isMemberOfClasses(const string& s);
+  int isMemberOfClasses(int state_idx);
+  int isMemberOfEntries(const GlobalState* gs);
+  int isMemberOfEntries(const string& s);
+  int isMemberOfEntries(int state_idx);
 
-  GlobalState* copyToClass(const GlobalState* gs, int k);
-  GlobalState* copyToEntry(const GlobalState* gs, int k);
-  GlobalState* copyToExploredEntry(const GlobalState* gs, int k);
+  void copyToClass(const GlobalState* gs, int k);
+  void copyToEntry(const GlobalState* gs, int k);
+  void copyToExploredEntry(const GlobalState* gs, int k);
 
   void DFSVisit(GlobalState* gs, int k);
   double DFSComputeBound(int state_idx, int limit);
@@ -200,8 +210,8 @@ private:
   ProbVerifierConfig config_;
 
   vector<GSClass> classes_;
-  vector<GSClass> entries_;
-  vector<GSClass> explored_entries_;
+  vector<GSEntry> entries_;
+  vector<GSEntry> explored_entries_;
   vector<int> dfs_stack_indices_;
   vector<GlobalState*> dfs_stack_state_;
   unordered_set<int> reached_stoppings_;
