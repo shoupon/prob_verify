@@ -86,9 +86,9 @@ public:
 
   static void setService(Service* srvc);
 
-  void setTrail(const vector<GlobalState*>& t) { trail_ = t; }
+  void setTrail(const vector<int>& t) { trail_ = t; }
   int getTrailSize() const { return trail_.size(); }
-  void printTrail() const;
+  int printTrail(string (*translation)(int)) const;
   void setPathCount(int c) { path_count_ = c; }
   void increasePathCount(int increment) { path_count_ += increment; }
   int getPathCount() { return path_count_; }
@@ -122,7 +122,7 @@ private:
   static void printSeq(const vector<GlobalState*>& seq);
   
   string msg2str(MessageTuple* msg);
-  vector<GlobalState*> trail_;
+  vector<int> trail_;
   int path_count_;
 };
 #endif

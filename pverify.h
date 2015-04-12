@@ -79,6 +79,7 @@ private:
 
 class ProbVerifier {
   static vector<StateMachine*> machine_ptrs_;
+  static Indexer<string> unique_states_;
 
   vector<GSMap> _arrClass;
   vector<GSMap> _all;
@@ -158,9 +159,9 @@ private:
   void reportLivelock(GlobalState* gs);
   void reportError(GlobalState* gs);
 
-  int stateToIndex(const string& state_str);
-  int stateToIndex(const GlobalState* gs);
-  string indexToState(int idx);
+  static int stateToIndex(const string& state_str);
+  static int stateToIndex(const GlobalState* gs);
+  static string indexToState(int idx);
 
   bool isMemberOf(const GlobalState* gs, const vector<string>& container);
   bool isMemberOf(const string& s, const vector<string>& container);
@@ -216,7 +217,6 @@ private:
   vector<GlobalState*> dfs_stack_state_;
   unordered_set<int> reached_stoppings_;
   unordered_set<int> reached_endings_;
-  Indexer<string> unique_states_;
   struct Transition {
     Transition(int state_idx, int prob)
         : state_idx_(state_idx), probability_(prob) {}

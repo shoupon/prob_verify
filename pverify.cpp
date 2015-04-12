@@ -35,6 +35,7 @@ void ProbVerifierConfig::setBoundMethod(int method) {
 }
 
 vector<StateMachine*> ProbVerifier::machine_ptrs_;
+Indexer<string> ProbVerifier::unique_states_;
 
 ProbVerifier::~ProbVerifier() {
   for (auto& container : entries_) {
@@ -276,7 +277,7 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
       if (child_idx < 0) {
         // unexplored entry state in higher classes
         if (config_.trace_back_)
-          child_ptr->setTrail(dfs_stack_state_);
+          child_ptr->setTrail(dfs_stack_indices_);
         copyToEntry(child_ptr, k + p);
       } else {
         // low probability successor identical to some explored state
@@ -298,7 +299,7 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
       } else if (!k && isStopping(child_ptr)) {
         // discover new stopping state/entry point in probability class[0]
         if (config_.trace_back_)
-          child_ptr->setTrail(dfs_stack_state_);
+          child_ptr->setTrail(dfs_stack_indices_);
         copyToEntry(child_ptr, k);
       } else {
         DFSVisit(child_ptr, k);
@@ -710,7 +711,7 @@ void ProbVerifier::reportDeadlock(GlobalState* gs) {
   cout << "Deadlock found: " << gs->toReadableMachineName() << endl ;
   printStat() ;
   if (config_.trace_back_) {
-    dfs_stack_state_.front()->printTrail();
+    dfs_stack_state_.front()->printTrail(indexToState);
     stackPrint();
   }
   throw ProtocolError::kDeadLock;
@@ -721,7 +722,7 @@ void ProbVerifier::reportLivelock(GlobalState* gs) {
        << " low probability transitions" << endl ;
   printStat();
   if (config_.trace_back_) {
-    dfs_stack_state_.front()->printTrail();
+    dfs_stack_state_.front()->printTrail(indexToState);
     stackPrintUntil(gs->toString());
     cout << "entering cycle:" << endl;
     stackPrintFrom(gs->toString());
@@ -734,7 +735,7 @@ void ProbVerifier::reportError(GlobalState* gs) {
   cout << "Error state found: " << gs->toReadableMachineName() << endl;
   printStat() ;
   if (config_.trace_back_) {
-    dfs_stack_state_.front()->printTrail();
+    dfs_stack_state_.front()->printTrail(indexToState);
     stackPrint();
   }
   throw ProtocolError::kErrorState;

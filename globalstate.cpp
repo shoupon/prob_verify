@@ -594,15 +594,16 @@ void GlobalState::mutateState(const StateSnapshot* snapshot, int mac_id) {
   restore();
 }
 
-void GlobalState::printTrail() const {
+// returns head of the trail, that is, the entry state which is the entry point
+// to this class
+int GlobalState::printTrail(string (*translation)(int)) const {
+  for (const auto s : trail_) {
+    cout << "-> " << translation(s) << endl;
+  }
   if (trail_.size()) {
-    trail_.front()->printTrail();
-    int p = getProb() - trail_.front()->getProb();
-    cout << "-p" << p << "-> " << endl;
+    return trail_.front();
   } else {
     assert(getProb() == 0);
   }
-  for (const auto s : trail_) {
-    cout << "-> " << s->toString() << endl;
-  }
+  return -1;
 }
