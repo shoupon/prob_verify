@@ -31,12 +31,11 @@ class GlobalState {
   vector<GlobalState*> _childs;
   queue<MessageTuple*> _fifo;
 
-  int _dist ;
   int _depth;
 public:
   // Default constructor creates a global state with all its machine set to initial
   // state 0.
-  GlobalState() : _dist(0) { init(); }
+  GlobalState() { init(); }
   // This copy constructor is used to create childs, 
   // it will automatically increase the distance of childs
   GlobalState(GlobalState* gs);
@@ -52,7 +51,6 @@ public:
   GlobalState* getChild (size_t i);
   int getProb() const { return _depth; }
   void setProb(int p) { _depth = p; }
-  int getDistance() { return _dist;}
   const vector<StateSnapshot*> getStateVec() const { return _gStates ;}
 
   CheckerState* chkState() { return _checker; }
@@ -66,9 +64,6 @@ public:
   void findSucc();
   void findSucc(vector<GlobalState*>& successors);
   void clearSucc();
-  // For each child global states, update their distance from initial state
-  // increase the step length from the initial global state for livelock detection
-  void updateTrip();
 
   // Take the states of machines as stored in _gStates
   void restore();

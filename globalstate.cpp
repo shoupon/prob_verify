@@ -16,8 +16,7 @@ Service* GlobalState::_service = NULL;
 GlobalState* GlobalState::_root = NULL;
 
 GlobalState::GlobalState(GlobalState* gs)
-    : _dist(gs->_dist), _depth(gs->_depth),
-      path_count_(gs->path_count_) {
+    : _depth(gs->_depth), path_count_(gs->path_count_) {
     // Clone the pending tasks
     // Duplicate the container since the original gs->_fifo cannot be popped
     queue<MessageTuple*> cloneTasks = gs->_fifo ;
@@ -44,7 +43,7 @@ GlobalState::GlobalState(GlobalState* gs)
 }
 
 GlobalState::GlobalState(const GlobalState* gs)
-    : _dist(gs->_dist), _depth(gs->_depth), trail_(gs->trail_),
+    : _depth(gs->_depth), trail_(gs->trail_),
       path_count_(gs->path_count_) {
   // Copy Snapshots
   for (auto ss : gs->_gStates)
@@ -56,7 +55,7 @@ GlobalState::GlobalState(const GlobalState* gs)
 }
 
 GlobalState::GlobalState(vector<StateMachine*> macs, CheckerState* chkState)
-    : _dist(0), path_count_(0) {
+    : path_count_(0) {
   if (_nMacs < 0) {
     _nMacs = (int)macs.size();
   }
@@ -79,7 +78,7 @@ GlobalState::GlobalState(vector<StateMachine*> macs, CheckerState* chkState)
 }
 
 GlobalState::GlobalState(vector<StateSnapshot*>& stateVec)
-    : _dist(0), path_count_(0) {
+    : path_count_(0) {
   assert(stateVec.size() == _machines.size());
   for( size_t i = 0 ; i < stateVec.size() ; ++i ) {
       _gStates[i] = stateVec[i]->clone() ;
@@ -445,20 +444,6 @@ void GlobalState::addTask(vector<MessageTuple*> msgs)
 #ifdef VERBOSE
     cout << "is(are) added to the task FIFO queue." << endl ;
 #endif
-}
-
-void GlobalState::updateTrip()
-{
-    vector<GlobalState*>::iterator it;
-    for( it = _childs.begin() ; it != _childs.end() ; ++it ) {
-        if( (*it)->_depth != this->_depth ) {
-            assert((*it)->_depth > this->_depth ) ;
-            (*it)->_dist = 0 ;
-        }
-        else if( (*it)->_dist < this->_dist + 1 ) {
-            (*it)->_dist = this->_dist + 1 ;
-        }
-    }
 }
 
 bool GlobalState::init(GlobalState* s)
