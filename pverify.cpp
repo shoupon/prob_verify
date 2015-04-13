@@ -254,8 +254,7 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
       cout << "  ";
     cout << dfs_stack_state_.size();
     cout << "-> " << gs->toReadable()
-         << " Prob = " << gs->getProb()
-         << " Dist = " << gs->getDistance() << endl;
+         << " Prob = " << gs->getProb() << endl;
   }
   if (classes_[k].size() % PROGRESS_CHUNK == 0)
     cerr << "Finished exploring " << classes_[k].size()
@@ -579,9 +578,8 @@ void ProbVerifier::printStep(GlobalState *obj)
     for( size_t idx = 0 ; idx < obj->size() ; ++idx ) {
         GlobalState* childNode = obj->getChild(idx);
         int prob = childNode->getProb();
-        int dist = childNode->getDistance();
         cout << childNode->toString()
-             << " Prob = " << prob << " Dist = " << dist << endl;
+             << " Prob = " << prob << endl;
     }
 }
 
