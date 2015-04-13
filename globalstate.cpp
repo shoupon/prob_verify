@@ -343,11 +343,9 @@ void GlobalState::evaluate() {
     }
     delete tuple;
 
-    if (_fifo.size()) {
-        for (auto c : _childs) {
-            assert(c->hasTasks());
+    for (auto c : _childs) {
+        if (c->hasTasks())
             c->evaluate();
-        }
     }
 
     while (_fifo.size()) {
