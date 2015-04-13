@@ -340,13 +340,14 @@ double ProbVerifier::DFSComputeBound(int state_idx, int limit) {
     --stack_depth_;
     return alphas_[state_idx] = 0;
   }
-  double alpha = 0;
-  double max_alpha = 0;
-  int num_low_prob = 0;
-  double low_prob_alphas = 0;
-  double even_low_prob = 0;
-  int parent_prob = isMemberOfClasses(state_idx);
+  double max_over_nd_choices = 0.0;
   for (const auto& ndc : nd_choices_[state_idx]) {
+    double alpha = 0;
+    double max_alpha = 0;
+    int num_low_prob = 0;
+    double low_prob_alphas = 0;
+    double even_low_prob = 0;
+    int parent_prob = isMemberOfClasses(state_idx);
     for (const auto& trans : ndc.prob_choices) {
       int p = trans.probability_;
       int child_idx = trans.state_idx_;
@@ -408,40 +409,43 @@ double ProbVerifier::DFSComputeBound(int state_idx, int limit) {
       }
     } // for probabilistic choices under a non-deterministic choice of 
       // state_idx
-  } // for non-deterministic choices of state_idx
-  alpha = low_prob_alphas + num_low_prob + max_alpha;
-  even_low_prob =
-      ceil(even_low_prob * config_.low_p_bound_inverse_) * config_.low_p_bound_;
-  alpha += even_low_prob;
+    if (log_alpha_evaluation_) {
+      printIndent(stack_depth_);
+      cout << indexToState(state_idx) << "'s alpha = "
+           << alpha << "." << endl;
+      printIndent(stack_depth_);
+      cout << max_alpha << " comes from states within the same class." << endl;
+      printIndent(stack_depth_);
+      cout << low_prob_alphas
+           << " comes from the computed alphas of states one class deeper."
+           << endl;
+      printIndent(stack_depth_);
+      cout << num_low_prob << " comes from the unknown states beyond the limit."
+           << endl;
+      printIndent(stack_depth_);
+      cout << even_low_prob
+           << " comes from states that are more than one class deeper." << endl;
+    }
 
-  if (log_alpha_evaluation_) {
-    printIndent(stack_depth_);
-    cout << indexToState(state_idx) << "'s alpha = "
-         << alpha << "." << endl;
-    printIndent(stack_depth_);
-    cout << max_alpha << " comes from states within the same class." << endl;
-    printIndent(stack_depth_);
-    cout << low_prob_alphas
-         << " comes from the computed alphas of states one class deeper."
-         << endl;
-    printIndent(stack_depth_);
-    cout << num_low_prob << " comes from the unknown states beyond the limit."
-         << endl;
-    printIndent(stack_depth_);
-    cout << even_low_prob
-         << " comes from states that are more than one class deeper." << endl;
-  }
+    alpha = low_prob_alphas + num_low_prob + max_alpha;
+    even_low_prob =
+        ceil(even_low_prob * config_.low_p_bound_inverse_) * config_.low_p_bound_;
+    alpha += even_low_prob;
+    if (alpha > max_over_nd_choices)
+      max_over_nd_choices = alpha;
+  } // for non-deterministic choices of state_idx
+
   --stack_depth_;
   if (alphas_.find(state_idx) == alphas_.end()) {
-    alpha_diff_ += alpha;
+    alpha_diff_ += max_over_nd_choices;
   } else {
     double old_alpha = alphas_[state_idx];
-    if (old_alpha != alpha) {
-      assert(old_alpha < alpha);
-      alpha_diff_ += (alpha - old_alpha);
+    if (old_alpha != max_over_nd_choices) {
+      assert(old_alpha < max_over_nd_choices);
+      alpha_diff_ += (max_over_nd_choices - old_alpha);
     }
   }
-  return alphas_[state_idx] = alpha;
+  return alphas_[state_idx] = max_over_nd_choices;
 }
 
 int ProbVerifier::treeComputeBound(int state_idx, int depth, int limit) {
