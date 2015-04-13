@@ -254,8 +254,7 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
       cout << "  ";
     cout << dfs_stack_state_.size();
     cout << "-> " << gs->toReadable()
-         << " Prob = " << gs->getProb()
-         << " Dist = " << gs->getDistance() << endl;
+         << " Prob = " << gs->getProb() << endl;
   }
   if (classes_[k].size() % PROGRESS_CHUNK == 0)
     cerr << "Finished exploring " << classes_[k].size()
@@ -263,56 +262,62 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
   if (isError(gs)) {
     reportError(gs);
   }
-  vector<GlobalState*> childs;
-  gs->findSucc(childs);
-  if (!childs.size()) {
+  vector<GlobalState*> nd_choice;
+  gs->findSucc(nd_choice);
+  if (!nd_choice.size()) {
     reportDeadlock(gs);
   }
-  num_transitions_ += childs.size();
 
-  for (auto child_ptr : childs) {
-    int p = child_ptr->getProb() - gs->getProb();
-    int child_idx = isMemberOfClasses(child_ptr);
-    if (p) {
-      if (child_idx < 0) {
-        // unexplored entry state in higher classes
-        if (config_.trace_back_)
-          child_ptr->setTrail(dfs_stack_indices_);
-        copyToEntry(child_ptr, k + p);
+  for (auto choice : nd_choice) {
+    for (auto child_ptr : choice->getChildren()) {
+      num_transitions_++;
+      int p = child_ptr->getProb() - gs->getProb();
+      int child_idx = isMemberOfClasses(child_ptr);
+      if (p) {
+        if (child_idx < 0) {
+          // unexplored entry state in higher classes
+          if (config_.trace_back_)
+            child_ptr->setTrail(dfs_stack_indices_);
+          copyToEntry(child_ptr, k + p);
+        } else {
+          // low probability successor identical to some explored state
+        }
+        addChild(gs, child_ptr, p);
+      } else if (isMemberOfStack(child_ptr)) {
+        // found cycle
+        if (!hasProgress(child_ptr)) {
+          if (!isStopping(child_ptr))
+            reportLivelock(child_ptr);
+        }
+      } else if (child_idx < 0) {
+        // high probability successor is an unexplored state
+        if (isEnding(child_ptr)) {
+          copyToClass(child_ptr, k);
+          child_ptr->setProb(k);
+          if (verbosity_ >= 6)
+            cout << "Ending state reached. " << endl;
+        } else if (!k && isStopping(child_ptr)) {
+          // discover new stopping state/entry point in probability class[0]
+          if (config_.trace_back_)
+            child_ptr->setTrail(dfs_stack_indices_);
+          copyToEntry(child_ptr, k);
+        } else {
+          DFSVisit(child_ptr, k);
+          copyToClass(child_ptr, k);
+          addChild(gs, child_ptr);
+        }
       } else {
-        // low probability successor identical to some explored state
-      }
-      addChild(gs, child_ptr, p);
-    } else if (isMemberOfStack(child_ptr)) {
-      // found cycle
-      if (!hasProgress(child_ptr)) {
+        // high probability successor is an explored state
         if (!isStopping(child_ptr))
-          reportLivelock(child_ptr);
+          addChild(gs, child_ptr);
       }
-    } else if (child_idx < 0) {
-      // high probability successor is an unexplored state
-      if (isEnding(child_ptr)) {
-        copyToClass(child_ptr, k);
-        child_ptr->setProb(k);
-        if (verbosity_ >= 6)
-          cout << "Ending state reached. " << endl;
-      } else if (!k && isStopping(child_ptr)) {
-        // discover new stopping state/entry point in probability class[0]
-        if (config_.trace_back_)
-          child_ptr->setTrail(dfs_stack_indices_);
-        copyToEntry(child_ptr, k);
-      } else {
-        DFSVisit(child_ptr, k);
-        copyToClass(child_ptr, k);
-        addChild(gs, child_ptr);
-      }
-    } else {
-      // high probability successor is an explored state
-      if (!isStopping(child_ptr))
-        addChild(gs, child_ptr);
-    }
-  } // end for
-  gs->clearSucc();
+    } // end for all children under a non-deterministic choice
+  } // end for all non-deterministic choices
+  for (auto choice : nd_choice) {
+    for (auto c : choice->getChildren())
+      delete c;
+    delete choice;
+  }
   stackPop();
 }
 
@@ -579,9 +584,8 @@ void ProbVerifier::printStep(GlobalState *obj)
     for( size_t idx = 0 ; idx < obj->size() ; ++idx ) {
         GlobalState* childNode = obj->getChild(idx);
         int prob = childNode->getProb();
-        int dist = childNode->getDistance();
         cout << childNode->toString()
-             << " Prob = " << prob << " Dist = " << dist << endl;
+             << " Prob = " << prob << endl;
     }
 }
 
