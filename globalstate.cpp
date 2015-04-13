@@ -341,12 +341,19 @@ void GlobalState::evaluate() {
         if (idx < 0)
             break;
     }
+    delete tuple;
 
     if (_fifo.size()) {
         for (auto c : _childs) {
             assert(c->hasTasks());
             c->evaluate();
         }
+    }
+
+    while (_fifo.size()) {
+      MessageTuple *tuple = _fifo.front();
+      _fifo.pop();
+      delete tuple;
     }
 }
 
