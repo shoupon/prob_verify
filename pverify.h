@@ -97,6 +97,16 @@ class ProbVerifier {
   int _maxClass;
   int _curClass;
   Checker* _checker;
+
+  struct ProbChoice {
+    ProbChoice(int state_idx, int prob)
+        : state_idx_(state_idx), probability_(prob) {}
+    int state_idx_;
+    int probability_;
+  };
+  struct NonDetChoice {
+    vector<ProbChoice> prob_choices;
+  };
     
 public:
   ProbVerifier():_curClass(0) {}
@@ -194,8 +204,9 @@ private:
   double DFSComputeBound(int state_idx, int limit);
   int treeComputeBound(int state_idx, int depth, int limit);
   bool DFSFindCycle(int state_idx);
-  void addChild(const GlobalState* par, const GlobalState* child);
-  void addChild(const GlobalState* par, const GlobalState* child, int prob);
+  void addProbChoice(NonDetChoice &ndc, const GlobalState *child);
+  void addProbChoice(NonDetChoice &ndc, const GlobalState *child, int prob);
+  void addNonDetChoice(const GlobalState *parent, const NonDetChoice &ndc);
   void stackPush(GlobalState* gs);
   void stackPop();
   void stackPrint();
@@ -217,13 +228,7 @@ private:
   vector<GlobalState*> dfs_stack_state_;
   unordered_set<int> reached_stoppings_;
   unordered_set<int> reached_endings_;
-  struct Transition {
-    Transition(int state_idx, int prob)
-        : state_idx_(state_idx), probability_(prob) {}
-    int state_idx_;
-    int probability_;
-  };
-  unordered_map<int, vector<Transition>> transitions_;
+  unordered_map<int, vector<NonDetChoice>> nd_choices_;
   unordered_map<int, double> alphas_;
   unordered_set<int> visited_;
   vector<double> inverse_ps_;

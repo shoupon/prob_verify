@@ -119,7 +119,7 @@ void ProbVerifier::start(int max_class, const GlobalState* init_state,
   entries_.resize(max_class + 10, GSEntry());
   explored_entries_.resize(max_class + 1, GSEntry());
   try {
-    transitions_.clear();
+    nd_choices_.clear();
     for (int cur_class = 0; cur_class <= max_class; ++cur_class) {
       if (verbosity_) {
         cout << "-------- Start exploring states in class[" << cur_class
@@ -262,13 +262,14 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
   if (isError(gs)) {
     reportError(gs);
   }
-  vector<GlobalState*> nd_choice;
-  gs->findSucc(nd_choice);
-  if (!nd_choice.size()) {
+  vector<GlobalState*> nd_choices;
+  gs->findSucc(nd_choices);
+  if (!nd_choices.size()) {
     reportDeadlock(gs);
   }
 
-  for (auto choice : nd_choice) {
+  for (auto choice : nd_choices) {
+    NonDetChoice non_det_choice;
     for (auto child_ptr : choice->getChildren()) {
       num_transitions_++;
       int p = child_ptr->getProb() - gs->getProb();
@@ -282,7 +283,7 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
         } else {
           // low probability successor identical to some explored state
         }
-        addChild(gs, child_ptr, p);
+        addProbChoice(non_det_choice, child_ptr, p);
       } else if (isMemberOfStack(child_ptr)) {
         // found cycle
         if (!hasProgress(child_ptr)) {
@@ -304,16 +305,17 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
         } else {
           DFSVisit(child_ptr, k);
           copyToClass(child_ptr, k);
-          addChild(gs, child_ptr);
+          addProbChoice(non_det_choice, child_ptr);
         }
       } else {
         // high probability successor is an explored state
         if (!isStopping(child_ptr))
-          addChild(gs, child_ptr);
+          addProbChoice(non_det_choice, child_ptr);
       }
     } // end for all children under a non-deterministic choice
+    addNonDetChoice(gs, non_det_choice);
   } // end for all non-deterministic choices
-  for (auto choice : nd_choice) {
+  for (auto choice : nd_choices) {
     for (auto c : choice->getChildren())
       delete c;
     delete choice;
@@ -334,7 +336,7 @@ double ProbVerifier::DFSComputeBound(int state_idx, int limit) {
     printIndent(stack_depth_);
     cout << "evaluating alpha of " << indexToState(state_idx) << endl;
   }
-  if (transitions_.find(state_idx) == transitions_.end()) {
+  if (nd_choices_.find(state_idx) == nd_choices_.end()) {
     --stack_depth_;
     return alphas_[state_idx] = 0;
   }
@@ -344,66 +346,69 @@ double ProbVerifier::DFSComputeBound(int state_idx, int limit) {
   double low_prob_alphas = 0;
   double even_low_prob = 0;
   int parent_prob = isMemberOfClasses(state_idx);
-  for (const auto& trans : transitions_[state_idx]) {
-    int p = trans.probability_;
-    int child_idx = trans.state_idx_;
-    auto child_prob = isMemberOfClasses(child_idx);
-    if (log_alpha_evaluation_) {
-      printIndent(stack_depth_);
-      cout << "evaluating child " << indexToState(trans.state_idx_)
-           << " having transition probability " << p << endl;
-    }
-    
-    if (child_prob < 0) {
-      if (parent_prob + p == limit) {
-        ++num_low_prob;
-      } else {
-        even_low_prob += (1.0 / inverse_ps_[p - 2]);
+  for (const auto& ndc : nd_choices_[state_idx]) {
+    for (const auto& trans : ndc.prob_choices) {
+      int p = trans.probability_;
+      int child_idx = trans.state_idx_;
+      auto child_prob = isMemberOfClasses(child_idx);
+      if (log_alpha_evaluation_) {
+        printIndent(stack_depth_);
+        cout << "evaluating child " << indexToState(trans.state_idx_)
+             << " having transition probability " << p << endl;
       }
-    } else if (child_prob >= limit) {
-      if (parent_prob + p == limit && child_prob == limit) {
-        ++num_low_prob;
-      } else {
-        even_low_prob += (1.0 / inverse_ps_[p - 2]);
-      }
-    } else {
-      if ((!p && child_prob == parent_prob) ||
-          (p && child_prob == parent_prob + p)) {
-        double child_alpha;
-        if (visited_.find(child_idx) == visited_.end()) {
-          child_alpha = DFSComputeBound(child_idx, limit);
-          visited_.insert(child_idx);
-        } else {
-          child_alpha = alphas_[child_idx];
-        }
 
-        if (log_alpha_evaluation_) {
-          printIndent(stack_depth_);
-          cout << indexToState(child_idx) << "'s alpha = "
-               << child_alpha << endl;
-        }
-        if (!p) {
-          if (child_prob == parent_prob) {
-            if (child_alpha > max_alpha)
-              max_alpha = child_alpha;
-          } else if (child_prob > parent_prob)
-            assert(false);
+      if (child_prob < 0) {
+        if (parent_prob + p == limit) {
+          ++num_low_prob;
         } else {
-          if (child_prob == parent_prob + p) {
-            low_prob_alphas += child_alpha;
-          } else if (child_prob > parent_prob + p) {
-            assert(false);
+          even_low_prob += (1.0 / inverse_ps_[p - 2]);
+        }
+      } else if (child_prob >= limit) {
+        if (parent_prob + p == limit && child_prob == limit) {
+          ++num_low_prob;
+        } else {
+          even_low_prob += (1.0 / inverse_ps_[p - 2]);
+        }
+      } else {
+        if ((!p && child_prob == parent_prob) ||
+            (p && child_prob == parent_prob + p)) {
+          double child_alpha;
+          if (visited_.find(child_idx) == visited_.end()) {
+            child_alpha = DFSComputeBound(child_idx, limit);
+            visited_.insert(child_idx);
+          } else {
+            child_alpha = alphas_[child_idx];
+          }
+
+          if (log_alpha_evaluation_) {
+            printIndent(stack_depth_);
+            cout << indexToState(child_idx) << "'s alpha = "
+                 << child_alpha << endl;
+          }
+          if (!p) {
+            if (child_prob == parent_prob) {
+              if (child_alpha > max_alpha)
+                max_alpha = child_alpha;
+            } else if (child_prob > parent_prob)
+              assert(false);
+          } else {
+            if (child_prob == parent_prob + p) {
+              low_prob_alphas += child_alpha;
+            } else if (child_prob > parent_prob + p) {
+              assert(false);
+            }
+          }
+        } else {
+          if (alphas_.find(child_idx) != alphas_.end()) {
+            double child_alpha = alphas_[child_idx];
+            even_low_prob +=
+                (child_alpha / inverse_ps_[parent_prob - child_prob + p - 1]);
           }
         }
-      } else {
-        if (alphas_.find(child_idx) != alphas_.end()) {
-          double child_alpha = alphas_[child_idx];
-          even_low_prob +=
-              (child_alpha / inverse_ps_[parent_prob - child_prob + p - 1]);
-        }
       }
-    }
-  }
+    } // for probabilistic choices under a non-deterministic choice of 
+      // state_idx
+  } // for non-deterministic choices of state_idx
   alpha = low_prob_alphas + num_low_prob + max_alpha;
   even_low_prob =
       ceil(even_low_prob * config_.low_p_bound_inverse_) * config_.low_p_bound_;
@@ -448,24 +453,26 @@ int ProbVerifier::treeComputeBound(int state_idx, int depth, int limit) {
   int low_prob_alphas = 0;
   double even_low_prob = 0;
 
-  for (const auto& trans : transitions_[state_idx]) {
-    int p = trans.probability_;
-    int child_idx = trans.state_idx_;
+  for (const auto& ndc : nd_choices_[state_idx]) {
+    for (const auto& trans : ndc.prob_choices) {
+      int p = trans.probability_;
+      int child_idx = trans.state_idx_;
 
-    if (depth + p >= limit) {
-      if (p == 1)
-        ++num_low_prob;
-      else
-        even_low_prob += (1.0 / inverse_ps_[p - 2]);
-    } else {
-      int a = treeComputeBound(child_idx, depth + p, limit);
-      if (!p) {
-        if (a > max_alpha)
-          max_alpha = a;
-      } else if (p == 1) {
-        low_prob_alphas += a;
-      } else if (p > 1) {
-        even_low_prob += ((double)a) / inverse_ps_[p - 2] ;
+      if (depth + p >= limit) {
+        if (p == 1)
+          ++num_low_prob;
+        else
+          even_low_prob += (1.0 / inverse_ps_[p - 2]);
+      } else {
+        int a = treeComputeBound(child_idx, depth + p, limit);
+        if (!p) {
+          if (a > max_alpha)
+            max_alpha = a;
+        } else if (p == 1) {
+          low_prob_alphas += a;
+        } else if (p > 1) {
+          even_low_prob += ((double)a) / inverse_ps_[p - 2] ;
+        }
       }
     }
   }
@@ -478,13 +485,15 @@ int ProbVerifier::treeComputeBound(int state_idx, int depth, int limit) {
 
 bool ProbVerifier::DFSFindCycle(int state_idx) {
   dfs_stack_indices_.push_back(state_idx);
-  if (transitions_.find(state_idx) != transitions_.end()) {
-    for (const auto& t : transitions_[state_idx]) {
-      if (isMemberOf(t.state_idx_, dfs_stack_indices_))
-        return true;
-      if (visited_.find(t.state_idx_) == visited_.end()) {
-        if (DFSFindCycle(t.state_idx_))
+  if (nd_choices_.find(state_idx) != end(nd_choices_)) {
+    for (const auto& ndc : nd_choices_[state_idx]) {
+      for (const auto& t : ndc.prob_choices) {
+        if (isMemberOf(t.state_idx_, dfs_stack_indices_))
           return true;
+        if (visited_.find(t.state_idx_) == visited_.end()) {
+          if (DFSFindCycle(t.state_idx_))
+            return true;
+        }
       }
     }
   }
@@ -492,17 +501,22 @@ bool ProbVerifier::DFSFindCycle(int state_idx) {
   return false;
 }
 
-void ProbVerifier::addChild(const GlobalState* par, const GlobalState* child) {
-  addChild(par, child, 0);
+void ProbVerifier::addProbChoice(NonDetChoice &ndc, const GlobalState *child) {
+  addProbChoice(ndc, child, 0);
 }
 
-void ProbVerifier::addChild(const GlobalState* par, const GlobalState* child,
-                            int prob) {
-  int p_idx = stateToIndex(par);
+void ProbVerifier::addProbChoice(NonDetChoice &ndc, const GlobalState *child,
+                                 int prob) {
   int c_idx = stateToIndex(child);
-  if (transitions_.find(p_idx) == transitions_.end())
-    transitions_[p_idx] = vector<Transition>();
-  transitions_[p_idx].push_back(Transition(c_idx, prob));
+  ndc.prob_choices.push_back(ProbChoice(c_idx, prob));
+}
+
+void ProbVerifier::addNonDetChoice(const GlobalState *parent,
+                                   const NonDetChoice &ndc) {
+  int p_idx = stateToIndex(parent);
+  if (nd_choices_.find(p_idx) == end(nd_choices_))
+    nd_choices_[p_idx] = vector<NonDetChoice>();
+  nd_choices_[p_idx].push_back(ndc);
 }
 
 void ProbVerifier::addMachine(StateMachine* machine) {
@@ -636,8 +650,10 @@ void ProbVerifier::printStat() {
   size_t transitions_bytes = sizeof(unordered_map<int, vector<Transition>>);
   cout << "size of unordered_map = "
        << sizeof(unordered_map<int, vector<Transition>>) << " bytes." << endl;
-  for (auto t : transitions_)
-    transitions_bytes += t.second.size() * sizeof(Transition);
+  for (const auto &p : nd_choices_) {
+    for (auto t : p.second)
+      transitions_bytes += sizeof(ProbChoice);
+  }
   cout << transitions_bytes
        << " bytes are used to store the structure of the graph." << endl;
   cout << unique_states_.getBytes() << " bytes are used to store the string "
