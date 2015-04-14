@@ -9,7 +9,6 @@
 #include <list>
 #include <unordered_set>
 
-#include "state.h"
 #include "statemachine.h"
 #include "checker.h"
 #include "service.h"
@@ -112,8 +111,6 @@ private:
   
   void init() ;
   bool active();
-  Transition* getActive(int& macId, int& transId);
-  bool setActive(int macId, int transId) ;
   void recordProb();
 
   static void printSeq(const vector<GlobalState*>& seq);

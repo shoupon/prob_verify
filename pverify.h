@@ -12,7 +12,6 @@
 
 #include "define.h"
 #include "indexer.h"
-#include "state.h"
 #include "statemachine.h"
 #include "checker.h"
 #include "globalstate.h"

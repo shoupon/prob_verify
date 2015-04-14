@@ -651,9 +651,9 @@ void ProbVerifier::printStat() {
        << " states accrued in trails for obtaining witness/counterexamples."
        << endl;
 
-  size_t transitions_bytes = sizeof(unordered_map<int, vector<Transition>>);
+  size_t transitions_bytes = sizeof(unordered_map<int, vector<NonDetChoice>>);
   cout << "size of unordered_map = "
-       << sizeof(unordered_map<int, vector<Transition>>) << " bytes." << endl;
+       << sizeof(unordered_map<int, vector<NonDetChoice>>) << " bytes." << endl;
   for (const auto &p : nd_choices_) {
     for (auto t : p.second)
       transitions_bytes += sizeof(ProbChoice);
