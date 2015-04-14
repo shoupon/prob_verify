@@ -471,19 +471,31 @@ int ProbVerifier::treeComputeBound(int state_idx, int depth, int limit) {
       int child_idx = trans.state_idx_;
 
       if (depth + p >= limit) {
-        if (p == 1)
+        if (config_.bound_method_ == TREE_BOUND) {
+          if (p == 1)
+            ++num_low_prob;
+          else
+            even_low_prob += (1.0 / inverse_ps_[p - 2]);
+        } else if (config_.bound_method_ == TREE_CLASSIC) {
           ++num_low_prob;
-        else
-          even_low_prob += (1.0 / inverse_ps_[p - 2]);
+        } else {
+          assert(false);
+        }
       } else {
         int a = treeComputeBound(child_idx, depth + p, limit);
-        if (!p) {
-          if (a > max_alpha)
-            max_alpha = a;
-        } else if (p == 1) {
-          low_prob_alphas += a;
-        } else if (p > 1) {
-          even_low_prob += ((double)a) / inverse_ps_[p - 2] ;
+        if (config_.bound_method_ == TREE_BOUND) {
+          if (!p) {
+            if (a > max_alpha)
+              max_alpha = a;
+          } else if (p == 1) {
+            low_prob_alphas += a;
+          } else if (p > 1) {
+            even_low_prob += ((double)a) / inverse_ps_[p - 2] ;
+          }
+        } else if (config_.bound_method_ == TREE_CLASSIC) {
+          max_alpha += a;
+        } else {
+          assert(false);
         }
       }
     }
