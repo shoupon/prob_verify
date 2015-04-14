@@ -148,15 +148,14 @@ size_t GlobalState::getBytes() const {
   return sizeof(GlobalState) + snapshotSize();
 }
 
-void GlobalState::findSucc()
-{     
+void GlobalState::findSucc(vector<GlobalState*>& nd_choices) {
     try {
         vector<vector<MessageTuple*> > arrOutMsgs;
         vector<StateSnapshot*> statuses;
         int prob_level;
         vector<bool> probs;
         // Execute each null input transition 
-        for( size_t m = 0 ; m < _machines.size() ; ++m ) {
+        for (size_t m = 0; m < _machines.size(); ++m) {
             arrOutMsgs.clear();
             statuses.clear();
 
@@ -175,7 +174,7 @@ void GlobalState::findSucc()
                     break;
                 }
                 else {
-                    // Null input transition is found. Store the matching                
+                    // Null input transition is found. Store the matching
                     // Create a clone of current global state
                     GlobalState* cc = new GlobalState(this);
                     // Execute state transition
@@ -186,36 +185,29 @@ void GlobalState::findSucc()
                     // Push tasks to be evaluated onto the queue
                     cc->addTask( pendingTasks );
                     cc->_depth += prob_level;
-                    // Store the newly created child GlobalState
-                    _childs.push_back(cc);
+                    nd_choices.push_back(cc);
                 }
             } while( idx > 0 ) ;
         }
 
         // For each child just created, simulate the message reception of each
         // messsage (task) in the queue _fifo using the function evaluate()
-        size_t cidx = 0 ;
-        while( cidx < _childs.size() ) {
+        for (auto choice : nd_choices) {
+            choice->blocked_ = false;
             try {
-                vector<GlobalState*> ret = _childs[cidx]->evaluate();
-                if( ret.size() > 1 ) {
-                    for( size_t rii = 0 ; rii < ret.size() ; ++rii )
-                        _childs.push_back(ret[rii]) ;
-                    eraseChild(cidx) ;
-                }
-                else {
-                    ++cidx ;
-                }
+                if (choice->hasTasks())
+                    choice->evaluate();
             } catch (GlobalState* blocked) {
               // Remove the child that is blocked by unmatched transition
-              MessageTuple *blockedMsg = _childs[cidx]->_fifo.front();
+              MessageTuple *blockedMsg = blocked->_fifo.front();
               string debug_dest = StateMachine::IntToMachine(blockedMsg->destId());
-              string debug_destMsg = StateMachine::IntToMessage(blockedMsg->destMsgId());
+              string debug_destMsg = StateMachine::IntToMessage(
+                  blockedMsg->destMsgId());
               if (debug_dest != "") {
                 cout << debug_dest << endl;
                 cout << debug_destMsg << endl;
               }
-              _childs.erase(_childs.begin()+cidx);
+              choice->blocked_ = true;
               // Continue on evaluating other children
               cout << "REMOVE global state." << endl;
               cout << "CONTINUE exploring " << toReadableMachineName() << endl;
@@ -225,7 +217,7 @@ void GlobalState::findSucc()
                 // found for a message reception. When such occurs, erase the child that
                 // has no matching transition and print the error message. The process of
                 // verification will not stop
-                _childs.erase(_childs.begin()+cidx);
+                choice->blocked_ = true;
                 cerr << "When finding successors (findSucc) " 
                      << this->toString() << endl ;
                 cerr << str << endl ;
@@ -235,8 +227,17 @@ void GlobalState::findSucc()
 #endif
             }
 
+        } // for each choice in nd_choices
+
+        // TODO(shoupon): collapse all probabilistic choices that follow after a
+        // non-deterministic choice. Make sure the probability labels have been
+        // assigned correctly
+        for (auto choice : nd_choices) {
+            if (choice->hasChild())
+                choice->collapse(choice);
+            else
+                choice->_childs.push_back(new GlobalState(choice));
         }
-               
     } catch (exception& e) {
         cerr << e.what() << endl ;
     } catch (...) {
@@ -245,188 +246,128 @@ void GlobalState::findSucc()
     }
 }
 
-void GlobalState::findSucc(vector<GlobalState*>& successors) {
-  findSucc();
-  successors = _childs;
-}
-
 void GlobalState::clearSucc() {
   for (auto c : _childs)
     delete c;
   _childs.clear();
 }
 
-vector<GlobalState*> GlobalState::evaluate() 
-{
+// Recursively process the synchronizing messages created in previous
+// non-deterministic choice or probabilistic choices
+void GlobalState::evaluate() {
 #ifdef VERBOSE_EVAL
     cout << "Evaluating tasks in " << this->toString() << endl ;
 #endif
     vector<GlobalState*> ret;
-    while( !_fifo.empty() ) {
-        // Get a task out of the queue
-        MessageTuple* tuple = _fifo.front() ;
-        _fifo.pop();
+    assert(!_fifo.empty());
+    MessageTuple *tuple = _fifo.front();
+    _fifo.pop();
 #ifdef VERBOSE_EVAL
-        cout << "Evaluating task: " << tuple->toString() << endl;
+    cout << "Evaluating task: " << tuple->toString() << endl;
 #endif
-        
-        int idx = 0;
-        int macNum = tuple->destId();
-        int prob_level;
-        vector<MessageTuple*> pending;
-        
-        if( tuple->destId() > 0 ) {
-            // This label send message to another machine
+
+    int idx = 0;
+    int macNum = tuple->destId();
+    int prob_level;
+    vector<MessageTuple*> pending;
+    assert(tuple->destId() > 0);
 #ifdef VERBOSE_EVAL
-            cout << "Machine " << tuple->subjectId()
-            << " sends message " << tuple->destMsgId()
-            << " to machine " << tuple->destId() << endl ;
+    cout << "Machine " << tuple->subjectId()
+    << " sends message " << tuple->destMsgId()
+    << " to machine " << tuple->destId() << endl ;
 #endif
-            this->restore();
-            pending.clear();
-            // The destined machine processes the tuple
-            idx = _machines[macNum-1]->transit(tuple, pending, prob_level);
-            // Let the Service model process the MessageTuple
-            if (_service)
-                _service->putMsg(tuple);
+    restore();
+    pending.clear();
+    // The destined machine processes the tuple
+    idx = _machines[macNum-1]->transit(tuple, pending, prob_level, idx);
+    if (_service)
+        _service->putMsg(tuple);
+    if (idx < 0) {
+        // No found matching transition, this non-deterministic choice
+        // should not be evaluated. Continue to the next
+        // non-deterministic choice.
+        stringstream ss ;
+        ss << "No matching transition for message: " << endl
+           << tuple->toReadable()
+           << "GlobalState = " << this->toReadable() << endl ;
+        // Print all the task in _fifo
+        ss << "Content in fifo: " << endl ;
+        while (!_fifo.empty()) {
+            MessageTuple* content = _fifo.front();
+            _fifo.pop();
 
-            if( idx < 0 ) {
-                // No found matching transition, this null transition should not be carry out
-                // Another null input transition should be evaluate first
-                stringstream ss ;
-                ss << "No matching transition for message: " << endl
-                   << tuple->toReadable()
-                   << "GlobalState = " << this->toReadable() << endl ;
-                // Print all the task in _fifo
-                ss << "Content in fifo: " << endl ;
-                while( !_fifo.empty() ) {
-                    MessageTuple* content = _fifo.front();
-                    _fifo.pop();
-
-                    ss << "Destination Machine ID = " << content->destId()
-                        << " Message ID = " << content->destMsgId() << endl ;
-                    delete content;
-                }
-                delete tuple;
+            ss << "Destination Machine ID = " << content->destId()
+                << " Message ID = " << content->destMsgId() << endl ;
+            delete content;
+        }
+        delete tuple;
 #ifndef ALLOW_UNMATCHED
-                throw ss.str();
+        throw ss.str();
 #else
-                cout << ss.str() ;
-                cout << "SKIP unmatched transition. " << endl;                
-                throw this;
+        cout << ss.str() ;
+        cout << "SKIP unmatched transition. " << endl;                
+        this->blocked_ = true;
+        throw this;
 #endif
-            } // no matching transition found
-            else {
-                do {
-                    // Create a new child
-                    GlobalState* creation = new GlobalState(this);
-                    // Take snapshot, add tasks to queue and update probability as
-                    // before, but this time operate on the created child
-                    delete creation->_gStates[macNum-1];
-                    creation->_gStates[macNum-1] = _machines[macNum-1]->curState();
-                    delete creation->_srvcState;
-                    creation->_srvcState = _service->curState();
-                    creation->addTask(pending);
-                    creation->_depth += prob_level;
-                    ret.push_back(creation);
-#ifdef VERBOSE_EVAL
-                    queue<MessageTuple*> dupFifo = creation->_fifo ;
-                    cout << "Pending tasks in the new child: " << endl ;
-                    while( !dupFifo.empty() ) {
-                        MessageTuple* tt = dupFifo.front() ;
-                        dupFifo.pop() ;
-                        cout << tt->toString() << endl ;
-                    }
-#endif
-                    this->restore();
-                    pending.clear();
-                    idx = _machines[macNum-1]->transit(tuple, pending,
-                                                       prob_level, idx);
-                    // Let the Service model process the MessageTuple
-                    if (_service)
-                        _service->putMsg(tuple);
-                } while (idx > 0);
-            } // Matching transition(s) found
-            
-            if( ret.size() == 1 ) {
-                // Only one matching transition found. There is no need to create new child
-#ifdef VERBOSE_EVAL
-                cout << "Only one matching transition found. " <<  endl ;
-#endif                
-                // Modify the state vector of the current globalState to be the same
-                // as the only child
-                GlobalState* only = ret.front() ;
-                // Save the pending tasks and the states of the only child
-                // (TODO: optimize this section)
-                for( size_t m = 0 ; m < _gStates.size() ; ++m ) {
-                    delete _gStates[m];
-                    _gStates[m] = only->_gStates[m]->clone() ;
-                }
-                delete _srvcState;
-                _srvcState = only->_srvcState->clone();
-#ifdef VERBOSE_EVAL
-                cout << "Move the pending tasks from the only child to its parent. " << endl;
-                cout << "Remove task: " << endl;
-#endif
-                while( !_fifo.empty() ) {
-                    // Clean up the task queue. Deallocate the task since these tasks will not
-                    // be evaluated
-#ifdef VERBOSE_EVAL
-                    cout << _fifo.front()->toString() << endl;
-#endif
-                    delete _fifo.front();
-                    _fifo.pop() ;
-                }
-#ifdef VERBOSE_EVAL
-                cout << "from parent." << endl ;
-                cout << "Move from the only child " << endl ;
-#endif
-                while( !only->_fifo.empty() ) {
-                    // Clean up the task queue of the only child, but do not deallocate the
-                    // task because these tasks will be evaluated later
-#ifdef VERBOSE_EVAL
-                    cout << only->_fifo.front()->toString() << endl ;
-#endif
-                    _fifo.push( only->_fifo.front() );
-                    only->_fifo.pop() ;
-                }
-#ifdef VERBOSE_EVAL
-                cout << "to parent. Delete the only child." << endl ;
-#endif
-                // Increment the depth if a low probability transition is encountered
-                _depth = only->_depth ;
-                
-                // Replace the only element in the array to be returned by the original
-                // GlobalState
-                delete only;
-                ret.clear();
-            }
-            else if( ret.size() > 1 ){
-                // Multiple transitions: non-deterministic transition
-                // Return the created childs right away
-#ifdef VERBOSE_EVAL
-                cout << "Multiple matching transitions found. " << endl;
-#endif
-                delete tuple;
-                return ret;
-            }
-            else {
-                // No matching transition is found.
-                // Save current snapshot of the machine, and continue execution
-                delete _gStates[macNum-1];
-                _gStates[macNum-1] = _machines[macNum-1]->curState();
-                delete _srvcState;
-                _srvcState = _service->curState();
-            }
-        } // if destId >=0, messages being passed to other machines
-        
-        // Deallocate the message tuple
-        delete tuple ;
-    } // end while (task fifo)
+    } // no matching transition found
 
-    ret.clear();
-    ret.push_back(this);
-    return ret;
+    while (1) {
+        GlobalState* creation = new GlobalState(this);
+        // Take snapshot, add tasks to queue and update probability as
+        // before, but this time operate on the created child
+        delete creation->_gStates[macNum-1];
+        creation->_gStates[macNum-1] = _machines[macNum-1]->curState();
+        delete creation->_srvcState;
+        creation->_srvcState = _service->curState();
+        creation->addTask(pending);
+        creation->_depth += prob_level;
+        _childs.push_back(creation);
+#ifdef VERBOSE_EVAL
+        queue<MessageTuple*> dupFifo = creation->_fifo ;
+        cout << "Pending tasks in the new child: " << endl ;
+        while (!dupFifo.empty()) {
+            MessageTuple* tt = dupFifo.front() ;
+            dupFifo.pop() ;
+            cout << tt->toString() << endl ;
+        }
+#endif
+
+        // Continue to the next probabilistic choice
+        restore();
+        pending.clear();
+        idx = _machines[macNum-1]->transit(tuple, pending, prob_level, idx);
+        if (_service)
+            _service->putMsg(tuple);
+        if (idx < 0)
+            break;
+    }
+    delete tuple;
+
+    for (auto c : _childs) {
+        if (c->hasTasks())
+            c->evaluate();
+    }
+
+    while (_fifo.size()) {
+      MessageTuple *tuple = _fifo.front();
+      _fifo.pop();
+      delete tuple;
+    }
+}
+
+void GlobalState::collapse(GlobalState *nd_root) {
+  vector<GlobalState *> child_dup = _childs;
+  _childs.clear();
+  for (auto c : child_dup) {
+    if (c->hasChild()) {
+      // non-leaf
+      c->collapse(nd_root);
+      delete c;
+    } else {
+      // leaf
+      nd_root->_childs.push_back(c);
+    }
+  }
 }
 
 void GlobalState::addTask(vector<MessageTuple*> msgs)

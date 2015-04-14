@@ -49,6 +49,7 @@ public:
   ~GlobalState();
 
   GlobalState* getChild (size_t i);
+  vector<GlobalState *> getChildren() const { return _childs; }
   int getProb() const { return _depth; }
   void setProb(int p) { _depth = p; }
   const vector<StateSnapshot*> getStateVec() const { return _gStates ;}
@@ -61,7 +62,6 @@ public:
   bool hasChild() { return size()!=0; }
   bool isBusy() { return !_fifo.empty();}
 
-  void findSucc();
   void findSucc(vector<GlobalState*>& successors);
   void clearSucc();
 
@@ -103,10 +103,12 @@ private:
   void addParents(const vector<GlobalState*>& arr);
   void eraseChild(size_t idx);
   //void execute(int macId, int transId, Transition* transPtr);
-  vector<GlobalState*> evaluate();
+  void evaluate();
+  void collapse(GlobalState *nd_root);
   // Invoke explore when an unexplored transition is push onto the queue
   void explore(int subject);
   void addTask(vector<MessageTuple*> msgs);
+  bool hasTasks() { return !_fifo.empty(); }
   
   void init() ;
   bool active();
@@ -119,5 +121,7 @@ private:
   string msg2str(MessageTuple* msg);
   vector<int> trail_;
   int path_count_;
+
+  bool blocked_;
 };
 #endif
