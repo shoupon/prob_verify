@@ -22,7 +22,7 @@ const ProtocolError ProtocolError::kCheckerError("checker_error");
 
 ProbVerifierConfig::ProbVerifierConfig()
     : low_p_bound_(1000.0), low_p_bound_inverse_(1.0/low_p_bound_),
-      bound_method_(DFS_BOUND), trace_back_(1) {
+      bound_method_(DFS_TWO_STEP), trace_back_(1) {
 }
 
 void ProbVerifierConfig::setLowProbBound(double p) {
@@ -200,9 +200,11 @@ double ProbVerifier::computeBound(int target_class) {
     for (auto pair : explored_entries_[0]) {
       assert(visited_.empty());
       double alpha = 0;
-      if (config_.bound_method_ == DFS_BOUND) {
+      if (config_.bound_method_ == DFS_TWO_STEP ||
+          config_.bound_method_ == DFS_ONE_STEP) {
         alpha = DFSComputeBound(pair.first, target_class);
-      } else if(config_.bound_method_ == TREE_BOUND) {
+      } else if(config_.bound_method_ == TREE_BOUND ||
+                config_.bound_method_ == TREE_CLASSIC) {
         alpha = treeComputeBound(pair.first, 0, target_class);
       } else {
         cerr << "Bounding method undefined. Aborting." << endl;
@@ -431,8 +433,14 @@ double ProbVerifier::DFSComputeBound(int state_idx, int limit) {
     even_low_prob =
         ceil(even_low_prob * config_.low_p_bound_inverse_) * config_.low_p_bound_;
     alpha += even_low_prob;
-    if (alpha > max_over_nd_choices)
-      max_over_nd_choices = alpha;
+    if (config_.bound_method_ == DFS_TWO_STEP) {
+      if (alpha > max_over_nd_choices)
+        max_over_nd_choices = alpha;
+    } else if (config_.bound_method_ == DFS_ONE_STEP) {
+      max_over_nd_choices += alpha;
+    } else {
+      assert(false);
+    }
   } // for non-deterministic choices of state_idx
 
   --stack_depth_;

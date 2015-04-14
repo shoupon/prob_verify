@@ -57,8 +57,10 @@ public:
 
 class ProbVerifier;
 
-#define DFS_BOUND 0
-#define TREE_BOUND 1
+#define DFS_TWO_STEP 0
+#define DFS_ONE_STEP 1
+#define TREE_BOUND 2
+#define TREE_CLASSIC 3
 class ProbVerifierConfig {
 public:
   friend ProbVerifier;
