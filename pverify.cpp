@@ -342,14 +342,16 @@ double ProbVerifier::DFSComputeBound(int state_idx, int limit) {
     --stack_depth_;
     return alphas_[state_idx] = 0;
   }
+
   double max_over_nd_choices = 0.0;
+  double max_alpha = 0;
+  double even_low_prob = 0;
   for (const auto& ndc : nd_choices_[state_idx]) {
     double alpha = 0;
-    double max_alpha = 0;
     int num_low_prob = 0;
     double low_prob_alphas = 0;
-    double even_low_prob = 0;
     int parent_prob = isMemberOfClasses(state_idx);
+
     for (const auto& trans : ndc.prob_choices) {
       int p = trans.probability_;
       int child_idx = trans.state_idx_;
@@ -430,18 +432,27 @@ double ProbVerifier::DFSComputeBound(int state_idx, int limit) {
     }
 
     alpha = low_prob_alphas + num_low_prob + max_alpha;
-    even_low_prob =
-        ceil(even_low_prob * config_.low_p_bound_inverse_) * config_.low_p_bound_;
-    alpha += even_low_prob;
     if (config_.bound_method_ == DFS_TWO_STEP) {
+      even_low_prob =
+          ceil(even_low_prob * config_.low_p_bound_inverse_) *
+              config_.low_p_bound_;
+      alpha += even_low_prob;
       if (alpha > max_over_nd_choices)
         max_over_nd_choices = alpha;
+      even_low_prob = 0.0;
+      alpha = 0.0;
     } else if (config_.bound_method_ == DFS_ONE_STEP) {
-      max_over_nd_choices += alpha;
+      max_over_nd_choices += low_prob_alphas + num_low_prob;
     } else {
       assert(false);
     }
   } // for non-deterministic choices of state_idx
+  if (config_.bound_method_ == DFS_ONE_STEP) {
+    even_low_prob =
+        ceil(even_low_prob * config_.low_p_bound_inverse_) *
+            config_.low_p_bound_;
+    max_over_nd_choices += max_alpha + even_low_prob;
+  }
 
   --stack_depth_;
   if (alphas_.find(state_idx) == alphas_.end()) {
