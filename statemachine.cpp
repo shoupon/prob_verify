@@ -8,7 +8,7 @@ Lookup StateMachine::message_lookup_;
 int StateMachine::transit(MessageTuple* in_msg,
                           vector<MessageTuple*>& out_msgs,
                           int& prob_level, int start_idx) {
-  bool high_prob;
+  bool high_prob = true;
   int ret = this->transit(in_msg, out_msgs, high_prob, start_idx);
   if (high_prob)
     prob_level = 0;
@@ -24,7 +24,7 @@ int StateMachine::transit(MessageTuple* in_msg,
 
 int StateMachine::nullInputTrans(vector<MessageTuple*>& out_msgs,
                                  int& prob_level, int start_idx) {
-  bool high_prob;
+  bool high_prob = true;
   int ret = this->nullInputTrans(out_msgs, high_prob, start_idx);
   if (high_prob)
     prob_level = 0;

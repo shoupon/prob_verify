@@ -152,7 +152,6 @@ void GlobalState::findSucc(vector<GlobalState*>& nd_choices) {
     try {
         vector<vector<MessageTuple*> > arrOutMsgs;
         vector<StateSnapshot*> statuses;
-        int prob_level;
         vector<bool> probs;
         // Execute each null input transition 
         for (size_t m = 0; m < _machines.size(); ++m) {
@@ -168,6 +167,7 @@ void GlobalState::findSucc(vector<GlobalState*>& nd_choices) {
             do {
                 restore();
                 pendingTasks.clear();
+                int prob_level = 0;
                 idx = _machines[m]->nullInputTrans(pendingTasks, prob_level, idx);
                 if (idx < 0) {
                     // No null transition is found for machines[m]
@@ -268,7 +268,6 @@ void GlobalState::evaluate() {
 
     int idx = 0;
     int macNum = tuple->destId();
-    int prob_level;
     vector<MessageTuple*> pending;
     assert(tuple->destId() > 0);
 #ifdef VERBOSE_EVAL
@@ -279,6 +278,7 @@ void GlobalState::evaluate() {
     restore();
     pending.clear();
     // The destined machine processes the tuple
+    int prob_level = 0;
     idx = _machines[macNum-1]->transit(tuple, pending, prob_level, idx);
     if (_service)
         _service->putMsg(tuple);
