@@ -342,6 +342,14 @@ double ProbVerifier::DFSComputeBound(int state_idx, int limit) {
     --stack_depth_;
     return alphas_[state_idx] = 0;
   }
+  int parent_prob = isMemberOfClasses(state_idx);
+  double cur_multiplier = inverse_ps_[parent_prob];
+
+  if (alphas_.find(state_idx) != alphas_.end()) {
+    double old_alpha = alphas_[state_idx];
+    if (old_alpha >= cur_multiplier)
+      return old_alpha;
+  }
 
   double max_over_nd_choices = 0.0;
   double max_alpha = 0;
@@ -350,7 +358,6 @@ double ProbVerifier::DFSComputeBound(int state_idx, int limit) {
     double alpha = 0;
     int num_low_prob = 0;
     double low_prob_alphas = 0;
-    int parent_prob = isMemberOfClasses(state_idx);
 
     for (const auto& trans : ndc.prob_choices) {
       int p = trans.probability_;
@@ -437,6 +444,8 @@ double ProbVerifier::DFSComputeBound(int state_idx, int limit) {
           ceil(even_low_prob * config_.low_p_bound_inverse_) *
               config_.low_p_bound_;
       alpha += even_low_prob;
+      if (alpha >= cur_multiplier)
+        alpha = cur_multiplier;
       if (alpha > max_over_nd_choices)
         max_over_nd_choices = alpha;
       even_low_prob = 0.0;
