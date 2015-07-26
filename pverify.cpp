@@ -287,11 +287,13 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
         }
         addProbChoice(non_det_choice, child_ptr, p);
       } else if (isMemberOfStack(child_ptr)) {
+#ifdef CHECK_LIVELOCK
         // found cycle
         if (!hasProgress(child_ptr)) {
           if (!isStopping(child_ptr))
             reportLivelock(child_ptr);
         }
+#endif
       } else if (child_idx < 0) {
         // high probability successor is an unexplored state
         if (isEnding(child_ptr)) {
