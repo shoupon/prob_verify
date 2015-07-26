@@ -128,6 +128,16 @@ GlobalState* GlobalState::getChild(size_t i)
     return *it;
 }
 
+void GlobalState::removeChildren(GlobalState *child) {
+  for (auto it = _childs.begin(); it != _childs.end(); ++it) {
+    if (*it == child) {
+      _childs.erase(it);
+      return;
+    }
+  }
+  //assert(false);
+}
+
 const vector<string> GlobalState::getStringVec() const
 {
     vector<string> ret(_gStates.size());
@@ -199,6 +209,7 @@ void GlobalState::findSucc(vector<GlobalState*>& nd_choices) {
                     choice->evaluate();
             } catch (GlobalState* blocked) {
               // Remove the child that is blocked by unmatched transition
+              /*
               MessageTuple *blockedMsg = blocked->_fifo.front();
               string debug_dest = StateMachine::IntToMachine(blockedMsg->destId());
               string debug_destMsg = StateMachine::IntToMessage(
@@ -211,6 +222,7 @@ void GlobalState::findSucc(vector<GlobalState*>& nd_choices) {
               // Continue on evaluating other children
               cout << "REMOVE global state." << endl;
               cout << "CONTINUE exploring " << toReadableMachineName() << endl;
+              */
               continue ;
             } catch (string str) {
                 // This catch phrase should only be reached when no matching transition

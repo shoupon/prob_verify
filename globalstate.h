@@ -49,6 +49,7 @@ public:
 
   GlobalState* getChild (size_t i);
   vector<GlobalState *> getChildren() const { return _childs; }
+  void removeChildren(GlobalState* child);
   int getProb() const { return _depth; }
   void setProb(int p) { _depth = p; }
   const vector<StateSnapshot*> getStateVec() const { return _gStates ;}

@@ -270,8 +270,11 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
     reportDeadlock(gs);
   }
 
+  vector<GlobalState*> invalid_ndchoice;
   for (auto choice : nd_choices) {
     NonDetChoice non_det_choice;
+    vector<GlobalState*> invalid_children;
+
     for (auto child_ptr : choice->getChildren()) {
       num_transitions_++;
       int p = child_ptr->getProb() - gs->getProb();
@@ -287,11 +290,13 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
         }
         addProbChoice(non_det_choice, child_ptr, p);
       } else if (isMemberOfStack(child_ptr)) {
+#define CHECK_LIVELOCK
 #ifdef CHECK_LIVELOCK
         // found cycle
         if (!hasProgress(child_ptr)) {
           if (!isStopping(child_ptr))
-            reportLivelock(child_ptr);
+            invalid_children.push_back(child_ptr);
+            //reportLivelock(child_ptr);
         }
 #endif
       } else if (child_idx < 0) {
@@ -317,8 +322,18 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
           addProbChoice(non_det_choice, child_ptr);
       }
     } // end for all children under a non-deterministic choice
+
+    for (auto invalid_ptr : invalid_children)
+      choice->removeChildren(invalid_ptr);
+    if (choice->getChildren().size() == 0)
+      invalid_ndchoice.push_back(choice);
+
     addNonDetChoice(gs, non_det_choice);
   } // end for all non-deterministic choices
+
+  for (auto invalid_ptr : invalid_ndchoice)
+    gs->removeChildren(invalid_ptr);
+
   for (auto choice : nd_choices) {
     for (auto c : choice->getChildren())
       delete c;
