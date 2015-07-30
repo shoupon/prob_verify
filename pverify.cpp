@@ -282,9 +282,16 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
       if (p) {
         if (child_idx < 0) {
           // unexplored entry state in higher classes
-          if (config_.trace_back_)
-            child_ptr->setTrail(dfs_stack_indices_);
-          copyToEntry(child_ptr, k + p);
+          if (isEnding(child_ptr)) {
+            copyToClass(child_ptr, k);
+            child_ptr->setProb(k);
+            if (verbosity_ >= 6)
+              cout << "Ending state reached. " << endl;
+          } else {
+            if (config_.trace_back_)
+              child_ptr->setTrail(dfs_stack_indices_);
+            copyToEntry(child_ptr, k + p);
+          }
         } else {
           // low probability successor identical to some explored state
         }
