@@ -12,6 +12,7 @@
 #include "statemachine.h"
 #include "checker.h"
 #include "service.h"
+#include "strategy.h"
 
 class GlobalStateHashKey;
 class GSVecHashKey;
@@ -80,6 +81,10 @@ public:
   static void clearAll() ;
 
   static void setService(Service* srvc);
+  static void setStrategy(Strategy* strategy) { strategy_ = strategy; }
+  void setStrategyState(const StrategyState *ss) {
+    strategy_state_ = ss->clone();
+  }
 
   void setTrail(const vector<int>& t) { trail_ = t; }
   int getTrailSize() const { return trail_.size(); }
@@ -98,6 +103,8 @@ protected:
   vector<StateSnapshot*> _gStates;
   CheckerState* _checker ;
   ServiceSnapshot* _srvcState;
+  StrategyState *strategy_state_;
+  static Strategy* strategy_;
 private:
   //void trim();
   void addParents(const vector<GlobalState*>& arr);

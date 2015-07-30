@@ -295,8 +295,8 @@ void ProbVerifier::DFSVisit(GlobalState* gs, int k) {
         // found cycle
         if (!hasProgress(child_ptr)) {
           if (!isStopping(child_ptr))
-            invalid_children.push_back(child_ptr);
-            //reportLivelock(child_ptr);
+            //invalid_children.push_back(child_ptr);
+            reportLivelock(child_ptr);
         }
 #endif
       } else if (child_idx < 0) {

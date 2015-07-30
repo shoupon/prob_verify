@@ -14,6 +14,7 @@ int GlobalState::_nMacs = -1;
 vector<StateMachine*> GlobalState::_machines;
 Service* GlobalState::_service = NULL;
 GlobalState* GlobalState::_root = NULL;
+Strategy* GlobalState::strategy_ = NULL;
 
 GlobalState::GlobalState(GlobalState* gs)
     : _depth(gs->_depth), path_count_(gs->path_count_) {
@@ -36,6 +37,8 @@ GlobalState::GlobalState(GlobalState* gs)
     _checker = gs->_checker->clone() ;
     // Copy the ServiceSnapshot
     _srvcState = gs->_srvcState->clone();
+    // Copy StrategyState
+    strategy_state_ = gs->strategy_state_->clone();
     
 #ifdef VERBOSE
     cout << "Create new GlobalState from " << this->toString() << endl;
@@ -52,6 +55,8 @@ GlobalState::GlobalState(const GlobalState* gs)
   _checker = gs->_checker->clone() ;
   // Copy the ServiceSnapshot
   _srvcState = gs->_srvcState->clone();
+  // Copy StrategyState
+  strategy_state_ = gs->strategy_state_->clone();
 }
 
 GlobalState::GlobalState(vector<StateMachine*> macs, CheckerState* chkState)
@@ -75,6 +80,7 @@ GlobalState::GlobalState(vector<StateMachine*> macs, CheckerState* chkState)
     else {
         _checker = chkState->clone() ;
     }
+    strategy_state_ = strategy_->createInitState();
 }
 
 GlobalState::GlobalState(vector<StateSnapshot*>& stateVec)
@@ -83,6 +89,7 @@ GlobalState::GlobalState(vector<StateSnapshot*>& stateVec)
   for( size_t i = 0 ; i < stateVec.size() ; ++i ) {
       _gStates[i] = stateVec[i]->clone() ;
   }
+  strategy_state_ = strategy_->createInitState();
 }
 
 GlobalState::~GlobalState() {
@@ -97,6 +104,7 @@ GlobalState::~GlobalState() {
   if (_srvcState)
     delete _srvcState;
   delete _checker;
+  delete strategy_state_;
 }
 
 void GlobalState::init()
@@ -178,12 +186,19 @@ void GlobalState::findSucc(vector<GlobalState*>& nd_choices) {
                 restore();
                 pendingTasks.clear();
                 int prob_level = 0;
+                int old_idx = idx;
                 idx = _machines[m]->nullInputTrans(pendingTasks, prob_level, idx);
+                StrategyState *old_strategy_state = strategy_state_->clone();
                 if (idx < 0) {
                     // No null transition is found for machines[m]
+                    delete old_strategy_state;
                     break;
-                }
-                else {
+                } else if (!strategy_->validChoice(m + 1, old_idx, _gStates,
+                                                   strategy_state_)) {
+                  // First update of strategy state here
+                  delete old_strategy_state;
+                  continue;
+                } else {
                     // Null input transition is found. Store the matching
                     // Create a clone of current global state
                     GlobalState* cc = new GlobalState(this);
@@ -192,6 +207,8 @@ void GlobalState::findSucc(vector<GlobalState*>& nd_choices) {
                     cc->_gStates[m] = _machines[m]->curState();
                     delete cc->_srvcState;
                     cc->_srvcState = _service->curState();
+                    delete strategy_state_;
+                    strategy_state_ = old_strategy_state;
                     // Push tasks to be evaluated onto the queue
                     cc->addTask( pendingTasks );
                     cc->_depth += prob_level;
@@ -249,6 +266,11 @@ void GlobalState::findSucc(vector<GlobalState*>& nd_choices) {
                 choice->collapse(choice);
             else
                 choice->_childs.push_back(new GlobalState(choice));
+
+            // Final update of strategy state
+            for (auto child : choice->_childs)
+              strategy_->finalizeTransition(child->_gStates,
+                                            child->strategy_state_);
         }
     } catch (exception& e) {
         cerr << e.what() << endl ;
@@ -412,6 +434,7 @@ string GlobalState::toString() const
     for( size_t ii = 0 ; ii < _gStates.size()-1 ; ++ii )
         ss << _gStates[ii]->toString() << "," ;
     ss << _gStates.back()->toString() << "]" ;
+    ss << "{" << strategy_state_->toString() << "}";
 
     return ss.str();
 }
@@ -426,6 +449,8 @@ string GlobalState::toReadable() const {
     ret += g->toReadable();
   }
   ret += "]";
+  ret += "{";
+  ret += strategy_state_->toReadable() + "}";
   return ret;
 }
 
