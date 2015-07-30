@@ -19,6 +19,7 @@ const ProtocolError ProtocolError::kDeadLock("deadlock");
 const ProtocolError ProtocolError::kLivelock("livelock");
 const ProtocolError ProtocolError::kErrorState("error_state");
 const ProtocolError ProtocolError::kCheckerError("checker_error");
+const ProtocolError ProtocolError::kAssertError("assert_error");
 
 ProbVerifierConfig::ProbVerifierConfig()
     : low_p_bound_(1000.0), low_p_bound_inverse_(1.0/low_p_bound_),
@@ -146,8 +147,11 @@ void ProbVerifier::start(int max_class, const GlobalState* init_state,
     if (verbosity_) {
       cout << "Model checking procedure completes. Error not found." << endl;
       printStat();
+      // TODO: fix findCycle()
+      /*
       if (findCycle())
         cout << "Cycle found in transition system. Bound may diverge." << endl;
+        */
       for (int k = 1; k <= max_class + 1; ++k) {
         double alpha = computeBound(k);
         cout << "Probability of reaching class[" << k << "]"
@@ -177,6 +181,14 @@ void ProbVerifier::start(int max_class, const GlobalState* init_state,
     //printSeq(seq);
 #endif
   } catch (ProtocolError pe) {
+    // TODO: improve printing counterexample to assertion error; now only prints
+    // from entry state rather than initial state
+    if (pe.toString() == ProtocolError::kAssertError.toString()) {
+      if (config_.trace_back_) {
+        dfs_stack_state_.front()->printTrail(indexToState);
+        stackPrint();
+      }
+    }
     cout << pe.toString() << endl;
   }
 }

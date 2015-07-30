@@ -35,12 +35,13 @@ typedef set<string>               GSVecSet;
 class ProtocolError {
 public:
   ProtocolError(const string& s): error_msg_(s) {}
-  string toString() { return string("ProtocolError: ") + error_msg_; }
+  string toString() const { return string("ProtocolError: ") + error_msg_; }
 
   const static ProtocolError kDeadLock;
   const static ProtocolError kLivelock;
   const static ProtocolError kErrorState;
   const static ProtocolError kCheckerError;
+  const static ProtocolError kAssertError;
 private:
   string error_msg_;
 };
