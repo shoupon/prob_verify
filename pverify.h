@@ -69,6 +69,7 @@ public:
   ProbVerifierConfig();
   void setLowProbBound(double p);
   void setBoundMethod(int method);
+  void setMaxClass(int max_class);
   void enableTraceback() { trace_back_ = 1; }
   void disableTraceback() { trace_back_ = 0; }
 
@@ -77,6 +78,7 @@ private:
   double low_p_bound_inverse_;
   int bound_method_;
   int trace_back_;
+  int max_class_;
 };
 
 class ProbVerifier {

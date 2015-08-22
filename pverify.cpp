@@ -23,7 +23,7 @@ const ProtocolError ProtocolError::kAssertError("assert_error");
 
 ProbVerifierConfig::ProbVerifierConfig()
     : low_p_bound_(1000.0), low_p_bound_inverse_(1.0/low_p_bound_),
-      bound_method_(DFS_TWO_STEP), trace_back_(1) {
+      bound_method_(DFS_TWO_STEP), trace_back_(1), max_class_(0) {
 }
 
 void ProbVerifierConfig::setLowProbBound(double p) {
@@ -33,6 +33,11 @@ void ProbVerifierConfig::setLowProbBound(double p) {
 
 void ProbVerifierConfig::setBoundMethod(int method) {
   bound_method_ = method;
+}
+
+void ProbVerifierConfig::setMaxClass(int max_class) {
+  assert(max_class >= 0);
+  max_class_ = max_class;
 }
 
 vector<StateMachine*> ProbVerifier::machine_ptrs_;
@@ -115,6 +120,8 @@ void ProbVerifier::start(int max_class, int verbose) {
 void ProbVerifier::start(int max_class, const GlobalState* init_state,
                          int verbose) {
   verbosity_ = verbose;
+  max_class = config_.max_class_;
+
   initialize(init_state);
   classes_.resize(max_class + 1, GSClass());
   entries_.resize(max_class + 10, GSEntry());
